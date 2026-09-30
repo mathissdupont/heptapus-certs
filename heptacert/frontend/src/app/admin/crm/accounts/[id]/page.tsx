@@ -17,7 +17,7 @@ import {
   type CrmAccountOut, type CrmAccountContactOut,
   type CrmDealOut, type CrmDealActivityOut, type CrmParticipantListItem,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 const DEAL_STAGES = [
   { value: "lead", label: "Lead", color: "bg-sunken text-content-secondary" },
@@ -64,12 +64,12 @@ const INDUSTRY_OPTIONS_EN = [
 ];
 
 const SIZE_OPTIONS = [
-  { value: "1-10", label: "1–10 kişi", labelEn: "1–10 people" },
-  { value: "11-50", label: "11–50 kişi", labelEn: "11–50 people" },
-  { value: "51-200", label: "51–200 kişi", labelEn: "51–200 people" },
-  { value: "201-1000", label: "201–1000 kişi", labelEn: "201–1000 people" },
-  { value: "1000+", label: "1000+ kişi", labelEn: "1000+ people" },
-];
+  { value: "1-10", labelKey: "admin_crm_size_1_10" },
+  { value: "11-50", labelKey: "admin_crm_size_11_50" },
+  { value: "51-200", labelKey: "admin_crm_size_51_200" },
+  { value: "201-1000", labelKey: "admin_crm_size_201_1000" },
+  { value: "1000+", labelKey: "admin_crm_size_1000_plus" },
+] as const;
 
 type Tab = "info" | "contacts" | "deals";
 
@@ -79,131 +79,11 @@ export default function CrmAccountDetailPage() {
   const accountId = Number(params.id);
   const { lang } = useI18n();
 
-  const copy = lang === "tr" ? {
-    // Status
-    active: "Aktif",
-    inactive: "Pasif",
-    // Tabs
-    tabInfo: "Bilgiler",
-    tabContacts: "Kişiler",
-    tabDeals: "Fırsatlar",
-    // Info form labels
-    companyName: "Şirket Adı *",
-    domain: "Domain",
-    sector: "Sektör",
-    size: "Büyüklük",
-    annualValue: "Yıllık Değer (₺)",
-    statusLabel: "Durum",
-    notes: "Notlar",
-    selectPlaceholder: "Seçin...",
-    save: "Kaydet",
-    // Contact tab
-    addContact: "Kişi Ekle",
-    searchContactLabel: "CRM'de kayıtlı kişiyi ara",
-    searchContactPlaceholder: "İsim veya e-posta...",
-    noProfile: "Profil yok",
-    alreadyAdded: "Zaten ekli",
-    noContactsSearchResult: "Sonuç bulunamadı. Önce CRM'e kişi ekleyin.",
-    noContacts: "Bu hesaba bağlı kişi yok.",
-    noContactsHint: "Yukarıdan CRM'deki kişiyi arayıp ekleyebilirsiniz.",
-    colEmail: "E-posta",
-    colName: "İsim",
-    colRole: "Rol",
-    colPrimary: "Birincil",
-    // Deal tab
-    newDeal: "Yeni Fırsat",
-    dealNamePlaceholder: "Fırsat adı *",
-    amountPlaceholder: "Tutar (₺)",
-    add: "Ekle",
-    cancel: "İptal",
-    noDeals: "Henüz fırsat yok.",
-    activityCount: "aktivite",
-    // Activity
-    activityPlaceholder: "Aktivite notu...",
-    noActivities: "Henüz aktivite yok.",
-    // Toasts
-    toastSaved: "Kaydedildi.",
-    toastSaveFailed: "Kayıt başarısız.",
-    toastContactAdded: "Kişi eklendi.",
-    toastContactFailed: "Kişi eklenemedi.",
-    toastContactRemoveFailed: "Kaldırılamadı.",
-    toastContactNoProfile: "Bu kişinin CRM profili henüz oluşturulmamış.",
-    toastDealCreated: "Fırsat oluşturuldu.",
-    toastDealCreateFailed: "Oluşturulamadı.",
-    toastDealUpdateFailed: "Güncellenemedi.",
-    toastDealDeleteFailed: "Silinemedi.",
-    toastActivityFailed: "Eklenemedi.",
-    toastActivityDeleteFailed: "Silinemedi.",
-    confirmDeleteDeal: "Bu fırsatı silmek istediğinizden emin misiniz?",
-    // Status options
-    statusActive: "Aktif",
-    statusInactive: "Pasif",
-    statusChurned: "Kaybedildi",
-  } : {
-    // Status
-    active: "Active",
-    inactive: "Inactive",
-    // Tabs
-    tabInfo: "Details",
-    tabContacts: "Contacts",
-    tabDeals: "Deals",
-    // Info form labels
-    companyName: "Company Name *",
-    domain: "Domain",
-    sector: "Industry",
-    size: "Size",
-    annualValue: "Annual Value (₺)",
-    statusLabel: "Status",
-    notes: "Notes",
-    selectPlaceholder: "Select...",
-    save: "Save",
-    // Contact tab
-    addContact: "Add Contact",
-    searchContactLabel: "Search registered CRM contact",
-    searchContactPlaceholder: "Name or email...",
-    noProfile: "No profile",
-    alreadyAdded: "Already added",
-    noContactsSearchResult: "No results. Please add a contact to CRM first.",
-    noContacts: "No contacts linked to this account.",
-    noContactsHint: "Search and add a CRM contact using the button above.",
-    colEmail: "Email",
-    colName: "Name",
-    colRole: "Role",
-    colPrimary: "Primary",
-    // Deal tab
-    newDeal: "New Deal",
-    dealNamePlaceholder: "Deal name *",
-    amountPlaceholder: "Amount (₺)",
-    add: "Add",
-    cancel: "Cancel",
-    noDeals: "No deals yet.",
-    activityCount: "activities",
-    // Activity
-    activityPlaceholder: "Activity note...",
-    noActivities: "No activities yet.",
-    // Toasts
-    toastSaved: "Saved.",
-    toastSaveFailed: "Save failed.",
-    toastContactAdded: "Contact added.",
-    toastContactFailed: "Failed to add contact.",
-    toastContactRemoveFailed: "Failed to remove.",
-    toastContactNoProfile: "This person does not have a CRM profile yet.",
-    toastDealCreated: "Deal created.",
-    toastDealCreateFailed: "Failed to create.",
-    toastDealUpdateFailed: "Failed to update.",
-    toastDealDeleteFailed: "Failed to delete.",
-    toastActivityFailed: "Failed to add.",
-    toastActivityDeleteFailed: "Failed to delete.",
-    confirmDeleteDeal: "Are you sure you want to delete this deal?",
-    // Status options
-    statusActive: "Active",
-    statusInactive: "Inactive",
-    statusChurned: "Churned",
-  };
+  const copy = { active: translate(lang, "migrated_app_admin_crm_accounts_id_active_a7211af8"), inactive: translate(lang, "migrated_app_admin_crm_accounts_id_inactive_28c73985"), tabInfo: translate(lang, "migrated_app_admin_crm_accounts_id_details_a740043c"), tabContacts: translate(lang, "migrated_app_admin_crm_accounts_id_contacts_bd52c8ca"), tabDeals: translate(lang, "migrated_app_admin_crm_accounts_id_deals_e1452d85"), companyName: translate(lang, "migrated_app_admin_crm_accounts_id_company_name_efffb9f3"), domain: translate(lang, "migrated_app_admin_crm_accounts_id_domain_a4034bc4"), sector: translate(lang, "migrated_app_admin_crm_accounts_id_industry_977efa30"), size: translate(lang, "migrated_app_admin_crm_accounts_id_size_4cd1f547"), annualValue: translate(lang, "migrated_app_admin_crm_accounts_id_annual_value_1ffbffc2"), statusLabel: translate(lang, "migrated_app_admin_crm_accounts_id_status_c2e60cf8"), notes: translate(lang, "migrated_app_admin_crm_accounts_id_notes_b9cb44d2"), selectPlaceholder: translate(lang, "migrated_app_admin_crm_accounts_id_select_9a1be0dc"), save: translate(lang, "migrated_app_admin_crm_accounts_id_save_4838dfa5"), addContact: translate(lang, "migrated_app_admin_crm_accounts_id_add_contact_f0967341"), searchContactLabel: translate(lang, "migrated_app_admin_crm_accounts_id_search_registered_crm_contact_495f3756"), searchContactPlaceholder: translate(lang, "migrated_app_admin_crm_accounts_id_name_or_email_9b23fc6e"), noProfile: translate(lang, "migrated_app_admin_crm_accounts_id_no_profile_78ef4051"), alreadyAdded: translate(lang, "migrated_app_admin_crm_accounts_id_already_added_9fe6e86f"), noContactsSearchResult: translate(lang, "migrated_app_admin_crm_accounts_id_no_results_please_add_a_contact_to_crm_fir_816861b3"), noContacts: translate(lang, "migrated_app_admin_crm_accounts_id_no_contacts_linked_to_this_account_dc29a0eb"), noContactsHint: translate(lang, "migrated_app_admin_crm_accounts_id_search_and_add_a_crm_contact_using_the_but_f0bd9ca0"), colEmail: translate(lang, "migrated_app_admin_crm_accounts_id_email_0b2c608d"), colName: translate(lang, "migrated_app_admin_crm_accounts_id_name_6a9b7a9b"), colRole: translate(lang, "migrated_app_admin_crm_accounts_id_role_79579dcc"), colPrimary: translate(lang, "migrated_app_admin_crm_accounts_id_primary_0847380d"), newDeal: translate(lang, "migrated_app_admin_crm_accounts_id_new_deal_422f47c5"), dealNamePlaceholder: translate(lang, "migrated_app_admin_crm_accounts_id_deal_name_93f14db9"), amountPlaceholder: translate(lang, "migrated_app_admin_crm_accounts_id_amount_dc94fdb5"), add: translate(lang, "migrated_app_admin_crm_accounts_id_add_4aa8168e"), cancel: translate(lang, "migrated_app_admin_crm_accounts_id_cancel_68aa0a98"), noDeals: translate(lang, "migrated_app_admin_crm_accounts_id_no_deals_yet_45ffc01c"), activityCount: translate(lang, "migrated_app_admin_crm_accounts_id_activities_51cfcc51"), activityPlaceholder: translate(lang, "migrated_app_admin_crm_accounts_id_activity_note_31c82ee8"), noActivities: translate(lang, "migrated_app_admin_crm_accounts_id_no_activities_yet_931b7369"), toastSaved: translate(lang, "migrated_app_admin_crm_accounts_id_saved_96d3e008"), toastSaveFailed: translate(lang, "migrated_app_admin_crm_accounts_id_save_failed_7062c5a8"), toastContactAdded: translate(lang, "migrated_app_admin_crm_accounts_id_contact_added_58019623"), toastContactFailed: translate(lang, "migrated_app_admin_crm_accounts_id_failed_to_add_contact_e5da7b13"), toastContactRemoveFailed: translate(lang, "migrated_app_admin_crm_accounts_id_failed_to_remove_a18fec0c"), toastContactNoProfile: translate(lang, "migrated_app_admin_crm_accounts_id_this_person_does_not_have_a_crm_profile_ye_e93686c1"), toastDealCreated: translate(lang, "migrated_app_admin_crm_accounts_id_deal_created_514a98f7"), toastDealCreateFailed: translate(lang, "migrated_app_admin_crm_accounts_id_failed_to_create_100fd03e"), toastDealUpdateFailed: translate(lang, "migrated_app_admin_crm_accounts_id_failed_to_update_0433b5f9"), toastDealDeleteFailed: translate(lang, "migrated_app_admin_crm_accounts_id_failed_to_delete_8ff96a90"), toastActivityFailed: translate(lang, "migrated_app_admin_crm_accounts_id_failed_to_add_d9f6d38d"), toastActivityDeleteFailed: translate(lang, "migrated_app_admin_crm_accounts_id_failed_to_delete_1e8cd953"), confirmDeleteDeal: translate(lang, "migrated_app_admin_crm_accounts_id_are_you_sure_you_want_to_delete_this_deal_c4bdfca8"), statusActive: translate(lang, "migrated_app_admin_crm_accounts_id_active_a19cb337"), statusInactive: translate(lang, "migrated_app_admin_crm_accounts_id_inactive_9190056e"), statusChurned: translate(lang, "migrated_app_admin_crm_accounts_id_churned_5f091131") };
 
-  const dealStages = lang === "tr" ? DEAL_STAGES : DEAL_STAGES_EN;
-  const activityTypes = lang === "tr" ? ACTIVITY_TYPES : ACTIVITY_TYPES_EN;
-  const industryOptions = lang === "tr" ? INDUSTRY_OPTIONS_TR : INDUSTRY_OPTIONS_EN;
+  const dealStages = [{ value: "lead", label: "Lead", color: "bg-sunken text-content-secondary" }, { value: "qualified", label: translate(lang, "migrated_app_admin_crm_accounts_id_qualified_b956c449"), color: "bg-status-info-bg text-status-info-content" }, { value: "proposal", label: translate(lang, "migrated_app_admin_crm_accounts_id_proposal_2c3d076f"), color: "bg-status-warning-bg text-status-warning-content" }, { value: "negotiation", label: translate(lang, "migrated_app_admin_crm_accounts_id_negotiation_79255c9d"), color: "bg-status-warning-bg text-status-warning-content" }, { value: "won", label: translate(lang, "migrated_app_admin_crm_accounts_id_won_2fb4ec87"), color: "bg-status-success-bg text-status-success-content" }, { value: "lost", label: translate(lang, "migrated_app_admin_crm_accounts_id_lost_d1a9bc93"), color: "bg-status-danger-bg text-status-danger-content" }];
+  const activityTypes = [{ value: "note", label: translate(lang, "migrated_app_admin_crm_accounts_id_note_0e7d3bcd"), icon: FileText }, { value: "call", label: translate(lang, "migrated_app_admin_crm_accounts_id_call_347ede80"), icon: Phone }, { value: "email", label: translate(lang, "migrated_app_admin_crm_accounts_id_email_793e185f"), icon: Mail }, { value: "meeting", label: translate(lang, "migrated_app_admin_crm_accounts_id_meeting_7bc7e9ae"), icon: Calendar }, { value: "task", label: translate(lang, "migrated_app_admin_crm_accounts_id_task_40b676e2"), icon: CheckCircle2 }];
+  const industryOptions = [translate(lang, "migrated_app_admin_crm_accounts_id_technology_c5745f4f"), translate(lang, "migrated_app_admin_crm_accounts_id_finance_95d29865"), translate(lang, "migrated_app_admin_crm_accounts_id_healthcare_bc1d626a"), translate(lang, "migrated_app_admin_crm_accounts_id_education_471cae36"), translate(lang, "migrated_app_admin_crm_accounts_id_manufacturing_242546ad"), translate(lang, "migrated_app_admin_crm_accounts_id_retail_8cbac2d3"), translate(lang, "migrated_app_admin_crm_accounts_id_construction_57ed906a"), translate(lang, "migrated_app_admin_crm_accounts_id_logistics_877a1f7e"), translate(lang, "migrated_app_admin_crm_accounts_id_consulting_2c5e0206"), translate(lang, "migrated_app_admin_crm_accounts_id_other_e7474836")];
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -518,7 +398,7 @@ export default function CrmAccountDetailPage() {
                 onChange={(e) => setSize(e.target.value)}
               >
                 <option value="">{copy.selectPlaceholder}</option>
-                {SIZE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{lang === "tr" ? o.label : o.labelEn}</option>)}
+                {SIZE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{translate(lang, o.labelKey)}</option>)}
               </select>
             </div>
             <div>

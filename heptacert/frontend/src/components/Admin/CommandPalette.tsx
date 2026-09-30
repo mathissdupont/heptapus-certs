@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import type { ElementType } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -19,7 +18,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type CommandItem = {
   id: string;
@@ -43,54 +42,7 @@ export default function CommandPalette() {
   const [query, setQuery] = useState("");
   const eventId = getEventId(pathname);
 
-  const copy = pickLang({
-    tr: {
-      button: "Komut paleti",
-      placeholder: "Sayfa, işlem veya modül ara...",
-      hint: "Ctrl/⌘ K",
-      empty: "Eşleşen komut bulunamadı.",
-      general: "Genel komutlar",
-      event: "Bu etkinlik",
-      dashboard: "Dashboard",
-      dashboardDesc: "Organizatör özetine git",
-      events: "Etkinlikler",
-      eventsDesc: "Etkinlik listesini aç",
-      email: "E-posta merkezi",
-      emailDesc: "Kampanya ve şablonları yönet",
-      settings: "Ayarlar",
-      settingsDesc: "Sistem ayarlarına git",
-      eventHome: "Etkinlik özeti",
-      attendees: "Katılımcılar",
-      checkin: "Check-in",
-      ops: "Canlı operasyon",
-      certificates: "Sertifikalar",
-      tickets: "Biletler",
-      eventSettings: "Etkinlik ayarları",
-    },
-    en: {
-      button: "Command palette",
-      placeholder: "Search pages, actions, or modules...",
-      hint: "Ctrl/⌘ K",
-      empty: "No matching command found.",
-      general: "General commands",
-      event: "This event",
-      dashboard: "Dashboard",
-      dashboardDesc: "Open organizer overview",
-      events: "Events",
-      eventsDesc: "Open event list",
-      email: "Email center",
-      emailDesc: "Manage campaigns and templates",
-      settings: "Settings",
-      settingsDesc: "Open system settings",
-      eventHome: "Event overview",
-      attendees: "Attendees",
-      checkin: "Check-in",
-      ops: "Live operations",
-      certificates: "Certificates",
-      tickets: "Tickets",
-      eventSettings: "Event settings",
-    },
-  }, lang);
+  const copy = { button: translate(lang, "migrated_components_admin_commandpalette_command_palette_69f7f78c"), placeholder: translate(lang, "migrated_components_admin_commandpalette_search_pages_actions_or_modules_b3c8716d"), hint: "Ctrl/⌘ K", empty: translate(lang, "migrated_components_admin_commandpalette_no_matching_command_found_e756e8b0"), general: translate(lang, "migrated_components_admin_commandpalette_general_commands_5afc712a"), event: translate(lang, "migrated_components_admin_commandpalette_this_event_8f1ed8aa"), dashboard: "Dashboard", dashboardDesc: translate(lang, "migrated_components_admin_commandpalette_open_organizer_overview_827fa7e7"), events: translate(lang, "migrated_components_admin_commandpalette_events_146d2551"), eventsDesc: translate(lang, "migrated_components_admin_commandpalette_open_event_list_360ab2e1"), email: translate(lang, "migrated_components_admin_commandpalette_email_center_cb9dcfc7"), emailDesc: translate(lang, "migrated_components_admin_commandpalette_manage_campaigns_and_templates_007130d2"), settings: translate(lang, "migrated_components_admin_commandpalette_settings_e83d594e"), settingsDesc: translate(lang, "migrated_components_admin_commandpalette_open_system_settings_31a018da"), eventHome: translate(lang, "migrated_components_admin_commandpalette_event_overview_c0380abf"), attendees: translate(lang, "migrated_components_admin_commandpalette_attendees_99ffc13e"), checkin: "Check-in", ops: translate(lang, "migrated_components_admin_commandpalette_live_operations_111158ad"), certificates: translate(lang, "migrated_components_admin_commandpalette_certificates_40eb0ad5"), tickets: translate(lang, "migrated_components_admin_commandpalette_tickets_1366a4ab"), eventSettings: translate(lang, "migrated_components_admin_commandpalette_event_settings_cda62cfa") };
 
   const commands = useMemo<CommandItem[]>(() => {
     const base: CommandItem[] = [

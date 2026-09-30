@@ -11,56 +11,12 @@ import {
   listSequences, createSequence, updateSequence, deleteSequence,
   type SequenceOut,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 export default function CrmSequencesPage() {
   const router = useRouter();
   const { lang } = useI18n();
-  const copy = lang === "tr"
-    ? {
-        pageTitle: "Drip Sequence'lar",
-        pageSubtitle: "Otomatik e-posta kampanya serileri",
-        newSequence: "Yeni Sequence",
-        createFormTitle: "Yeni sequence oluştur",
-        sequenceNamePlaceholder: "Sequence adı...",
-        create: "Oluştur",
-        cancel: "İptal",
-        active: "Aktif",
-        inactive: "Pasif",
-        steps: "adım",
-        activeEnrollments: "aktif kayıt",
-        edit: "Düzenle",
-        deactivateTitle: "Pasife al",
-        activateTitle: "Aktifleştir",
-        emptyTitle: "Henüz sequence yok.",
-        emptySubtitle: "Kişilere otomatik e-posta serisi gönderin.",
-        errorCreate: "Oluşturulamadı.",
-        errorUpdate: "Güncellenemedi.",
-        errorDelete: "Silinemedi.",
-        deleteConfirm: "Bu sequence'ı silmek istediğinizden emin misiniz? Aktif kayıtlar da silinecek.",
-      }
-    : {
-        pageTitle: "Drip Sequences",
-        pageSubtitle: "Automated email campaign series",
-        newSequence: "New Sequence",
-        createFormTitle: "Create new sequence",
-        sequenceNamePlaceholder: "Sequence name...",
-        create: "Create",
-        cancel: "Cancel",
-        active: "Active",
-        inactive: "Inactive",
-        steps: "steps",
-        activeEnrollments: "active enrollments",
-        edit: "Edit",
-        deactivateTitle: "Deactivate",
-        activateTitle: "Activate",
-        emptyTitle: "No sequences yet.",
-        emptySubtitle: "Send automated email series to contacts.",
-        errorCreate: "Could not create.",
-        errorUpdate: "Could not update.",
-        errorDelete: "Could not delete.",
-        deleteConfirm: "Are you sure you want to delete this sequence? Active enrollments will also be deleted.",
-      };
+  const copy = { pageTitle: translate(lang, "migrated_app_admin_crm_sequences_drip_sequences_15f0aae1"), pageSubtitle: translate(lang, "migrated_app_admin_crm_sequences_automated_email_campaign_series_057b9f48"), newSequence: translate(lang, "migrated_app_admin_crm_sequences_new_sequence_55048979"), createFormTitle: translate(lang, "migrated_app_admin_crm_sequences_create_new_sequence_dddc5b34"), sequenceNamePlaceholder: translate(lang, "migrated_app_admin_crm_sequences_sequence_name_14dc689c"), create: translate(lang, "migrated_app_admin_crm_sequences_create_df81f3c1"), cancel: translate(lang, "migrated_app_admin_crm_sequences_cancel_b05d1448"), active: translate(lang, "migrated_app_admin_crm_sequences_active_8a83b62c"), inactive: translate(lang, "migrated_app_admin_crm_sequences_inactive_a0d624fd"), steps: translate(lang, "migrated_app_admin_crm_sequences_steps_fa7f73d1"), activeEnrollments: translate(lang, "migrated_app_admin_crm_sequences_active_enrollments_574b5985"), edit: translate(lang, "migrated_app_admin_crm_sequences_edit_370d6cd7"), deactivateTitle: translate(lang, "migrated_app_admin_crm_sequences_deactivate_b4e5df6d"), activateTitle: translate(lang, "migrated_app_admin_crm_sequences_activate_96fc330d"), emptyTitle: translate(lang, "migrated_app_admin_crm_sequences_no_sequences_yet_d8b81048"), emptySubtitle: translate(lang, "migrated_app_admin_crm_sequences_send_automated_email_series_to_contacts_ec057d9b"), errorCreate: translate(lang, "migrated_app_admin_crm_sequences_could_not_create_8ff1625e"), errorUpdate: translate(lang, "migrated_app_admin_crm_sequences_could_not_update_411ecf8a"), errorDelete: translate(lang, "migrated_app_admin_crm_sequences_could_not_delete_b3c52514"), deleteConfirm: translate(lang, "migrated_app_admin_crm_sequences_are_you_sure_you_want_to_delete_this_seque_81e1e7e0") };
 
   const [sequences, setSequences] = useState<SequenceOut[]>([]);
   const [loading, setLoading] = useState(true);

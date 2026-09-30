@@ -14,7 +14,7 @@ import {
 import { apiFetch } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type PricingTier = {
   id: string;
@@ -45,35 +45,7 @@ export default function SuperadminPricingPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const copy = lang === "tr"
-    ? {
-        title: "Fiyatlandırma",
-        subtitle: "Plan isimlerini, ücretleri, HeptaCoin kotalarını ve özellik listelerini tek panelden düzenleyin",
-        save: "Kaydet",
-        refresh: "Yenile",
-        loadFailed: "Fiyatlandırma yüklenemedi",
-        saveFailed: "Fiyatlandırma kaydedilemedi",
-        saveSuccess: "Fiyatlandırma kaydedildi",
-        monthly: "Aylık",
-        annual: "Yıllık",
-        quota: "HC kota",
-        trFeatures: "Özellikler (TR)",
-        enFeatures: "Features (EN)",
-      }
-    : {
-        title: "Pricing",
-        subtitle: "Edit plan names, pricing, HeptaCoin quotas, and feature lists from a single panel",
-        save: "Save",
-        refresh: "Refresh",
-        loadFailed: "Failed to load pricing",
-        saveFailed: "Failed to save pricing",
-        saveSuccess: "Pricing saved",
-        monthly: "Monthly",
-        annual: "Annual",
-        quota: "HC quota",
-        trFeatures: "Features (TR)",
-        enFeatures: "Features (EN)",
-      };
+  const copy = { title: translate(lang, "migrated_app_admin_superadmin_pricing_pricing_8f5db473"), subtitle: translate(lang, "migrated_app_admin_superadmin_pricing_edit_plan_names_pricing_heptacoin_quotas_a_a2643e72"), save: translate(lang, "migrated_app_admin_superadmin_pricing_save_626b546d"), refresh: translate(lang, "migrated_app_admin_superadmin_pricing_refresh_552a84f8"), loadFailed: translate(lang, "migrated_app_admin_superadmin_pricing_failed_to_load_pricing_f8fea556"), saveFailed: translate(lang, "migrated_app_admin_superadmin_pricing_failed_to_save_pricing_060daf74"), saveSuccess: translate(lang, "migrated_app_admin_superadmin_pricing_pricing_saved_bc878993"), monthly: translate(lang, "migrated_app_admin_superadmin_pricing_monthly_493941c2"), annual: translate(lang, "migrated_app_admin_superadmin_pricing_annual_81e5375d"), quota: translate(lang, "migrated_app_admin_superadmin_pricing_hc_quota_4849991b"), trFeatures: translate(lang, "migrated_app_admin_superadmin_pricing_features_tr_a7e2b558"), enFeatures: translate(lang, "migrated_app_admin_superadmin_pricing_features_en_c630cbec") };
 
   const load = async (mode: "load" | "refresh" = "load") => {
     try {
@@ -101,9 +73,9 @@ export default function SuperadminPricingPage() {
     const enterpriseCount = tiers.filter((tier) => tier.is_enterprise).length;
     const totalQuota = tiers.reduce((sum, tier) => sum + (tier.hc_quota || 0), 0);
     return [
-      { label: "Plans", value: tiers.length, detail: lang === "tr" ? "toplam kademe" : "tiers" },
-      { label: "Free", value: freeCount, detail: lang === "tr" ? "ücretsiz plan" : "free tiers" },
-      { label: "Enterprise", value: enterpriseCount, detail: lang === "tr" ? "kurumsal plan" : "enterprise tiers" },
+      { label: "Plans", value: tiers.length, detail: translate(lang, "migrated_app_admin_superadmin_pricing_tiers_0fa1a87c") },
+      { label: "Free", value: freeCount, detail: translate(lang, "migrated_app_admin_superadmin_pricing_free_tiers_63d795ab") },
+      { label: "Enterprise", value: enterpriseCount, detail: translate(lang, "migrated_app_admin_superadmin_pricing_enterprise_tiers_ba6967f3") },
       { label: copy.quota, value: totalQuota, detail: "HC" },
     ];
   }, [copy.quota, lang, tiers]);
@@ -205,7 +177,7 @@ export default function SuperadminPricingPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold uppercase text-surface-600 shadow-soft">{tier.id}</span>
-                <h2 className="mt-3 text-lg font-semibold text-surface-900">{lang === "tr" ? tier.name_tr : tier.name_en}</h2>
+                <h2 className="mt-3 text-lg font-semibold text-surface-900">{tier.name_en || tier.name_tr}</h2>
               </div>
               <div className="text-right text-xs text-surface-500">
                 {tier.is_free && <p>Free</p>}

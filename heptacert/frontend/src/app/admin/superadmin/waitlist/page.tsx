@@ -14,7 +14,7 @@ import {
 import { apiFetch } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
 import EmptyState from "@/components/Admin/EmptyState";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type WaitlistRow = {
   id: number;
@@ -40,37 +40,7 @@ export default function SuperadminWaitlistPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const copy = lang === "tr"
-    ? {
-        title: "Bekleme Listesi",
-        subtitle: "Talep toplayan potansiyel müşterileri, plan ilgilerini ve iletişim bilgilerini tek listede takip edin",
-        export: "CSV indir",
-        loadFailed: "Bekleme listesi yüklenemedi",
-        total: "Toplam talep",
-        withPhone: "Telefon var",
-        enterprise: "Kurumsal ilgi",
-        today: "Bugün",
-        search: "İsim, e-posta veya not ara...",
-        emptyTitle: "Bekleme listesi boş",
-        emptyBody: "Henüz yeni kayıt gelmediğinde potansiyel müşteri listesi burada görünecek.",
-        noNote: "Not yok",
-        noPlan: "Plan yok",
-      }
-    : {
-        title: "Waitlist",
-        subtitle: "Track incoming leads, their plan interest, and contact details in a single list",
-        export: "Export CSV",
-        loadFailed: "Failed to load waitlist",
-        total: "Total leads",
-        withPhone: "With phone",
-        enterprise: "Enterprise interest",
-        today: "Today",
-        search: "Search by name, email, or notes...",
-        emptyTitle: "Waitlist is empty",
-        emptyBody: "New inbound leads will appear here once requests start arriving.",
-        noNote: "No notes",
-        noPlan: "No plan",
-      };
+  const copy = { title: translate(lang, "migrated_app_admin_superadmin_waitlist_waitlist_d281b9bc"), subtitle: translate(lang, "migrated_app_admin_superadmin_waitlist_track_incoming_leads_their_plan_interest_a_cc4a1c53"), export: translate(lang, "migrated_app_admin_superadmin_waitlist_export_csv_7b4c4332"), loadFailed: translate(lang, "migrated_app_admin_superadmin_waitlist_failed_to_load_waitlist_3746b1a4"), total: translate(lang, "migrated_app_admin_superadmin_waitlist_total_leads_aa072af9"), withPhone: translate(lang, "migrated_app_admin_superadmin_waitlist_with_phone_05f05974"), enterprise: translate(lang, "migrated_app_admin_superadmin_waitlist_enterprise_interest_dfa12c20"), today: translate(lang, "migrated_app_admin_superadmin_waitlist_today_f739cd4e"), search: translate(lang, "migrated_app_admin_superadmin_waitlist_search_by_name_email_or_notes_d37178e8"), emptyTitle: translate(lang, "migrated_app_admin_superadmin_waitlist_waitlist_is_empty_b91d0d0d"), emptyBody: translate(lang, "migrated_app_admin_superadmin_waitlist_new_inbound_leads_will_appear_here_once_re_a7231814"), noNote: translate(lang, "migrated_app_admin_superadmin_waitlist_no_notes_0023b094"), noPlan: translate(lang, "migrated_app_admin_superadmin_waitlist_no_plan_5a2c8f4f") };
 
   const load = async () => {
     try {

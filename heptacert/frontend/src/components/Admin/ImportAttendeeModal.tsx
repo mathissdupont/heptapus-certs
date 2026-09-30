@@ -1,12 +1,11 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { importAttendees } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 interface ImportAttendeeModalProps {
   open: boolean;
@@ -25,30 +24,7 @@ export default function ImportAttendeeModal({ open, onClose, onImported, eventId
   const [result, setResult] = useState<{ added: number; skipped: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  const copy = pickLang({
-    tr: {
-      title: "Excel / CSV İçe Aktar",
-      hint: "Şablonda en azından ad ve e-posta sütunları yer almalıdır.",
-      chooseFile: "Dosya Seç",
-      noFile: "Dosya seçilmedi",
-      import: "İçeri Aktar",
-      importing: "Aktarılıyor...",
-      result: (a: number, s: number) => `${a} eklendi · ${s} mükerrer atlandı`,
-      failed: "İçe aktarma başarısız.",
-      close: "Kapat",
-    },
-    en: {
-      title: "Import Excel / CSV",
-      hint: "The file must have at least a name and email column.",
-      chooseFile: "Choose File",
-      noFile: "No file selected",
-      import: "Import",
-      importing: "Importing...",
-      result: (a: number, s: number) => `${a} added · ${s} duplicates skipped`,
-      failed: "Import failed.",
-      close: "Close",
-    },
-  }, lang);
+  const copy = { title: translate(lang, "migrated_components_admin_importattendeemodal_import_excel_csv_34b914bf"), hint: translate(lang, "migrated_components_admin_importattendeemodal_the_file_must_have_at_least_a_name_and_ema_756dc68e"), chooseFile: translate(lang, "migrated_components_admin_importattendeemodal_choose_file_7d1fc1a3"), noFile: translate(lang, "migrated_components_admin_importattendeemodal_no_file_selected_89275205"), import: translate(lang, "migrated_components_admin_importattendeemodal_import_ad883823"), importing: translate(lang, "migrated_components_admin_importattendeemodal_importing_69491f1e"), result: (a: number, s: number) => translate(lang, "migrated_components_admin_importattendeemodal_value0_added_value1_duplicates_skipped_760e96af", { value0: a, value1: s }), failed: translate(lang, "migrated_components_admin_importattendeemodal_import_failed_b1f54705"), close: translate(lang, "migrated_components_admin_importattendeemodal_close_f2b01666") };
 
   async function handleImport() {
     if (!file) return;
@@ -83,7 +59,7 @@ export default function ImportAttendeeModal({ open, onClose, onImported, eventId
                 </div>
                 <h2 className="text-sm font-semibold text-surface-900">{copy.title}</h2>
               </div>
-              <button onClick={onClose} aria-label={lang === "tr" ? "Kapat" : "Close"} className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 transition-colors"><X className="h-4 w-4" /></button>
+              <button onClick={onClose} aria-label={translate(lang, "migrated_components_admin_importattendeemodal_close_b5c7c2f4")} className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 transition-colors"><X className="h-4 w-4" /></button>
             </div>
 
             <div className="space-y-4 p-5">

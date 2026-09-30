@@ -61,7 +61,8 @@ import DateField from "@/components/Admin/DateField";
 import DateTimeField from "@/components/Admin/DateTimeField";
 import RetentionPolicySection from "@/components/Admin/RetentionPolicySection";
 import RichTextEditor from "@/components/RichTextEditor";
-import { useI18n, useT } from "@/lib/i18n";
+import { useI18n, useT, translate } from "@/lib/i18n";
+import type { TranslationKey } from "@/lib/i18n";
 import { PlanGateCard } from "@/lib/useSubscription";
 import { useToast } from "@/hooks/useToast";
 import useKeyboardShortcut from "@/hooks/useKeyboardShortcut";
@@ -206,32 +207,32 @@ type EventType =
   | "online_event"
   | "custom";
 
-const FIELD_TYPE_OPTIONS: Array<{ value: RegistrationField["type"]; tr: string; en: string; desc_tr?: string; desc_en?: string; icon?: any }> = [
-  { value: "text", tr: "Kısa Metin", en: "Short Text", desc_tr: "Tek satır (isim, e-posta, vb.)", desc_en: "Single line (name, email, etc.)", icon: Type },
-  { value: "textarea", tr: "Uzun Metin", en: "Long Text", desc_tr: "Çok satırlı alan", desc_en: "Multi-line text area", icon: AlignLeft },
-  { value: "tel", tr: "Telefon", en: "Phone", desc_tr: "Telefon numarası", desc_en: "Phone number", icon: Phone },
-  { value: "number", tr: "Sayı", en: "Number", desc_tr: "Sayısal değer", desc_en: "Numeric value", icon: Hash },
-  { value: "date", tr: "Tarih", en: "Date", desc_tr: "Tarih seçici", desc_en: "Date picker", icon: Calendar },
-  { value: "select", tr: "Çoktan Seçmeli", en: "Multiple Choice", desc_tr: "Açılır menü - tek veya birden fazla seçenek", desc_en: "Dropdown - single or multiple options", icon: List },
-  { value: "file", tr: "Dosya Yükleme", en: "File Upload", desc_tr: "Katılımcılar dosya yükle", desc_en: "Participants upload files", icon: FileUp },
+const FIELD_TYPE_OPTIONS: Array<{ value: RegistrationField["type"]; labelKey: TranslationKey; icon?: any }> = [
+  { value: "text", labelKey: "admin_settings_field_short_text", icon: Type },
+  { value: "textarea", labelKey: "admin_settings_field_long_text", icon: AlignLeft },
+  { value: "tel", labelKey: "admin_settings_field_phone", icon: Phone },
+  { value: "number", labelKey: "admin_settings_field_number", icon: Hash },
+  { value: "date", labelKey: "admin_settings_field_date", icon: Calendar },
+  { value: "select", labelKey: "admin_settings_field_select", icon: List },
+  { value: "file", labelKey: "admin_settings_field_file", icon: FileUp },
 ];
 
 const VISIBILITY_OPTIONS = [
-  { value: "private", tr: "Özel", en: "Private" },
-  { value: "unlisted", tr: "Liste dışı", en: "Unlisted" },
-  { value: "public", tr: "Herkese açık", en: "Public" },
+  { value: "private", labelKey: "admin_settings_visibility_private" },
+  { value: "unlisted", labelKey: "admin_settings_visibility_unlisted" },
+  { value: "public", labelKey: "admin_settings_visibility_public" },
 ] as const;
 
-const EVENT_TYPE_OPTIONS: Array<{ value: EventType; tr: string; en: string }> = [
-  { value: "certificate_event", tr: "Sertifika etkinliği", en: "Certificate event" },
-  { value: "seminar", tr: "Seminer", en: "Seminar" },
-  { value: "workshop", tr: "Workshop", en: "Workshop" },
-  { value: "conference", tr: "Konferans", en: "Conference" },
-  { value: "concert", tr: "Konser", en: "Concert" },
-  { value: "training", tr: "Eğitim", en: "Training" },
-  { value: "club_event", tr: "Kulüp etkinliği", en: "Club event" },
-  { value: "online_event", tr: "Online etkinlik", en: "Online event" },
-  { value: "custom", tr: "Özel", en: "Custom" },
+const EVENT_TYPE_OPTIONS: Array<{ value: EventType; labelKey: TranslationKey }> = [
+  { value: "certificate_event", labelKey: "admin_settings_event_certificate" },
+  { value: "seminar", labelKey: "admin_settings_event_seminar" },
+  { value: "workshop", labelKey: "admin_settings_event_workshop" },
+  { value: "conference", labelKey: "admin_settings_event_conference" },
+  { value: "concert", labelKey: "admin_settings_event_concert" },
+  { value: "training", labelKey: "admin_settings_event_training" },
+  { value: "club_event", labelKey: "admin_settings_event_club" },
+  { value: "online_event", labelKey: "admin_settings_event_online" },
+  { value: "custom", labelKey: "admin_settings_event_custom" },
 ];
 
 type EventFeatureFlags = {
@@ -299,11 +300,11 @@ function flagsFromPreset(p: Record<string, boolean>): EventFeatureFlags {
 }
 
 const SETTINGS_TABS = [
-  { id: "general", label_tr: "Genel", label_en: "General", icon: FileText },
-  { id: "registration", label_tr: "Kayıt Formu", label_en: "Registration Form", icon: ClipboardList },
-  { id: "banner", label_tr: "Banner", label_en: "Banner", icon: ImageIcon },
-  { id: "email", label_tr: "E-posta", label_en: "Email", icon: Mail },
-  { id: "comments", label_tr: "Yorumlar", label_en: "Comments", icon: MessageSquare },
+  { id: "general", labelKey: "admin_settings_tab_general", icon: FileText },
+  { id: "registration", labelKey: "admin_settings_tab_registration", icon: ClipboardList },
+  { id: "banner", labelKey: "admin_settings_tab_banner", icon: ImageIcon },
+  { id: "email", labelKey: "admin_settings_tab_email", icon: Mail },
+  { id: "comments", labelKey: "admin_settings_tab_comments", icon: MessageSquare },
 ] as const;
 
 function createRegistrationField(): RegistrationField {
@@ -339,189 +340,7 @@ export default function EventSettingsPage() {
   const { lang } = useI18n();
   const t = useT();
 
-  const copy = lang === "tr"
-    ? {
-        title: "Etkinlik Ayarları",
-        subtitle: "Etkinlik bilgisini, sertifika görünümünü ve otomatik e-posta akışını tek yerden yönetin.",
-        loadingError: "Veriler yüklenemedi.",
-        requiredName: "Etkinlik adı zorunludur.",
-        saveSuccess: "Ayarlar kaydedildi.",
-        saveError: "Ayarlar kaydedilemedi.",
-        bannerError: "Banner yüklenemedi.",
-        upgradeTitle: "Otomatik e-posta için Growth veya Enterprise gerekir",
-        upgradeBody: "Sertifika verildiğinde otomatik e-posta gönderimi ve sistem şablonları yalnızca üst planlarda kullanılabilir.",
-        upgradeCta: "Planları Gör",
-        basicTitle: "Temel Bilgiler",
-        basicBody: "Etkinlik kaydı sırasında görünen ana bilgileri burada güncelleyin.",
-        visibilityTitle: "Açık görünürlük",
-        visibilityBody: "Bu ayar yalnızca açık etkinlik keşif ekranını etkiler. Mevcut kayıt bağlantıların ve organizatör akışın bozulmaz.",
-        visibilityLabel: "Görünürlük modu",
-        visibilityHint: "Özel etkinlikler listede görünmez. Liste dışı etkinlikler sadece doğrudan bağlantıyla açılır. Herkese açık etkinlikler keşif ekranında görünür.",
-        registrationTitleMeta: "Kayıt formu",
-        registrationTitle: "Kayıt formu alanları",
-        registrationBody: "Katılımcılardan toplamak istediğiniz ek bilgileri belirleyin. Bu alanlar açık kayıt sayfasında ad ve e-postanın altında görünür.",
-        verificationTitle: "E-posta doğrulaması",
-        verificationBody: "İstersen bu etkinlik için kayıt sonrası e-posta doğrulamasını zorunlu tutabilir, istemiyorsan tamamen kapatabilirsin.",
-        registrationStatusTitle: "Kayıt durumu",
-        registrationStatusBody: "Etkinlik bittiğinde veya kapasite dolduğunda kayıt sayfasını sistem üzerinden kapatabilirsiniz.",
-        registrationToggle: "Yeni kayıtları kapat",
-        registrationHint: "Kapalıysa yeni kişiler artık kaydolamaz; sadece siz kendiniz kişi ekleyebilirsiniz.",
-        registrationQuotaLabel: "Kayıt kotası",
-        registrationQuotaToggle: "Kayıt kotasını sınırla",
-        registrationQuotaHint: "Belirli sayıda kişi kaydolduktan sonra otomatik kayıt sayfası kapatılır. Örn: 500 kişi dolduktan sonra kapatsın.",
-        registrationQuotaPlaceholder: "Örn. 300",
-        verificationToggle: "Katılımcılar kayıt olduktan sonra e-posta doğrulaması zorunlu olsun",
-        verificationHint: "Kapalıysa: Katılımcı kayıt olur olmaz direkt aktif sayılır ve QR check-in akışında kullanılabilir. Açık ise: Check-in veya sertifika almadan önce e-postasını doğrulaması gerekir.",
-        addField: "Alan ekle",
-        emptyFields: "Henüz özel kayıt alanı eklenmedi.",
-        fieldLabel: "Alan etiketi",
-        fieldType: "Alan türü",
-        fieldPlaceholder: "Placeholder / Örnek metin",
-        fieldHelper: "Yardım metni",
-        fieldOptions: "Seçenekler",
-        fieldOptionsHint: "Her satıra bir seçenek yazın.",
-        requiredField: "Zorunlu alan",
-        conditionalRequirement: "Koşullu zorunluluk",
-        conditionalDependsOn: "Bağlı alan",
-        conditionalValue: "Koşul değeri",
-        conditionalValuePlaceholder: "Seçenek seçin",
-        conditionalHint: "Bu alan, seçilen alandaki değer bu metinle aynıysa zorunlu olur.",
-        removeField: "Alanı kaldır",
-        labelPlaceholder: "Örn. T.C. Kimlik Numarası",
-        helperPlaceholder: "Katılımcının ne girmesi gerektiğini açıklayın",
-        previewHint: "Kayıt formunda bu alanlar verdiğiniz sıraya göre gösterilir.",
-        name: "Etkinlik adı",
-        namePlaceholder: "Örn. Hepta Summit 2026",
-        date: "Etkinlik tarihi",
-        datePlaceholder: "Etkinlik tarihini seçin",
-        location: "Etkinlik konumu",
-        locationPlaceholder: "Örn. İzmir Atatürk Kültür Merkezi",
-        description: "Etkinlik açıklaması",
-        descriptionPlaceholder: "Satır atlayabilir, kalın/italik yapabilir, font ve boyut değiştirebilirsin.",
-        bannerTitle: "Etkinlik bannerı",
-        bannerBody: "Kayıt ekranı ve üst başlıklarda kullanılan görseli güncelleyin.",
-        uploadBanner: "Banner Yükle",
-        bannerHint: "Önerilen boyut: 1200×400 · JPG, PNG veya WebP",
-        noBanner: "Henüz banner yüklenmedi",
-        emailTitle: "Otomatik sertifika e-postası",
-        emailBody: "Sertifika oluşturulduğunda hangi e-posta şablonunun kullanılacağını belirleyin.",
-        autoEmail: "Sertifika oluşturulunca otomatik e-posta gönder",
-        autoEmailHint: "Katılımcı sertifikası üretildiği anda seçili şablonla teslim e-postası gönderilir.",
-        templateLabel: "E-posta şablonu",
-        templatePlaceholder: "Şablon seçin",
-        customTemplates: "Etkinliğe özel şablonlar",
-        systemTemplates: "Sistem şablonları",
-        noTemplates: "Henüz kullanılabilir e-posta şablonu yok. Önce bir şablon oluşturun.",
-        manageTemplates: "E-posta şablonlarını yönet",
-        manageCampaigns: "Toplu e-posta kampanyalarına git",
-        openEditor: "Editörde aç",
-        cancel: "Vazgeç",
-        save: "Ayarları Kaydet",
-        saving: "Kaydediliyor...",
-        active: "Aktif",
-        enterprise: "Enterprise",
-        growth: "Growth",
-        commentsTitle: "Yorum Moderasyonu",
-        commentsSubtitle: "Açık etkinlik sayfasındaki yorumları tek yerden görün, raporlananları inceleyin ve görünürlüğü yönetin.",
-        commentsEmpty: "Bu etkinlik için henüz yorum yok.",
-        commentsReported: "Rapor",
-        commentsHide: "Gizle",
-        commentsPublish: "Yayına Al",
-        commentsMember: "Üye",
-        commentsUpdated: "Güncellendi",
-        commentsFallback: "Yorumlar yüklenemedi.",
-      }
-    : {
-        title: "Event Settings",
-        subtitle: "Manage event details, certificate appearance, and automated email delivery from one place.",
-        loadingError: "Failed to load data.",
-        requiredName: "Event name is required.",
-        saveSuccess: "Settings saved.",
-        saveError: "Failed to save settings.",
-        bannerError: "Banner upload failed.",
-        upgradeTitle: "Growth or Enterprise is required for automated email",
-        upgradeBody: "Automatic certificate delivery emails and system templates are only available on higher plans.",
-        upgradeCta: "View Plans",
-        basicTitle: "Basic Information",
-        basicBody: "Update the main event details shown during registration.",
-        visibilityTitle: "Public visibility",
-        visibilityBody: "This setting only affects the public discovery layer. Your current registration links and organizer workflow remain intact.",
-        visibilityLabel: "Visibility mode",
-        visibilityHint: "Private stays hidden. Unlisted opens only via direct link. Public events appear in the discovery list.",
-        registrationTitleMeta: "Registration form",
-        registrationTitle: "Registration form fields",
-        registrationBody: "Define the extra information you want to collect from attendees. These fields are shown below name and email on the public registration page.",
-        verificationTitle: "Email verification",
-        verificationBody: "You can require post-registration email verification for this event, or turn it off entirely when it adds unnecessary friction.",
-        registrationStatusTitle: "Registration status",
-        registrationStatusBody: "Close the registration flow from the system when the event is over or you no longer want new signups.",
-        registrationToggle: "Close new registrations",
-        registrationHint: "When enabled, the public registration endpoint rejects new attendees.",
-        registrationQuotaLabel: "Registration quota",
-        registrationQuotaToggle: "Enable registration quota",
-        registrationQuotaHint: "Leave empty for unlimited. Registration auto-closes when quota is reached.",
-        registrationQuotaPlaceholder: "e.g. 300",
-        verificationToggle: "Require email verification after registration",
-        verificationHint: "When off, attendees become active immediately and check-in or raffle flows do not wait for email confirmation.",
-        addField: "Add field",
-        emptyFields: "No custom registration field has been added yet.",
-        fieldLabel: "Field label",
-        fieldType: "Field type",
-        fieldPlaceholder: "Placeholder text",
-        fieldHelper: "Helper text",
-        fieldOptions: "Options",
-        fieldOptionsHint: "Write one option per line.",
-        requiredField: "Required field",
-        conditionalRequirement: "Conditional requirement",
-        conditionalDependsOn: "Depends on field",
-        conditionalValue: "Condition value",
-        conditionalValuePlaceholder: "Select an option",
-        conditionalHint: "This field becomes required when the selected field exactly matches this value.",
-        removeField: "Remove field",
-        labelPlaceholder: "e.g. National ID Number",
-        helperPlaceholder: "Explain what the attendee should enter",
-        previewHint: "These fields appear on the public registration form in the same order.",
-        name: "Event name",
-        namePlaceholder: "e.g. Hepta Summit 2026",
-        date: "Event date",
-        datePlaceholder: "Select the event date",
-        location: "Event location",
-        locationPlaceholder: "e.g. Izmir Ataturk Cultural Center",
-        description: "Event description",
-        descriptionPlaceholder: "Use line breaks, bold text, font choices, and size changes as needed.",
-        bannerTitle: "Event banner",
-        bannerBody: "Update the visual used on registration and event headers.",
-        uploadBanner: "Upload Banner",
-        bannerHint: "Recommended size: 1200×400 · JPG, PNG or WebP",
-        noBanner: "No banner uploaded yet",
-        emailTitle: "Automatic certificate email",
-        emailBody: "Choose which email template should be sent when a certificate is issued.",
-        autoEmail: "Send an automatic email when a certificate is issued",
-        autoEmailHint: "As soon as a participant certificate is generated, the selected delivery email is sent.",
-        templateLabel: "Email template",
-        templatePlaceholder: "Select a template",
-        customTemplates: "Event templates",
-        systemTemplates: "System templates",
-        noTemplates: "No email template is available yet. Create one first.",
-        manageTemplates: "Manage email templates",
-        manageCampaigns: "Go to bulk email campaigns",
-        openEditor: "Open in Editor",
-        cancel: "Cancel",
-        save: "Save Settings",
-        saving: "Saving...",
-        active: "Active",
-        enterprise: "Enterprise",
-        growth: "Growth",
-        commentsTitle: "Comment Moderation",
-        commentsSubtitle: "Review public event comments, inspect reports, and control visibility from one place.",
-        commentsEmpty: "There are no comments for this event yet.",
-        commentsReported: "Reports",
-        commentsHide: "Hide",
-        commentsPublish: "Publish",
-        commentsMember: "Member",
-        commentsUpdated: "Updated",
-        commentsFallback: "Failed to load comments.",
-      };
+  const copy = { title: translate(lang, "migrated_app_admin_events_id_settings_event_settings_ef2b1490"), subtitle: translate(lang, "migrated_app_admin_events_id_settings_manage_event_details_certificate_appearanc_d88cb88f"), loadingError: translate(lang, "migrated_app_admin_events_id_settings_failed_to_load_data_26fd604b"), requiredName: translate(lang, "migrated_app_admin_events_id_settings_event_name_is_required_0d6cc084"), saveSuccess: translate(lang, "migrated_app_admin_events_id_settings_settings_saved_f61a0a13"), saveError: translate(lang, "migrated_app_admin_events_id_settings_failed_to_save_settings_577b6801"), bannerError: translate(lang, "migrated_app_admin_events_id_settings_banner_upload_failed_505f228a"), upgradeTitle: translate(lang, "migrated_app_admin_events_id_settings_growth_or_enterprise_is_required_for_autom_96db6099"), upgradeBody: translate(lang, "migrated_app_admin_events_id_settings_automatic_certificate_delivery_emails_and__1974950c"), upgradeCta: translate(lang, "migrated_app_admin_events_id_settings_view_plans_ace91c1e"), basicTitle: translate(lang, "migrated_app_admin_events_id_settings_basic_information_98c7ec2e"), basicBody: translate(lang, "migrated_app_admin_events_id_settings_update_the_main_event_details_shown_during_b5f65400"), visibilityTitle: translate(lang, "migrated_app_admin_events_id_settings_public_visibility_86dd0d00"), visibilityBody: translate(lang, "migrated_app_admin_events_id_settings_this_setting_only_affects_the_public_disco_b1158976"), visibilityLabel: translate(lang, "migrated_app_admin_events_id_settings_visibility_mode_748c5be6"), visibilityHint: translate(lang, "migrated_app_admin_events_id_settings_private_stays_hidden_unlisted_opens_only_v_0e1dbe68"), registrationTitleMeta: translate(lang, "migrated_app_admin_events_id_settings_registration_form_a1f2a1ec"), registrationTitle: translate(lang, "migrated_app_admin_events_id_settings_registration_form_fields_2d253356"), registrationBody: translate(lang, "migrated_app_admin_events_id_settings_define_the_extra_information_you_want_to_c_7a36c2aa"), verificationTitle: translate(lang, "migrated_app_admin_events_id_settings_email_verification_c5a52a70"), verificationBody: translate(lang, "migrated_app_admin_events_id_settings_you_can_require_post_registration_email_ve_c3d201e2"), registrationStatusTitle: translate(lang, "migrated_app_admin_events_id_settings_registration_status_fabef59e"), registrationStatusBody: translate(lang, "migrated_app_admin_events_id_settings_close_the_registration_flow_from_the_syste_dec22231"), registrationToggle: translate(lang, "migrated_app_admin_events_id_settings_close_new_registrations_9657c63e"), registrationHint: translate(lang, "migrated_app_admin_events_id_settings_when_enabled_the_public_registration_endpo_a04b514f"), registrationQuotaLabel: translate(lang, "migrated_app_admin_events_id_settings_registration_quota_ce0ff726"), registrationQuotaToggle: translate(lang, "migrated_app_admin_events_id_settings_enable_registration_quota_770a0525"), registrationQuotaHint: translate(lang, "migrated_app_admin_events_id_settings_leave_empty_for_unlimited_registration_aut_6819746f"), registrationQuotaPlaceholder: translate(lang, "migrated_app_admin_events_id_settings_e_g_300_0196e900"), verificationToggle: translate(lang, "migrated_app_admin_events_id_settings_require_email_verification_after_registrat_83b09599"), verificationHint: translate(lang, "migrated_app_admin_events_id_settings_when_off_attendees_become_active_immediate_b68a4a32"), addField: translate(lang, "migrated_app_admin_events_id_settings_add_field_d0ed7757"), emptyFields: translate(lang, "migrated_app_admin_events_id_settings_no_custom_registration_field_has_been_adde_9335242b"), fieldLabel: translate(lang, "migrated_app_admin_events_id_settings_field_label_5fc42030"), fieldType: translate(lang, "migrated_app_admin_events_id_settings_field_type_fa3dd9b0"), fieldPlaceholder: translate(lang, "migrated_app_admin_events_id_settings_placeholder_text_453e20d5"), fieldHelper: translate(lang, "migrated_app_admin_events_id_settings_helper_text_86d52de5"), fieldOptions: translate(lang, "migrated_app_admin_events_id_settings_options_3d88d29e"), fieldOptionsHint: translate(lang, "migrated_app_admin_events_id_settings_write_one_option_per_line_b9af83d1"), requiredField: translate(lang, "migrated_app_admin_events_id_settings_required_field_fa2aeca4"), conditionalRequirement: translate(lang, "migrated_app_admin_events_id_settings_conditional_requirement_2737e22f"), conditionalDependsOn: translate(lang, "migrated_app_admin_events_id_settings_depends_on_field_9bc49464"), conditionalValue: translate(lang, "migrated_app_admin_events_id_settings_condition_value_d8e858f9"), conditionalValuePlaceholder: translate(lang, "migrated_app_admin_events_id_settings_select_an_option_b9b6a93a"), conditionalHint: translate(lang, "migrated_app_admin_events_id_settings_this_field_becomes_required_when_the_selec_b3096729"), removeField: translate(lang, "migrated_app_admin_events_id_settings_remove_field_10afeac7"), labelPlaceholder: translate(lang, "migrated_app_admin_events_id_settings_e_g_national_id_number_ae480f42"), helperPlaceholder: translate(lang, "migrated_app_admin_events_id_settings_explain_what_the_attendee_should_enter_872a3bad"), previewHint: translate(lang, "migrated_app_admin_events_id_settings_these_fields_appear_on_the_public_registra_007f8f09"), name: translate(lang, "migrated_app_admin_events_id_settings_event_name_95ffa3e5"), namePlaceholder: translate(lang, "migrated_app_admin_events_id_settings_e_g_hepta_summit_2026_c90ca8a1"), date: translate(lang, "migrated_app_admin_events_id_settings_event_date_7e1dc675"), datePlaceholder: translate(lang, "migrated_app_admin_events_id_settings_select_the_event_date_cb9d843b"), location: translate(lang, "migrated_app_admin_events_id_settings_event_location_42e9163e"), locationPlaceholder: translate(lang, "migrated_app_admin_events_id_settings_e_g_izmir_ataturk_cultural_center_4fc8c9f6"), description: translate(lang, "migrated_app_admin_events_id_settings_event_description_a809cdb2"), descriptionPlaceholder: translate(lang, "migrated_app_admin_events_id_settings_use_line_breaks_bold_text_font_choices_and_ddc5ff02"), bannerTitle: translate(lang, "migrated_app_admin_events_id_settings_event_banner_644cbb7c"), bannerBody: translate(lang, "migrated_app_admin_events_id_settings_update_the_visual_used_on_registration_and_99fdc13d"), uploadBanner: translate(lang, "migrated_app_admin_events_id_settings_upload_banner_ccfe36a3"), bannerHint: translate(lang, "migrated_app_admin_events_id_settings_recommended_size_1200_400_jpg_png_or_webp_c4a78881"), noBanner: translate(lang, "migrated_app_admin_events_id_settings_no_banner_uploaded_yet_ac921bb9"), emailTitle: translate(lang, "migrated_app_admin_events_id_settings_automatic_certificate_email_2294a17d"), emailBody: translate(lang, "migrated_app_admin_events_id_settings_choose_which_email_template_should_be_sent_d9f8f0e3"), autoEmail: translate(lang, "migrated_app_admin_events_id_settings_send_an_automatic_email_when_a_certificate_34c75f20"), autoEmailHint: translate(lang, "migrated_app_admin_events_id_settings_as_soon_as_a_participant_certificate_is_ge_677b1b1c"), templateLabel: translate(lang, "migrated_app_admin_events_id_settings_email_template_2b81a164"), templatePlaceholder: translate(lang, "migrated_app_admin_events_id_settings_select_a_template_277ed97b"), customTemplates: translate(lang, "migrated_app_admin_events_id_settings_event_templates_7cb568d1"), systemTemplates: translate(lang, "migrated_app_admin_events_id_settings_system_templates_2b3d71a8"), noTemplates: translate(lang, "migrated_app_admin_events_id_settings_no_email_template_is_available_yet_create__6feab06d"), manageTemplates: translate(lang, "migrated_app_admin_events_id_settings_manage_email_templates_f971dcdb"), manageCampaigns: translate(lang, "migrated_app_admin_events_id_settings_go_to_bulk_email_campaigns_4e65abc0"), openEditor: translate(lang, "migrated_app_admin_events_id_settings_open_in_editor_f60af45e"), cancel: translate(lang, "migrated_app_admin_events_id_settings_cancel_437429de"), save: translate(lang, "migrated_app_admin_events_id_settings_save_settings_dc3d1fda"), saving: translate(lang, "migrated_app_admin_events_id_settings_saving_b5ff3932"), active: translate(lang, "migrated_app_admin_events_id_settings_active_ccf3cc92"), enterprise: translate(lang, "migrated_app_admin_events_id_settings_enterprise_4ca075c4"), growth: translate(lang, "migrated_app_admin_events_id_settings_growth_f811ce79"), commentsTitle: translate(lang, "migrated_app_admin_events_id_settings_comment_moderation_c6aff116"), commentsSubtitle: translate(lang, "migrated_app_admin_events_id_settings_review_public_event_comments_inspect_repor_99d2a6c1"), commentsEmpty: translate(lang, "migrated_app_admin_events_id_settings_there_are_no_comments_for_this_event_yet_1caa7a53"), commentsReported: translate(lang, "migrated_app_admin_events_id_settings_reports_796d96e4"), commentsHide: translate(lang, "migrated_app_admin_events_id_settings_hide_ca8163d8"), commentsPublish: translate(lang, "migrated_app_admin_events_id_settings_publish_7e70d79d"), commentsMember: translate(lang, "migrated_app_admin_events_id_settings_member_9b6b95c7"), commentsUpdated: translate(lang, "migrated_app_admin_events_id_settings_updated_106e14ae"), commentsFallback: translate(lang, "migrated_app_admin_events_id_settings_failed_to_load_comments_675eb251") };
 
   const [event, setEvent] = useState<EventOut | null>(null);
   const [customEmailTemplates, setCustomEmailTemplates] = useState<EmailTemplate[]>([]);
@@ -619,18 +438,18 @@ export default function EventSettingsPage() {
     return () => clearTimeout(t);
   }, [success]);
 
-  useUnsavedChanges(isDirty && !saving, lang === "tr" ? "Kaydedilmemiş etkinlik ayarları var." : "You have unsaved event settings.");
+  useUnsavedChanges(isDirty && !saving, translate(lang, "migrated_app_admin_events_id_settings_you_have_unsaved_event_settings_7ebc2112"));
   useKeyboardShortcut("s", () => void handleSave(), { meta: true, enabled: !saving });
 
   const hasGrowthPlan = subscription?.role === "superadmin" || (subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || ""));
 
   const fieldTypeOptions = FIELD_TYPE_OPTIONS.map((option) => ({
     value: option.value,
-    label: lang === "tr" ? option.tr : option.en,
+    label: translate(lang, option.labelKey),
   }));
   const visibilityOptions = VISIBILITY_OPTIONS.map((option) => ({
     value: option.value,
-    label: lang === "tr" ? option.tr : option.en,
+    label: translate(lang, option.labelKey),
   }));
 
   const availableEmailTemplates = useMemo(
@@ -804,10 +623,10 @@ export default function EventSettingsPage() {
       if (data?.authorization_url) {
         window.location.href = data.authorization_url;
       } else {
-        throw new Error(lang === "tr" ? "Google yetkilendirme adresi alınamadı." : "Could not get Google authorization URL.");
+        throw new Error(translate(lang, "migrated_app_admin_events_id_settings_could_not_get_google_authorization_url_0bad564b"));
       }
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Google Sheets bağlantısı başlatılamadı." : "Google Sheets connection could not be started.");
+      const message = err?.message || (translate(lang, "migrated_app_admin_events_id_settings_google_sheets_connection_could_not_be_star_74bfe83c"));
       setError(message);
       toast.error(message);
     } finally {
@@ -821,9 +640,9 @@ export default function EventSettingsPage() {
     try {
       const res = await apiFetch(`/admin/events/${eventId}/sheets/connect`, { method: "POST" });
       setSheetsStatus(await res.json());
-      toast.success(lang === "tr" ? "Google Sheet oluşturuldu ve kayıtlar aktarıldı." : "Google Sheet created and registrations synced.");
+      toast.success(translate(lang, "migrated_app_admin_events_id_settings_google_sheet_created_and_registrations_syn_a607a860"));
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Google Sheet oluşturulamadı." : "Google Sheet could not be created.");
+      const message = err?.message || (translate(lang, "migrated_app_admin_events_id_settings_google_sheet_could_not_be_created_0c2b3235"));
       setError(message);
       toast.error(message);
     } finally {
@@ -837,9 +656,9 @@ export default function EventSettingsPage() {
     try {
       const res = await apiFetch(`/admin/events/${eventId}/sheets/sync`, { method: "POST" });
       setSheetsStatus(await res.json());
-      toast.success(lang === "tr" ? "Google Sheet güncellendi." : "Google Sheet synced.");
+      toast.success(translate(lang, "migrated_app_admin_events_id_settings_google_sheet_synced_bb7ec399"));
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Google Sheet güncellenemedi." : "Google Sheet could not be synced.");
+      const message = err?.message || (translate(lang, "migrated_app_admin_events_id_settings_google_sheet_could_not_be_synced_1b281ae4"));
       setError(message);
       toast.error(message);
     } finally {
@@ -853,9 +672,9 @@ export default function EventSettingsPage() {
     try {
       const res = await apiFetch(`/admin/events/${eventId}/sheets`, { method: "DELETE" });
       setSheetsStatus(await res.json());
-      toast.success(lang === "tr" ? "Google Sheet bağlantısı kapatıldı." : "Google Sheet connection disabled.");
+      toast.success(translate(lang, "migrated_app_admin_events_id_settings_google_sheet_connection_disabled_25ab511e"));
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Bağlantı kapatılamadı." : "Connection could not be disabled.");
+      const message = err?.message || (translate(lang, "migrated_app_admin_events_id_settings_connection_could_not_be_disabled_65c65626"));
       setError(message);
       toast.error(message);
     } finally {
@@ -878,10 +697,10 @@ export default function EventSettingsPage() {
       if (data?.authorization_url) {
         window.location.href = data.authorization_url;
       } else {
-        throw new Error(lang === "tr" ? "Microsoft yetkilendirme adresi alınamadı." : "Could not get Microsoft authorization URL.");
+        throw new Error(translate(lang, "migrated_app_admin_events_id_settings_could_not_get_microsoft_authorization_url_95672501"));
       }
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Microsoft Excel bağlantısı başlatılamadı." : "Microsoft Excel connection could not be started.");
+      const message = err?.message || (translate(lang, "migrated_app_admin_events_id_settings_microsoft_excel_connection_could_not_be_st_1d88ffd6"));
       setError(message);
       toast.error(message);
     } finally {
@@ -895,9 +714,9 @@ export default function EventSettingsPage() {
     try {
       const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel/connect`, { method: "POST" });
       setExcelStatus(await res.json());
-      toast.success(lang === "tr" ? "Microsoft Excel dosyası oluşturuldu ve kayıtlar aktarıldı." : "Microsoft Excel workbook created and registrations synced.");
+      toast.success(translate(lang, "migrated_app_admin_events_id_settings_microsoft_excel_workbook_created_and_regis_12b7669a"));
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Microsoft Excel dosyası oluşturulamadı." : "Microsoft Excel workbook could not be created.");
+      const message = err?.message || (translate(lang, "migrated_app_admin_events_id_settings_microsoft_excel_workbook_could_not_be_crea_a5f6bd8b"));
       setError(message);
       toast.error(message);
     } finally {
@@ -911,9 +730,9 @@ export default function EventSettingsPage() {
     try {
       const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel/sync`, { method: "POST" });
       setExcelStatus(await res.json());
-      toast.success(lang === "tr" ? "Microsoft Excel dosyası güncellendi." : "Microsoft Excel workbook synced.");
+      toast.success(translate(lang, "migrated_app_admin_events_id_settings_microsoft_excel_workbook_synced_e381329a"));
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Microsoft Excel dosyası güncellenemedi." : "Microsoft Excel workbook could not be synced.");
+      const message = err?.message || (translate(lang, "migrated_app_admin_events_id_settings_microsoft_excel_workbook_could_not_be_sync_d25d4455"));
       setError(message);
       toast.error(message);
     } finally {
@@ -927,9 +746,9 @@ export default function EventSettingsPage() {
     try {
       const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel`, { method: "DELETE" });
       setExcelStatus(await res.json());
-      toast.success(lang === "tr" ? "Microsoft Excel bağlantısı kapatıldı." : "Microsoft Excel connection disabled.");
+      toast.success(translate(lang, "migrated_app_admin_events_id_settings_microsoft_excel_connection_disabled_e2519c18"));
     } catch (err: any) {
-      const message = err?.message || (lang === "tr" ? "Bağlantı kapatılamadı." : "Connection could not be disabled.");
+      const message = err?.message || (translate(lang, "migrated_app_admin_events_id_settings_connection_could_not_be_disabled_65c65626"));
       setError(message);
       toast.error(message);
     } finally {
@@ -1211,7 +1030,7 @@ export default function EventSettingsPage() {
         <div className="flex min-w-max gap-1 border border-surface-200/80 bg-surface-50/60 p-1 rounded-xl lg:min-w-0">
           {SETTINGS_TABS.map((tab) => {
             const Icon = tab.icon;
-            const label = lang === "tr" ? tab.label_tr : tab.label_en;
+            const label = translate(lang, tab.labelKey);
             const isAct = activeTab === tab.id;
             return (
               <button
@@ -1235,7 +1054,7 @@ export default function EventSettingsPage() {
       {/* DEĞİŞİKLİK VE KAYDETME YÜZEY UYARI ÇUBUĞU */}
       {isDirty && !saving && (
         <div className="rounded-xl border border-status-warning-border bg-status-warning-bg/30 p-3 text-center text-11 font-bold text-status-warning-content tracking-tight animate-in fade-in duration-150">
-          ⚠️ {lang === "tr" ? "Kaydedilmemiş değişiklikleriniz bulunuyor. Değişiklikleri doğrulamak için Ctrl/⌘ + S kısayolunu kullanabilirsiniz." : "You have unsaved changes. Use Ctrl/⌘ + S to sync and verify configurations."}
+          ⚠️ {translate(lang, "migrated_app_admin_events_id_settings_you_have_unsaved_changes_use_ctrl_s_to_syn_84f58c52")}
         </div>
       )}
 
@@ -1278,19 +1097,19 @@ export default function EventSettingsPage() {
               <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                   <Building2 className="h-4 w-4 text-surface-800 stroke-[1.8]" />
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{lang === "tr" ? "Salon ve Rezervasyon Otomasyonu" : "Venue and Reservation"}</h2>
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{translate(lang, "migrated_app_admin_events_id_settings_venue_and_reservation_4a03cc8a")}</h2>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
                   <label className="block w-full">
-                    <span className="block text-11 font-bold text-surface-500 mb-1">{lang === "tr" ? "Yerleşke / Salon" : "Venue"}</span>
+                    <span className="block text-11 font-bold text-surface-500 mb-1">{translate(lang, "migrated_app_admin_events_id_settings_venue_56964031")}</span>
                     <div className="relative inline-flex items-center w-full">
                       <select
                         value={formData.organization_venue_id}
                         onChange={(e) => setFormData((curr) => ({ ...curr, organization_venue_id: e.target.value, auto_reserve_venue: e.target.value ? curr.auto_reserve_venue : false }))}
                         className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-raised px-3 text-xs font-semibold outline-none cursor-pointer"
                       >
-                        <option value="">{lang === "tr" ? "Salon Seçilmedi" : "No venue selected"}</option>
+                        <option value="">{translate(lang, "migrated_app_admin_events_id_settings_no_venue_selected_17655d2e")}</option>
                         {venues.map((v) => (
                           <option key={v.id} value={v.id}>{v.name}{v.capacity ? ` (${v.capacity} kişi)` : ""}</option>
                         ))}
@@ -1299,13 +1118,13 @@ export default function EventSettingsPage() {
                     </div>
                   </label>
 
-                  <DateTimeField value={formData.venue_reservation_start_at} onChange={(val) => setFormData((curr) => ({ ...curr, venue_reservation_start_at: val }))} label={lang === "tr" ? "Rezervasyon Başlangıcı" : "Reservation Start"} disabled={!formData.organization_venue_id} locale={localeTag(lang)} />
-                  <DateTimeField value={formData.venue_reservation_end_at} onChange={(val) => setFormData((curr) => ({ ...curr, venue_reservation_end_at: val }))} label={lang === "tr" ? "Rezervasyon Bitişi" : "Reservation End"} disabled={!formData.organization_venue_id} locale={localeTag(lang)} />
+                  <DateTimeField value={formData.venue_reservation_start_at} onChange={(val) => setFormData((curr) => ({ ...curr, venue_reservation_start_at: val }))} label={translate(lang, "migrated_app_admin_events_id_settings_reservation_start_701f6a0e")} disabled={!formData.organization_venue_id} locale={localeTag(lang)} />
+                  <DateTimeField value={formData.venue_reservation_end_at} onChange={(val) => setFormData((curr) => ({ ...curr, venue_reservation_end_at: val }))} label={translate(lang, "migrated_app_admin_events_id_settings_reservation_end_e50df5f5")} disabled={!formData.organization_venue_id} locale={localeTag(lang)} />
                 </div>
 
                 <label className="flex items-center gap-2.5 select-none pt-1">
                   <input type="checkbox" checked={formData.auto_reserve_venue} disabled={!formData.organization_venue_id} onChange={(e) => setFormData((curr) => ({ ...curr, auto_reserve_venue: e.target.checked }))} className="h-4 w-4 rounded-md border-surface-300 text-surface-900 focus:ring-0 cursor-pointer disabled:opacity-40" />
-                  <span className="text-xs font-semibold text-surface-700 tracking-tight">{lang === "tr" ? "Salon takvimi uygunsa rezervasyon kaydını akıllı eşitleme ile otomatik doğrula" : "Auto-reserve venue based on current availability nodes"}</span>
+                  <span className="text-xs font-semibold text-surface-700 tracking-tight">{translate(lang, "migrated_app_admin_events_id_settings_auto_reserve_venue_based_on_current_availa_6f3a2505")}</span>
                 </label>
               </section>
             )}
@@ -1314,12 +1133,12 @@ export default function EventSettingsPage() {
             <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                 <Settings className="h-4 w-4 text-surface-800 stroke-[1.8]" />
-                <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{lang === "tr" ? "Modül Aktivasyon Mimari Filtresi" : "Feature Configuration Matrix"}</h2>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{translate(lang, "migrated_app_admin_events_id_settings_feature_configuration_matrix_2be29c71")}</h2>
               </div>
 
               <div className="space-y-3.5">
                 <label className="block w-full sm:max-w-xs">
-                  <span className="block text-11 font-bold text-surface-500 mb-1">{lang === "tr" ? "Ana Şablon Tipi" : "Base Event Type"}</span>
+                  <span className="block text-11 font-bold text-surface-500 mb-1">{translate(lang, "migrated_app_admin_events_id_settings_base_event_type_cf4b61af")}</span>
                   <div className="relative inline-flex items-center w-full">
                     <select
                       value={formData.event_type}
@@ -1327,7 +1146,7 @@ export default function EventSettingsPage() {
                       className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-raised px-3 text-xs font-semibold outline-none cursor-pointer"
                     >
                       {EVENT_TYPE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>{lang === "tr" ? option.tr : option.en}</option>
+                        <option key={option.value} value={option.value}>{translate(lang, option.labelKey)}</option>
                       ))}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-surface-400" />
@@ -1336,15 +1155,15 @@ export default function EventSettingsPage() {
 
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-1">
                   {[
-                    { key: "certificate_enabled", label: lang === "tr" ? "Akıllı Sertifika Modülü" : "Certificate engine active", hint: lang === "tr" ? "Kapatıldığında katılımcılara dijital sertifika üretimi ve sorgulama cüzdanları pasif konuma geçer." : "Deactivates credential ledger features." },
-                    { key: "checkin_enabled", label: lang === "tr" ? "Saha QR Yoklama (Check-in)" : "QR check-in engine active", hint: lang === "tr" ? "Kapatıldığında kapı sevk trafiği, mobil tarayıcılar og oturum yoklama matrisleri kilitlenir." : "Deactivates onsite gate sync matrices." },
-                    { key: "ticketing_enabled", label: lang === "tr" ? "Dijital Giriş Bilet Düzeni" : "Pass card ticketing system", hint: lang === "tr" ? "Etkinleştirildiğinde her yeni kayıt için cüzdan uyumlu benzersiz QR giriş kartı sevk edilir." : "Generates wallet-bound pass codes." },
-                    { key: "raffles_enabled", label: lang === "tr" ? "Canlı Çekiliş Motoru" : "Raffle execution hub", hint: lang === "tr" ? "Check-in katılım şartlarına entegre pürüzsüz sahne sunum çekiliş modülünü açar." : "Enables attendee-bound randomizer luck algorithms." },
-                    { key: "gamification_enabled", label: lang === "tr" ? "Oyunlaştırma & Dijital Rozet" : "Engagement badge logic", hint: lang === "tr" ? "Katılımcıların görev tamamlamalarına göre kazanacağı başarı rozet şeritlerini aktif eder." : "Activates behavioral achievement badges." },
-                    { key: "registration_enabled", label: lang === "tr" ? "Herkese Açık Kayıt Formu" : "Self registration landing", hint: lang === "tr" ? "Kapatıldığında dışarıdan formu bulanlar kaydolamaz, sadece siz manuel alıcı ekleyebilirsiniz." : "Restricts entry to internal import pipelines." },
-                    { key: "requires_approval", label: lang === "tr" ? "Yönetici Kayıt Onay Havuzu" : "Admin approval lifecycle", hint: lang === "tr" ? "Etkinleştirildiğinde yeni kayıtlar siz panelden onay verene kadar bekleme (lead) listesinde tutulur." : "Holds incoming entries in staging queues." },
-                    { key: "quiz_enabled", label: lang === "tr" ? "Sınav / Quiz Modülü" : "Quiz module", hint: lang === "tr" ? "Etkinlik için sınav tanımlanabilir; sınav geçme koşuluna göre sertifika verilebilir." : "Enables quiz configuration and certificate-on-pass flow." },
-                    { key: "cpd_enabled", label: lang === "tr" ? "CPD Sürekli Mesleki Gelişim" : "CPD module", hint: lang === "tr" ? "Sertifika verilen portal üyelerine CPD saati otomatik eklenir." : "Automatically logs CPD hours when a certificate is issued to a portal member." },
+                    { key: "certificate_enabled", label: translate(lang, "migrated_app_admin_events_id_settings_certificate_engine_active_007779be"), hint: translate(lang, "migrated_app_admin_events_id_settings_deactivates_credential_ledger_features_4e44355c") },
+                    { key: "checkin_enabled", label: translate(lang, "migrated_app_admin_events_id_settings_qr_check_in_engine_active_901bab52"), hint: translate(lang, "migrated_app_admin_events_id_settings_deactivates_onsite_gate_sync_matrices_eb7bb9cb") },
+                    { key: "ticketing_enabled", label: translate(lang, "migrated_app_admin_events_id_settings_pass_card_ticketing_system_77010321"), hint: translate(lang, "migrated_app_admin_events_id_settings_generates_wallet_bound_pass_codes_692c4303") },
+                    { key: "raffles_enabled", label: translate(lang, "migrated_app_admin_events_id_settings_raffle_execution_hub_7c19869d"), hint: translate(lang, "migrated_app_admin_events_id_settings_enables_attendee_bound_randomizer_luck_alg_f847248d") },
+                    { key: "gamification_enabled", label: translate(lang, "migrated_app_admin_events_id_settings_engagement_badge_logic_3d2c4e64"), hint: translate(lang, "migrated_app_admin_events_id_settings_activates_behavioral_achievement_badges_88a25097") },
+                    { key: "registration_enabled", label: translate(lang, "migrated_app_admin_events_id_settings_self_registration_landing_3b3bce46"), hint: translate(lang, "migrated_app_admin_events_id_settings_restricts_entry_to_internal_import_pipelin_b943f77a") },
+                    { key: "requires_approval", label: translate(lang, "migrated_app_admin_events_id_settings_admin_approval_lifecycle_51dbe594"), hint: translate(lang, "migrated_app_admin_events_id_settings_holds_incoming_entries_in_staging_queues_32c67a7c") },
+                    { key: "quiz_enabled", label: translate(lang, "migrated_app_admin_events_id_settings_quiz_module_9b035d1a"), hint: translate(lang, "migrated_app_admin_events_id_settings_enables_quiz_configuration_and_certificate_184bfdae") },
+                    { key: "cpd_enabled", label: translate(lang, "migrated_app_admin_events_id_settings_cpd_module_8e1551a6"), hint: translate(lang, "migrated_app_admin_events_id_settings_automatically_logs_cpd_hours_when_a_certif_3ff9a022") },
                     { key: "agenda_enabled", label: t("agenda_settings_label"), hint: t("agenda_settings_hint") },
                     { key: "cfp_enabled", label: t("cfp_settings_label"), hint: t("cfp_settings_hint") },
                     { key: "networking_meetings_enabled", label: t("net_settings_label"), hint: t("net_settings_hint") },
@@ -1419,18 +1238,18 @@ export default function EventSettingsPage() {
             <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                 <ShieldAlert className="h-4 w-4 text-surface-800 stroke-[1.8]" />
-                <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{lang === "tr" ? "Hukuki KVKK ve Veri İşleme Mevzuatı" : "Privacy and Data Processing"}</h2>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{translate(lang, "migrated_app_admin_events_id_settings_privacy_and_data_processing_2735069c")}</h2>
               </div>
-              <p className="text-11 leading-relaxed text-surface-400 font-medium">{lang === "tr" ? "Katılımcı açık rıza aydınlatma politikalarını ve yasal saklama sürelerini kurumsal kimliğinize göre özelleştirin." : "Map regulatory notice nodes."}</p>
+              <p className="text-11 leading-relaxed text-surface-400 font-medium">{translate(lang, "migrated_app_admin_events_id_settings_map_regulatory_notice_nodes_3651241d")}</p>
 
               <div className="space-y-4">
                 <label className="inline-flex cursor-pointer items-center gap-2.5 select-none">
                   <input type="checkbox" checked={formData.organizer_privacy_notice_enabled} onChange={(e) => setFormData((curr) => ({ ...curr, organizer_privacy_notice_enabled: e.target.checked }))} className="h-4 w-4 rounded-md border-surface-300 text-surface-900 focus:ring-0 cursor-pointer" />
-                  <span className="text-xs font-semibold text-surface-800 tracking-tight">{lang === "tr" ? "Organizatöre ait özel aydınlatma metnini formda zorunlu tut" : "Organizer notice required"}</span>
+                  <span className="text-xs font-semibold text-surface-800 tracking-tight">{translate(lang, "migrated_app_admin_events_id_settings_organizer_notice_required_2dec7709")}</span>
                 </label>
 
                 <div className="space-y-1">
-                  <span className="block text-11 font-bold text-surface-500 mb-1">{lang === "tr" ? "Kurumsal Aydınlatma Metni İçeriği" : "Organizer Privacy Notice"}</span>
+                  <span className="block text-11 font-bold text-surface-500 mb-1">{translate(lang, "migrated_app_admin_events_id_settings_organizer_privacy_notice_ea8bc210")}</span>
                   <RichTextEditor value={formData.organizer_privacy_notice_text} onChange={(val) => setFormData((curr) => ({ ...curr, organizer_privacy_notice_text: val }))} placeholder="Mevzuat uyumluluk metnini yazın..." />
                 </div>
 
@@ -1454,8 +1273,8 @@ export default function EventSettingsPage() {
                 <div className="rounded-xl border border-status-warning-border bg-status-warning-bg/30 p-3.5 flex items-start gap-3">
                   <Info className="h-4 w-4 shrink-0 text-status-warning-content mt-0.5 stroke-[2]" />
                   <div className="space-y-1 text-11 leading-relaxed text-status-warning-content font-medium">
-                    <p className="font-bold">{lang === "tr" ? "Yurt Dışı Veri Aktarımı Açık Rıza Beyanı" : "Cross-Border Data Transfer Node"}</p>
-                    <p>{lang === "tr" ? "HeptaCert çekirdek altyapısı egemen, self-hosted ve kriptografik güvenli sunucularda çalışsa da küresel CDN ağları, barındırma katmanları ve yedekleme modülleri sınır ötesi veri transferi doğurabileceğinden, bu açık rıza onay mekanizması kayıt akışına sistem tarafından otomatik eklenir." : "System forces cross-border acknowledgement automatically."}</p>
+                    <p className="font-bold">{translate(lang, "migrated_app_admin_events_id_settings_cross_border_data_transfer_node_38d12766")}</p>
+                    <p>{translate(lang, "migrated_app_admin_events_id_settings_system_forces_cross_border_acknowledgement_e93f1269")}</p>
                   </div>
                 </div>
               </div>
@@ -1602,7 +1421,7 @@ export default function EventSettingsPage() {
                                 <span className="block text-11 font-bold text-surface-500 mb-1">{copy.conditionalDependsOn}</span>
                                 <div className="relative inline-flex items-center w-full">
                                   <select value={field.required_when_field_id || ""} onChange={(e) => { const nextId = e.target.value; updateRegistrationField(field.id, { required_when_field_id: nextId || undefined, required_when_equals: nextId ? (field.required_when_equals || "") : undefined }); }} className="w-full min-h-[36px] appearance-none rounded-xl border border-surface-200 bg-raised px-3 font-semibold outline-none cursor-pointer">
-                                    <option value="">{lang === "tr" ? "Bağlantı Yok" : "None"}</option>
+                                    <option value="">{translate(lang, "migrated_app_admin_events_id_settings_none_8eef562a")}</option>
                                     {conditionalSourceFields.map((c) => <option key={c.id} value={c.id}>{c.label || c.id}</option>)}
                                   </select>
                                   <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-surface-400" />

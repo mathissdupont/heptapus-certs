@@ -1,3 +1,6 @@
+
+import { translate } from "@/lib/i18n";
+import type { Lang } from "@/lib/i18n";
 import { compactText } from "./text";
 import type { EventDraft, EventWizardStep } from "./eventDraft";
 
@@ -5,28 +8,32 @@ export function isWizardActive(step: EventWizardStep): boolean {
   return step !== "idle";
 }
 
-export function getWizardQuestion(step: EventWizardStep, draft: EventDraft, lang = "tr"): string {
+export function getWizardQuestion(step: EventWizardStep, draft: EventDraft, lang: Lang = "tr"): string {
   switch (step) {
-    case "name": return lang === "tr" ? "Etkinlik adı nedir?" : "What's the event name?";
-    case "date": return lang === "tr" ? "Etkinlik tarihi nedir? (YYYY-MM-DD)" : "What's the event date? (YYYY-MM-DD)";
-    case "location": return lang === "tr" ? "Etkinlik nerede gerçekleşecek? (şehir/çevrimiçi)" : "Where will the event take place? (city/online)";
-    case "description": return lang === "tr" ? "Kısa bir açıklama yazar mısınız?" : "Please provide a short description.";
-    case "type": return lang === "tr" ? "Etkinlik tipi nedir? (workshop, webinar, konferans...)" : "What's the event type? (workshop, webinar, conference...)";
-    case "features": return lang === "tr" ? "Hangi özellikleri istersiniz? (sertifika, bilet, check-in, çekiliş)" : "Which features do you want? (certificate, ticketing, check-in, raffle)";
-    case "confirm": return lang === "tr" ? "Taslağı onaylıyor musunuz? (evet / hayır)" : "Do you confirm the draft? (yes / no)";
-    default: return lang === "tr" ? "Ne yapmak istersiniz?" : "What would you like to do?";
+    case "name": return translate(lang, "migrated_lib_assistant_wizard_what_s_the_event_name_2cc508a6");
+    case "date": return translate(lang, "migrated_lib_assistant_wizard_what_s_the_event_date_yyyy_mm_dd_cad5334f");
+    case "location": return translate(lang, "migrated_lib_assistant_wizard_where_will_the_event_take_place_city_onlin_c668a440");
+    case "description": return translate(lang, "migrated_lib_assistant_wizard_please_provide_a_short_description_b4d22945");
+    case "type": return translate(lang, "migrated_lib_assistant_wizard_what_s_the_event_type_workshop_webinar_con_f60f0f0b");
+    case "features": return translate(lang, "migrated_lib_assistant_wizard_which_features_do_you_want_certificate_tic_3e14e120");
+    case "confirm": return translate(lang, "migrated_lib_assistant_wizard_do_you_confirm_the_draft_yes_no_7efdb92f");
+    default: return translate(lang, "migrated_lib_assistant_wizard_what_would_you_like_to_do_7578dbd3");
   }
 }
 
-export function buildReviewMessage(draft: EventDraft, lang = "tr"): string {
+export function buildReviewMessage(draft: EventDraft, lang: Lang = "tr"): string {
   const lines: string[] = [];
-  lines.push(lang === "tr" ? `Ad: ${draft.name}` : `Name: ${draft.name}`);
-  if (draft.eventDate) lines.push(lang === "tr" ? `Tarih: ${draft.eventDate}` : `Date: ${draft.eventDate}`);
-  if (draft.eventLocation) lines.push(lang === "tr" ? `Konum: ${draft.eventLocation}` : `Location: ${draft.eventLocation}`);
-  if (draft.eventDescription) lines.push(lang === "tr" ? `Açıklama: ${draft.eventDescription}` : `Description: ${draft.eventDescription}`);
-  lines.push(lang === "tr" ? `Tip: ${draft.eventType}` : `Type: ${draft.eventType}`);
-  lines.push(lang === "tr" ? `Özellikler: ${draft.certificateEnabled ? "Sertifika " : ""}${draft.ticketingEnabled ? "Biletleme " : ""}` : `Features: ${draft.certificateEnabled ? "Certificate " : ""}${draft.ticketingEnabled ? "Ticketing " : ""}`);
-  lines.push(lang === "tr" ? "Onaylamak için 'evet' yazın veya iptal için 'hayır' yazın." : "Type 'confirm' to create or 'cancel' to abort.");
+  lines.push(translate(lang, "migrated_lib_assistant_wizard_name_value0_0345992a", { value0: draft.name }));
+  if (draft.eventDate) lines.push(translate(lang, "migrated_lib_assistant_wizard_date_value0_8829679b", { value0: draft.eventDate }));
+  if (draft.eventLocation) lines.push(translate(lang, "migrated_lib_assistant_wizard_location_value0_f50cef70", { value0: draft.eventLocation }));
+  if (draft.eventDescription) lines.push(translate(lang, "migrated_lib_assistant_wizard_description_value0_87af3c02", { value0: draft.eventDescription }));
+  lines.push(translate(lang, "migrated_lib_assistant_wizard_type_value0_a1869200", { value0: draft.eventType }));
+  const features = [
+    draft.certificateEnabled ? translate(lang, "admin_feature_certificate") : null,
+    draft.ticketingEnabled ? translate(lang, "admin_feature_ticketing") : null,
+  ].filter((value): value is string => Boolean(value));
+  lines.push(translate(lang, "admin_assistant_features", { features: features.join(", ") }));
+  lines.push(translate(lang, "migrated_lib_assistant_wizard_type_confirm_to_create_or_cancel_to_abort_4591d0c4"));
   return lines.join("\n");
 }
 

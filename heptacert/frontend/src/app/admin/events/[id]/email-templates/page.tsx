@@ -13,7 +13,7 @@ import EventAdminNav from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
 import { useToast } from "@/hooks/useToast";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type EmailTemplate = {
   id: number;
@@ -64,93 +64,7 @@ export default function EmailTemplatesPage() {
   const [deleteTarget, setDeleteTarget] = useState<EmailTemplate | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const copy = lang === "tr"
-    ? {
-        pageTitle: "Email Şablonları",
-        pageSubtitle: "Sertifika, bilgilendirme ve kampanya akışlarında kullanılan şablonları tek yerde yönetin.",
-        createTemplate: "Yeni şablon",
-        settings: "Ayarlar",
-        campaigns: "Kampanyalar",
-        customTab: "Özel şablonlar",
-        systemTab: "Sistem şablonları",
-        templatesCount: "Şablon",
-        subjectTr: "Türkçe konu",
-        subjectEn: "English subject",
-        preview: "Önizle",
-        edit: "Düzenle",
-        delete: "Sil",
-        system: "Sistem",
-        emptyCustomTitle: "Henüz özel şablon yok",
-        emptyCustomBody: "İlk şablonunuzu oluşturup kampanya ve bildirim akışlarını standartlaştırın.",
-        firstTemplate: "İlk şablonu oluştur",
-        emptySystemTitle: "Sistem şablonu bulunamadı",
-        emptySystemBody: "Varsayılan şablonlar yüklenemedi ya da henüz tanımlı değil.",
-        editorTitleCreate: "Yeni şablon oluştur",
-        editorTitleEdit: "Şablonu düzenle",
-        templateName: "Şablon adı",
-        templateNamePlaceholder: "Örn. Sertifika teslim",
-        bodyTitle: "Email içeriği (HTML)",
-        htmlHint: "Desteklenen değişkenler",
-        cancel: "İptal",
-        save: "Kaydet",
-        previewTitle: "Önizleme",
-        subject: "Konu",
-        confirmDeleteTitle: "Şablonu sil",
-        confirmDeleteBody: "Bu şablonu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
-        loadError: "Şablonlar yüklenemedi.",
-        requiredError: "Tüm alanlar zorunludur.",
-        saveError: "İşlem başarısız oldu.",
-        deleteError: "Silme işlemi başarısız oldu.",
-        deleteSuccess: "Şablon silindi.",
-        saveSuccessCreate: "Şablon oluşturuldu.",
-        saveSuccessEdit: "Şablon güncellendi.",
-        sampleName: "Ayşe Yılmaz",
-        sampleEvent: "Hepta Summit 2026",
-        sampleDate: "15 Nisan 2026",
-      }
-    : {
-        pageTitle: "Email Templates",
-        pageSubtitle: "Manage the templates used across certificates, updates and bulk campaign flows from one place.",
-        createTemplate: "New template",
-        settings: "Settings",
-        campaigns: "Campaigns",
-        customTab: "Custom templates",
-        systemTab: "System templates",
-        templatesCount: "Templates",
-        subjectTr: "Turkish subject",
-        subjectEn: "English subject",
-        preview: "Preview",
-        edit: "Edit",
-        delete: "Delete",
-        system: "System",
-        emptyCustomTitle: "No custom templates yet",
-        emptyCustomBody: "Create your first template to standardize campaign and attendee communication flows.",
-        firstTemplate: "Create first template",
-        emptySystemTitle: "No system templates found",
-        emptySystemBody: "Default templates could not be loaded or are not configured yet.",
-        editorTitleCreate: "Create template",
-        editorTitleEdit: "Edit template",
-        templateName: "Template name",
-        templateNamePlaceholder: "e.g. Certificate delivery",
-        bodyTitle: "Email body (HTML)",
-        htmlHint: "Supported variables",
-        cancel: "Cancel",
-        save: "Save",
-        previewTitle: "Preview",
-        subject: "Subject",
-        confirmDeleteTitle: "Delete template",
-        confirmDeleteBody: "Are you sure you want to delete this template? This action cannot be undone.",
-        loadError: "Failed to load templates.",
-        requiredError: "All fields are required.",
-        saveError: "The operation failed.",
-        deleteError: "Failed to delete template.",
-        deleteSuccess: "Template deleted.",
-        saveSuccessCreate: "Template created.",
-        saveSuccessEdit: "Template updated.",
-        sampleName: "Alex Morgan",
-        sampleEvent: "Hepta Summit 2026",
-        sampleDate: "April 15, 2026",
-      };
+  const copy = { pageTitle: translate(lang, "migrated_app_admin_events_id_email_templates_email_templates_33094c7a"), pageSubtitle: translate(lang, "migrated_app_admin_events_id_email_templates_manage_the_templates_used_across_certifica_ed85eeae"), createTemplate: translate(lang, "migrated_app_admin_events_id_email_templates_new_template_8cf8df18"), settings: translate(lang, "migrated_app_admin_events_id_email_templates_settings_dba18720"), campaigns: translate(lang, "migrated_app_admin_events_id_email_templates_campaigns_b0f134e1"), customTab: translate(lang, "migrated_app_admin_events_id_email_templates_custom_templates_ef1a7ad4"), systemTab: translate(lang, "migrated_app_admin_events_id_email_templates_system_templates_970d2a5d"), templatesCount: translate(lang, "migrated_app_admin_events_id_email_templates_templates_8b74336a"), subjectTr: translate(lang, "migrated_app_admin_events_id_email_templates_turkish_subject_89c9e760"), subjectEn: translate(lang, "migrated_app_admin_events_id_email_templates_english_subject_5e20f1df"), preview: translate(lang, "migrated_app_admin_events_id_email_templates_preview_e4320a8e"), edit: translate(lang, "migrated_app_admin_events_id_email_templates_edit_e47e39ad"), delete: translate(lang, "migrated_app_admin_events_id_email_templates_delete_6d75e754"), system: translate(lang, "migrated_app_admin_events_id_email_templates_system_5bc9c74e"), emptyCustomTitle: translate(lang, "migrated_app_admin_events_id_email_templates_no_custom_templates_yet_ee5470dc"), emptyCustomBody: translate(lang, "migrated_app_admin_events_id_email_templates_create_your_first_template_to_standardize__8aaf7055"), firstTemplate: translate(lang, "migrated_app_admin_events_id_email_templates_create_first_template_02f2e908"), emptySystemTitle: translate(lang, "migrated_app_admin_events_id_email_templates_no_system_templates_found_60ae7fc1"), emptySystemBody: translate(lang, "migrated_app_admin_events_id_email_templates_default_templates_could_not_be_loaded_or_a_427e0cc8"), editorTitleCreate: translate(lang, "migrated_app_admin_events_id_email_templates_create_template_cbca71d6"), editorTitleEdit: translate(lang, "migrated_app_admin_events_id_email_templates_edit_template_f76779f7"), templateName: translate(lang, "migrated_app_admin_events_id_email_templates_template_name_e2098731"), templateNamePlaceholder: translate(lang, "migrated_app_admin_events_id_email_templates_e_g_certificate_delivery_b977ae01"), bodyTitle: translate(lang, "migrated_app_admin_events_id_email_templates_email_body_html_c836caaa"), htmlHint: translate(lang, "migrated_app_admin_events_id_email_templates_supported_variables_2ce600a7"), cancel: translate(lang, "migrated_app_admin_events_id_email_templates_cancel_1538baf1"), save: translate(lang, "migrated_app_admin_events_id_email_templates_save_b4b5632b"), previewTitle: translate(lang, "migrated_app_admin_events_id_email_templates_preview_c881f00f"), subject: translate(lang, "migrated_app_admin_events_id_email_templates_subject_80a44934"), confirmDeleteTitle: translate(lang, "migrated_app_admin_events_id_email_templates_delete_template_49099436"), confirmDeleteBody: translate(lang, "migrated_app_admin_events_id_email_templates_are_you_sure_you_want_to_delete_this_templ_ba9f4a1b"), loadError: translate(lang, "migrated_app_admin_events_id_email_templates_failed_to_load_templates_9068f4f1"), requiredError: translate(lang, "migrated_app_admin_events_id_email_templates_all_fields_are_required_30847a08"), saveError: translate(lang, "migrated_app_admin_events_id_email_templates_the_operation_failed_ec240998"), deleteError: translate(lang, "migrated_app_admin_events_id_email_templates_failed_to_delete_template_aaa742d3"), deleteSuccess: translate(lang, "migrated_app_admin_events_id_email_templates_template_deleted_c77ef364"), saveSuccessCreate: translate(lang, "migrated_app_admin_events_id_email_templates_template_created_83330df0"), saveSuccessEdit: translate(lang, "migrated_app_admin_events_id_email_templates_template_updated_74253460"), sampleName: translate(lang, "migrated_app_admin_events_id_email_templates_alex_morgan_90acbc4a"), sampleEvent: translate(lang, "migrated_app_admin_events_id_email_templates_hepta_summit_2026_935c2a65"), sampleDate: translate(lang, "migrated_app_admin_events_id_email_templates_april_15_2026_9fd32ac7") };
 
   // Load templates on mount
   useEffect(() => {
@@ -298,12 +212,12 @@ export default function EmailTemplatesPage() {
         <div className="card p-4">
           <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-400">TR / EN</p>
           <p className="mt-2 text-3xl font-black text-surface-900">2</p>
-          <p className="mt-1 text-xs text-surface-500">{lang === "tr" ? "Dil alani" : "Language surfaces"}</p>
+          <p className="mt-1 text-xs text-surface-500">{translate(lang, "migrated_app_admin_events_id_email_templates_language_surfaces_61b97c75")}</p>
         </div>
         <div className="card p-4">
           <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-400">HTML</p>
           <p className="mt-2 text-3xl font-black text-surface-900">{activeTemplates.length}</p>
-          <p className="mt-1 text-xs text-surface-500">{lang === "tr" ? "Aktif liste" : "Current list"}</p>
+          <p className="mt-1 text-xs text-surface-500">{translate(lang, "migrated_app_admin_events_id_email_templates_current_list_6bb60aa2")}</p>
         </div>
       </div>
 
@@ -466,7 +380,7 @@ export default function EmailTemplatesPage() {
                         type="text"
                         value={form.subject_tr}
                         onChange={(e) => setForm({ ...form, subject_tr: e.target.value })}
-                        placeholder={lang === "tr" ? "Örn. Sertifikanız hazır" : "e.g. Your certificate is ready"}
+                        placeholder={translate(lang, "migrated_app_admin_events_id_email_templates_e_g_your_certificate_is_ready_2312dd09")}
                         className="input-field"
                       />
                     </div>

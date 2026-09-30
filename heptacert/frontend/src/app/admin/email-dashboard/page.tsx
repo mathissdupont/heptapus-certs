@@ -16,7 +16,7 @@ import {
 import PageHeader from "@/components/Admin/PageHeader";
 import { FeatureGate } from "@/lib/useSubscription";
 import { apiFetch } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type EventItem = { id: number; name: string };
 
@@ -36,69 +36,7 @@ export default function EmailDashboard() {
   const [webhookCount, setWebhookCount] = useState(0);
   const [eventCount, setEventCount] = useState(0);
 
-  const copy = lang === "tr"
-    ? {
-        title: "Email Merkezi",
-        subtitle: "SMTP bağlantısını, şablonları, kampanyaları ve teslimat analitiğini tek panelden yönetin.",
-        setupTitle: "Çalışma mantığı",
-        setupBody: "Email akışları etkinlik bazlı çalışır. Önce SMTP ayarınızı tamamlayın, ardından bir etkinlik içinden şablon ve kampanya yönetimine geçin.",
-        metricTemplates: "Şablonlar",
-        metricWebhooks: "Webhooklar",
-        metricEvents: "Etkinlikler",
-        statTemplates: "Sistem şablonu",
-        statWebhooks: "Aktif webhook",
-        statEvents: "etkinlik",
-        smtpTitle: "SMTP ve teslimat",
-        smtpBody: "Gönderici hesabını doğrulayın, bağlantıyı test edin ve otomatik sertifika maillerini güvene alın.",
-        smtpStat: "Bağlantıyı test et",
-        templatesTitle: "Şablon kütüphanesi",
-        templatesBody: "Etkinlik bazlı özel şablonlar ve sistem şablonlarını yönetin. Otomatik sertifika mailleri de buradan beslenir.",
-        templatesStat: "Etkinlik bazlı",
-        campaignsTitle: "Kampanyalar",
-        campaignsBody: "Toplu e-posta, planlı gönderim ve kayıt sonrası iletişim akışlarını etkinlikten başlatın.",
-        campaignsStat: "Toplu ve planlı",
-        analyticsTitle: "Analitik",
-        analyticsBody: "Teslimat durumu, iş geçmişi ve etkinlik bazlı email performansını izleyin.",
-        analyticsStat: "Teslimat görünümü",
-        webhooksTitle: "Webhook entegrasyonu",
-        webhooksBody: "Email olaylarını Slack, CRM veya diğer sistemlere iletin.",
-        webhooksStat: "Gerçek zamanlı",
-        open: "Aç",
-        eventsHint: "Şablon ve kampanya yönetimi etkinlik sayfalarından yapılır.",
-        goEvents: "Etkinlikleri Aç",
-        goAnalytics: "Analitiğe Git",
-      }
-    : {
-        title: "Email Center",
-        subtitle: "Manage SMTP connectivity, templates, campaigns and delivery analytics from one control surface.",
-        setupTitle: "How it works",
-        setupBody: "Email flows are event-based. Configure SMTP first, then manage templates and campaigns from the relevant event workspace.",
-        metricTemplates: "Templates",
-        metricWebhooks: "Webhooks",
-        metricEvents: "Events",
-        statTemplates: "system templates",
-        statWebhooks: "active webhooks",
-        statEvents: "events",
-        smtpTitle: "SMTP and deliverability",
-        smtpBody: "Verify the sender account, test connectivity, and stabilize automatic certificate delivery emails.",
-        smtpStat: "Run connection test",
-        templatesTitle: "Template library",
-        templatesBody: "Manage event-specific templates and system templates. Automatic certificate emails also draw from here.",
-        templatesStat: "Event scoped",
-        campaignsTitle: "Campaigns",
-        campaignsBody: "Launch bulk email, scheduled sends, and post-registration communication from each event.",
-        campaignsStat: "Bulk and scheduled",
-        analyticsTitle: "Analytics",
-        analyticsBody: "Track delivery status, job history and event-level email performance.",
-        analyticsStat: "Delivery view",
-        webhooksTitle: "Webhook integrations",
-        webhooksBody: "Send email events to Slack, your CRM, or other downstream systems.",
-        webhooksStat: "Real time",
-        open: "Open",
-        eventsHint: "Template and campaign management lives inside each event workspace.",
-        goEvents: "Open Events",
-        goAnalytics: "Go to Analytics",
-      };
+  const copy = { title: translate(lang, "migrated_app_admin_email_dashboard_email_center_8afc1194"), subtitle: translate(lang, "migrated_app_admin_email_dashboard_manage_smtp_connectivity_templates_campaig_1ec72d1d"), setupTitle: translate(lang, "migrated_app_admin_email_dashboard_how_it_works_598c29f7"), setupBody: translate(lang, "migrated_app_admin_email_dashboard_email_flows_are_event_based_configure_smtp_58934084"), metricTemplates: translate(lang, "migrated_app_admin_email_dashboard_templates_6a58569c"), metricWebhooks: translate(lang, "migrated_app_admin_email_dashboard_webhooks_ae7d0387"), metricEvents: translate(lang, "migrated_app_admin_email_dashboard_events_90fe1ee9"), statTemplates: translate(lang, "migrated_app_admin_email_dashboard_system_templates_62a9d2c5"), statWebhooks: translate(lang, "migrated_app_admin_email_dashboard_active_webhooks_5c1337fb"), statEvents: translate(lang, "migrated_app_admin_email_dashboard_events_a7e4cf3e"), smtpTitle: translate(lang, "migrated_app_admin_email_dashboard_smtp_and_deliverability_c3d39850"), smtpBody: translate(lang, "migrated_app_admin_email_dashboard_verify_the_sender_account_test_connectivit_40a90646"), smtpStat: translate(lang, "migrated_app_admin_email_dashboard_run_connection_test_a1addafb"), templatesTitle: translate(lang, "migrated_app_admin_email_dashboard_template_library_165c2faa"), templatesBody: translate(lang, "migrated_app_admin_email_dashboard_manage_event_specific_templates_and_system_f5386e9b"), templatesStat: translate(lang, "migrated_app_admin_email_dashboard_event_scoped_cd94dcd3"), campaignsTitle: translate(lang, "migrated_app_admin_email_dashboard_campaigns_083541a2"), campaignsBody: translate(lang, "migrated_app_admin_email_dashboard_launch_bulk_email_scheduled_sends_and_post_56d1a01c"), campaignsStat: translate(lang, "migrated_app_admin_email_dashboard_bulk_and_scheduled_1864f5f0"), analyticsTitle: translate(lang, "migrated_app_admin_email_dashboard_analytics_19873e33"), analyticsBody: translate(lang, "migrated_app_admin_email_dashboard_track_delivery_status_job_history_and_even_b82e5357"), analyticsStat: translate(lang, "migrated_app_admin_email_dashboard_delivery_view_34bf4940"), webhooksTitle: translate(lang, "migrated_app_admin_email_dashboard_webhook_integrations_427f2567"), webhooksBody: translate(lang, "migrated_app_admin_email_dashboard_send_email_events_to_slack_your_crm_or_oth_2a85a525"), webhooksStat: translate(lang, "migrated_app_admin_email_dashboard_real_time_cbb6bc41"), open: translate(lang, "migrated_app_admin_email_dashboard_open_29a5cc69"), eventsHint: translate(lang, "migrated_app_admin_email_dashboard_template_and_campaign_management_lives_ins_6c411fb8"), goEvents: translate(lang, "migrated_app_admin_email_dashboard_open_events_d0c43063"), goAnalytics: translate(lang, "migrated_app_admin_email_dashboard_go_to_analytics_506331b4") };
 
   useEffect(() => {
     void load();

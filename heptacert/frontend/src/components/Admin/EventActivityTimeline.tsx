@@ -4,7 +4,7 @@ import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { Activity, Clock3, Loader2 } from "lucide-react";
 import { listEventTeamActivity, type EventTeamActivity } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 import { EmptyState } from "@/components/Admin/AdminState";
 
 export default function EventActivityTimeline({ eventId }: { eventId: number }) {
@@ -24,7 +24,7 @@ export default function EventActivityTimeline({ eventId }: { eventId: number }) 
       })
       .catch((err: any) => {
         if (!alive) return;
-        setError(err?.message || (lang === "tr" ? "Aktivite yüklenemedi." : "Activity could not be loaded."));
+        setError(err?.message || (translate(lang, "migrated_components_admin_eventactivitytimeline_activity_could_not_be_loaded_deb48590")));
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -40,10 +40,10 @@ export default function EventActivityTimeline({ eventId }: { eventId: number }) 
       <div className="mb-6 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-11 font-bold uppercase tracking-widest text-surface-400">
-            {lang === "tr" ? "Aktivite Akışı" : "Activity Stream"}
+            {translate(lang, "migrated_components_admin_eventactivitytimeline_activity_stream_cd8e85ec")}
           </p>
           <h2 className="mt-1 text-base font-semibold tracking-tight text-surface-900">
-            {lang === "tr" ? "Etkinlik zaman çizelgesi" : "Event timeline"}
+            {translate(lang, "migrated_components_admin_eventactivitytimeline_event_timeline_d251a0a2")}
           </h2>
         </div>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-50 text-surface-800 border border-surface-100 shadow-sm">
@@ -63,11 +63,9 @@ export default function EventActivityTimeline({ eventId }: { eventId: number }) 
       ) : items.length === 0 ? (
         <EmptyState
           icon={<Clock3 className="h-5 w-5 stroke-[1.5]" />}
-          title={lang === "tr" ? "Henüz aktivite yok" : "No activity yet"}
+          title={translate(lang, "migrated_components_admin_eventactivitytimeline_no_activity_yet_fe495216")}
           description={
-            lang === "tr"
-              ? "Ekip, katılımcı, bilet ve yönetim işlemleri burada kronolojik olarak görünür."
-              : "Team, attendee, ticket, and management actions will appear here chronologically."
+            translate(lang, "migrated_components_admin_eventactivitytimeline_team_attendee_ticket_and_management_action_51332b8c")
           }
           className="border-surface-200 bg-surface-50/30 py-10"
         />

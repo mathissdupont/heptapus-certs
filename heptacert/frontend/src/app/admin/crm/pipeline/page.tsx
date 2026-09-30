@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Briefcase, TrendingUp } from "lucide-react";
 import { getPipeline, updateDeal, type PipelineOut } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 const STAGE_LABELS_TR: Record<string, string> = {
   lead: "Aday",
@@ -44,34 +44,54 @@ const STAGE_HEADER_COLORS: Record<string, string> = {
 };
 
 type DealCard = {
-  id: number; name: string; account_id: number; account_name: string;
-  amount: number | null; expected_close_date: string | null;
-  owner_user_id: number | null; updated_at: string;
+  id: number;
+  name: string;
+  account_id: number;
+  account_name: string;
+  amount: number | null;
+  expected_close_date: string | null;
+  owner_user_id: number | null;
+  updated_at: string;
 };
 
 export default function CrmPipelinePage() {
   const { lang } = useI18n();
-  const copy = lang === "tr"
-    ? {
-        pageTitle: "Pipeline",
-        pageSubtitle: "Satış fırsatları kanban görünümü",
-        deals: "fırsat",
-        total: "Toplam",
-        won: "Kazanılan",
-        moveFailed: "Taşıma başarısız.",
-        empty: "Boş",
-      }
-    : {
-        pageTitle: "Pipeline",
-        pageSubtitle: "Sales opportunities kanban view",
-        deals: "deals",
-        total: "Total",
-        won: "Won",
-        moveFailed: "Move failed.",
-        empty: "Empty",
-      };
+  const copy = {
+    pageTitle: translate(
+      lang,
+      "migrated_app_admin_crm_pipeline_pipeline_19d900be",
+    ),
+    pageSubtitle: translate(
+      lang,
+      "migrated_app_admin_crm_pipeline_sales_opportunities_kanban_view_09285e36",
+    ),
+    deals: translate(lang, "migrated_app_admin_crm_pipeline_deals_c4e776b9"),
+    total: translate(lang, "migrated_app_admin_crm_pipeline_total_b3a6e4fa"),
+    won: translate(lang, "migrated_app_admin_crm_pipeline_won_b5d2f6a4"),
+    moveFailed: translate(
+      lang,
+      "migrated_app_admin_crm_pipeline_move_failed_444096a3",
+    ),
+    empty: translate(lang, "migrated_app_admin_crm_pipeline_empty_ea64b456"),
+  };
 
-  const STAGE_LABELS = lang === "tr" ? STAGE_LABELS_TR : STAGE_LABELS_EN;
+  const STAGE_LABELS: Record<string, string> = {
+    lead: translate(lang, "migrated_app_admin_crm_pipeline_lead_075fbe41"),
+    qualified: translate(
+      lang,
+      "migrated_app_admin_crm_pipeline_qualified_1c57b94a",
+    ),
+    proposal: translate(
+      lang,
+      "migrated_app_admin_crm_pipeline_proposal_8324200b",
+    ),
+    negotiation: translate(
+      lang,
+      "migrated_app_admin_crm_pipeline_negotiation_0fda9c90",
+    ),
+    won: translate(lang, "migrated_app_admin_crm_pipeline_won_24f35f82"),
+    lost: translate(lang, "migrated_app_admin_crm_pipeline_lost_1621fa5c"),
+  };
 
   const [data, setData] = useState<PipelineOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,15 +110,25 @@ export default function CrmPipelinePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleMoveStage(deal: DealCard, fromStage: string, toStage: string) {
+  async function handleMoveStage(
+    deal: DealCard,
+    fromStage: string,
+    toStage: string,
+  ) {
     if (!data || fromStage === toStage) return;
     setMovingDeal(deal.id);
     try {
-      await updateDeal(deal.id, { name: deal.name, stage: toStage, amount: deal.amount });
+      await updateDeal(deal.id, {
+        name: deal.name,
+        stage: toStage,
+        amount: deal.amount,
+      });
       setData((prev) => {
         if (!prev) return prev;
         const pipeline = { ...prev.pipeline };
-        pipeline[fromStage] = pipeline[fromStage].filter((d) => d.id !== deal.id);
+        pipeline[fromStage] = pipeline[fromStage].filter(
+          (d) => d.id !== deal.id,
+        );
         pipeline[toStage] = [{ ...deal }, ...pipeline[toStage]];
         return { ...prev, pipeline };
       });
@@ -119,11 +149,20 @@ export default function CrmPipelinePage() {
 
   if (!data) return null;
 
-  const totalDeals = data.stages.reduce((acc, s) => acc + (data.pipeline[s]?.length ?? 0), 0);
+  const totalDeals = data.stages.reduce(
+    (acc, s) => acc + (data.pipeline[s]?.length ?? 0),
+    0,
+  );
   const totalValue = data.stages.reduce((acc, s) => {
-    return acc + (data.pipeline[s] ?? []).reduce((sum, d) => sum + (d.amount ?? 0), 0);
+    return (
+      acc +
+      (data.pipeline[s] ?? []).reduce((sum, d) => sum + (d.amount ?? 0), 0)
+    );
   }, 0);
-  const wonValue = (data.pipeline["won"] ?? []).reduce((sum, d) => sum + (d.amount ?? 0), 0);
+  const wonValue = (data.pipeline["won"] ?? []).reduce(
+    (sum, d) => sum + (d.amount ?? 0),
+    0,
+  );
 
   return (
     <div className="px-4 py-8 space-y-6 max-w-full">
@@ -138,14 +177,31 @@ export default function CrmPipelinePage() {
         <div className="flex items-center gap-3">
           <TrendingUp className="h-6 w-6 text-status-info-content" />
           <div>
-            <h1 className="text-xl font-semibold text-content-primary">{copy.pageTitle}</h1>
+            <h1 className="text-xl font-semibold text-content-primary">
+              {copy.pageTitle}
+            </h1>
             <p className="text-sm text-content-muted">{copy.pageSubtitle}</p>
           </div>
         </div>
         <div className="flex items-center gap-4 text-sm text-content-muted">
-          <span><span className="font-semibold text-content-primary">{totalDeals}</span> {copy.deals}</span>
-          <span>{copy.total}: <span className="font-semibold text-content-primary">₺{totalValue.toLocaleString(localeTag(lang))}</span></span>
-          <span>{copy.won}: <span className="font-semibold text-status-success-content">₺{wonValue.toLocaleString(localeTag(lang))}</span></span>
+          <span>
+            <span className="font-semibold text-content-primary">
+              {totalDeals}
+            </span>{" "}
+            {copy.deals}
+          </span>
+          <span>
+            {copy.total}:{" "}
+            <span className="font-semibold text-content-primary">
+              ₺{totalValue.toLocaleString(localeTag(lang))}
+            </span>
+          </span>
+          <span>
+            {copy.won}:{" "}
+            <span className="font-semibold text-status-success-content">
+              ₺{wonValue.toLocaleString(localeTag(lang))}
+            </span>
+          </span>
         </div>
       </div>
 
@@ -157,13 +213,19 @@ export default function CrmPipelinePage() {
           return (
             <div key={stage} className="flex-shrink-0 w-64 space-y-3">
               {/* Column header */}
-              <div className={`rounded-xl px-3 py-2 flex items-center justify-between ${STAGE_HEADER_COLORS[stage] ?? "text-content-secondary bg-sunken"}`}>
-                <span className="text-xs font-semibold">{STAGE_LABELS[stage] ?? stage}</span>
+              <div
+                className={`rounded-xl px-3 py-2 flex items-center justify-between ${STAGE_HEADER_COLORS[stage] ?? "text-content-secondary bg-sunken"}`}
+              >
+                <span className="text-xs font-semibold">
+                  {STAGE_LABELS[stage] ?? stage}
+                </span>
                 <span className="text-xs opacity-75">{cards.length}</span>
               </div>
 
               {/* Cards */}
-              <div className={`rounded-xl border min-h-32 p-2 space-y-2 ${STAGE_COLORS[stage] ?? "border-outline-subtle bg-canvas"}`}>
+              <div
+                className={`rounded-xl border min-h-32 p-2 space-y-2 ${STAGE_COLORS[stage] ?? "border-outline-subtle bg-canvas"}`}
+              >
                 {cards.map((deal) => (
                   <div
                     key={deal.id}
@@ -177,9 +239,13 @@ export default function CrmPipelinePage() {
                     >
                       {deal.name}
                     </Link>
-                    <p className="text-xs text-content-muted">{deal.account_name}</p>
+                    <p className="text-xs text-content-muted">
+                      {deal.account_name}
+                    </p>
                     {deal.amount != null && (
-                      <p className="text-xs font-medium text-content-secondary">₺{deal.amount.toLocaleString(localeTag(lang))}</p>
+                      <p className="text-xs font-medium text-content-secondary">
+                        ₺{deal.amount.toLocaleString(localeTag(lang))}
+                      </p>
                     )}
                     {/* Move buttons */}
                     <div className="flex gap-1 pt-1">
@@ -189,7 +255,9 @@ export default function CrmPipelinePage() {
                         .map((toStage) => (
                           <button
                             key={toStage}
-                            onClick={() => handleMoveStage(deal, stage, toStage)}
+                            onClick={() =>
+                              handleMoveStage(deal, stage, toStage)
+                            }
                             disabled={movingDeal === deal.id}
                             className="rounded-md border border-outline-subtle px-1.5 py-0.5 text-xs text-content-muted hover:bg-sunken hover:text-content-secondary disabled:opacity-30"
                           >

@@ -10,7 +10,7 @@ import {
   listCrmAccounts, createCrmAccount, deleteCrmAccount,
   type CrmAccountOut,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 const INDUSTRY_OPTIONS_TR = [
  "Teknoloji", "Finans", "Sağlık", "Eğitim", "Üretim",
@@ -40,66 +40,10 @@ const SIZE_OPTIONS_EN = [
 
 export default function CrmAccountsPage() {
   const { lang } = useI18n();
-  const copy = lang === "tr"
-    ? {
-        pageTitle: "Şirket Hesapları",
-        pageSubtitle: "Kurumsal CRM — şirket ve ilişki yönetimi",
-        newAccount: "Yeni Hesap",
-        newAccountForm: "Yeni şirket hesabı",
-        companyName: "Şirket Adı *",
-        companyNamePlaceholder: "Acme A.Ş.",
-        domain: "Domain",
-        domainPlaceholder: "acme.com",
-        industry: "Sektör",
-        companySize: "Şirket Büyüklüğü",
-        selectPlaceholder: "Seçin...",
-        create: "Oluştur",
-        cancel: "İptal",
-        searchPlaceholder: "Şirket adı veya domain ile ara...",
-        noResults: "Arama sonucu bulunamadı.",
-        noAccounts: "Henüz şirket hesabı yok.",
-        colCompany: "Şirket",
-        colIndustry: "Sektör",
-        colSize: "Büyüklük",
-        colContacts: "Kişiler",
-        colDeals: "Fırsatlar",
-        detail: "Detay",
-        toastCreated: "Hesap oluşturuldu.",
-        toastCreateFailed: "Oluşturulamadı.",
-        toastDeleteFailed: "Silinemedi.",
-        confirmDelete: "Bu hesabı ve bağlı tüm verileri silmek istediğinizden emin misiniz?",
-      }
-    : {
-        pageTitle: "Company Accounts",
-        pageSubtitle: "Corporate CRM — company and relationship management",
-        newAccount: "New Account",
-        newAccountForm: "New company account",
-        companyName: "Company Name *",
-        companyNamePlaceholder: "Acme Inc.",
-        domain: "Domain",
-        domainPlaceholder: "acme.com",
-        industry: "Industry",
-        companySize: "Company Size",
-        selectPlaceholder: "Select...",
-        create: "Create",
-        cancel: "Cancel",
-        searchPlaceholder: "Search by company name or domain...",
-        noResults: "No search results found.",
-        noAccounts: "No company accounts yet.",
-        colCompany: "Company",
-        colIndustry: "Industry",
-        colSize: "Size",
-        colContacts: "Contacts",
-        colDeals: "Deals",
-        detail: "Detail",
-        toastCreated: "Account created.",
-        toastCreateFailed: "Could not create.",
-        toastDeleteFailed: "Could not delete.",
-        confirmDelete: "Are you sure you want to delete this account and all associated data?",
-      };
+  const copy = { pageTitle: translate(lang, "migrated_app_admin_crm_accounts_company_accounts_bab850e4"), pageSubtitle: translate(lang, "migrated_app_admin_crm_accounts_corporate_crm_company_and_relationship_man_3e6679fb"), newAccount: translate(lang, "migrated_app_admin_crm_accounts_new_account_b457665c"), newAccountForm: translate(lang, "migrated_app_admin_crm_accounts_new_company_account_361bd4a1"), companyName: translate(lang, "migrated_app_admin_crm_accounts_company_name_b004e14d"), companyNamePlaceholder: translate(lang, "migrated_app_admin_crm_accounts_acme_inc_2338358a"), domain: translate(lang, "migrated_app_admin_crm_accounts_domain_41892a43"), domainPlaceholder: translate(lang, "migrated_app_admin_crm_accounts_acme_com_81a9879a"), industry: translate(lang, "migrated_app_admin_crm_accounts_industry_27742a6d"), companySize: translate(lang, "migrated_app_admin_crm_accounts_company_size_b68ab341"), selectPlaceholder: translate(lang, "migrated_app_admin_crm_accounts_select_b4165849"), create: translate(lang, "migrated_app_admin_crm_accounts_create_5a6ebdb4"), cancel: translate(lang, "migrated_app_admin_crm_accounts_cancel_0975dc56"), searchPlaceholder: translate(lang, "migrated_app_admin_crm_accounts_search_by_company_name_or_domain_0a5c49a0"), noResults: translate(lang, "migrated_app_admin_crm_accounts_no_search_results_found_ae870c21"), noAccounts: translate(lang, "migrated_app_admin_crm_accounts_no_company_accounts_yet_d2898aed"), colCompany: translate(lang, "migrated_app_admin_crm_accounts_company_dc854996"), colIndustry: translate(lang, "migrated_app_admin_crm_accounts_industry_faae7e6b"), colSize: translate(lang, "migrated_app_admin_crm_accounts_size_bb5a98f5"), colContacts: translate(lang, "migrated_app_admin_crm_accounts_contacts_b2c6df59"), colDeals: translate(lang, "migrated_app_admin_crm_accounts_deals_972eb1f6"), detail: translate(lang, "migrated_app_admin_crm_accounts_detail_2270229b"), toastCreated: translate(lang, "migrated_app_admin_crm_accounts_account_created_25af29c8"), toastCreateFailed: translate(lang, "migrated_app_admin_crm_accounts_could_not_create_746e6dd5"), toastDeleteFailed: translate(lang, "migrated_app_admin_crm_accounts_could_not_delete_59a93b67"), confirmDelete: translate(lang, "migrated_app_admin_crm_accounts_are_you_sure_you_want_to_delete_this_accou_a7ceaa61") };
 
-  const INDUSTRY_OPTIONS = lang === "tr" ? INDUSTRY_OPTIONS_TR : INDUSTRY_OPTIONS_EN;
-  const SIZE_OPTIONS = lang === "tr" ? SIZE_OPTIONS_TR : SIZE_OPTIONS_EN;
+  const INDUSTRY_OPTIONS = [translate(lang, "migrated_app_admin_crm_accounts_technology_1faf0ac7"), translate(lang, "migrated_app_admin_crm_accounts_finance_475d5db9"), translate(lang, "migrated_app_admin_crm_accounts_healthcare_1e2320eb"), translate(lang, "migrated_app_admin_crm_accounts_education_8cc2a7e9"), translate(lang, "migrated_app_admin_crm_accounts_manufacturing_2c93039f"), translate(lang, "migrated_app_admin_crm_accounts_retail_0a7ec018"), translate(lang, "migrated_app_admin_crm_accounts_construction_a4f34b58"), translate(lang, "migrated_app_admin_crm_accounts_logistics_fee6a3bb"), translate(lang, "migrated_app_admin_crm_accounts_consulting_d1446f58"), translate(lang, "migrated_app_admin_crm_accounts_other_6f912e58")];
+  const SIZE_OPTIONS = [{ value: "1-10", label: translate(lang, "migrated_app_admin_crm_accounts_1_10_people_c2da0069") }, { value: "11-50", label: translate(lang, "migrated_app_admin_crm_accounts_11_50_people_b8f9adfe") }, { value: "51-200", label: translate(lang, "migrated_app_admin_crm_accounts_51_200_people_14cbb5ae") }, { value: "201-1000", label: translate(lang, "migrated_app_admin_crm_accounts_201_1000_people_549b7076") }, { value: "1000+", label: translate(lang, "migrated_app_admin_crm_accounts_1000_people_e2561f65") }];
 
   const [accounts, setAccounts] = useState<CrmAccountOut[]>([]);
   const [loading, setLoading] = useState(true);

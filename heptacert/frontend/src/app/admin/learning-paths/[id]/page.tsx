@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type StepForm = {
   id?: number;
@@ -44,59 +44,7 @@ export default function LearningPathBuilderPage() {
   const router = useRouter();
   const pathId = params.id as string;
   const { lang } = useI18n();
-  const copy = lang === "tr"
-    ? {
-        generalInfo: "Genel Bilgiler",
-        title: "Başlık",
-        description: "Açıklama",
-        publish: "Yayınla (üyeler görebilsin)",
-        save: "Kaydet",
-        steps: "Adımlar",
-        saveSteps: "Adımları Kaydet",
-        noSteps: "Henüz adım yok.",
-        addActivity: "Aşağıdan etkinlik arayıp ekleyin.",
-        required: "Zorunlu",
-        minScore: "Min. puan:",
-        editTab: "Düzenle",
-        enrollmentsTab: "Kayıtlar",
-        totalEnrollments: "Toplam Kayıt",
-        completed: "Tamamlayan",
-        completionRate: "Tamamlama Oranı",
-        noEnrollments: "Henüz kayıt yok.",
-        savedMsg: "Kaydedildi.",
-        saveFailedMsg: "Kayıt başarısız.",
-        stepsSavedMsg: "Adımlar kaydedildi.",
-        stepsFailedMsg: "Adımlar kaydedilemedi.",
-        published: "Yayında",
-        draft: "Taslak",
-        searchPlaceholder: "+ Etkinlik adı yazarak ekle...",
-      }
-    : {
-        generalInfo: "General Info",
-        title: "Title",
-        description: "Description",
-        publish: "Publish (visible to members)",
-        save: "Save",
-        steps: "Steps",
-        saveSteps: "Save Steps",
-        noSteps: "No steps yet.",
-        addActivity: "Search and add an activity below.",
-        required: "Required",
-        minScore: "Min. score:",
-        editTab: "Edit",
-        enrollmentsTab: "Enrollments",
-        totalEnrollments: "Total Enrollments",
-        completed: "Completed",
-        completionRate: "Completion Rate",
-        noEnrollments: "No enrollments yet.",
-        savedMsg: "Saved.",
-        saveFailedMsg: "Save failed.",
-        stepsSavedMsg: "Steps saved.",
-        stepsFailedMsg: "Steps could not be saved.",
-        published: "Published",
-        draft: "Draft",
-        searchPlaceholder: "+ Type an activity name to add...",
-      };
+  const copy = { generalInfo: translate(lang, "migrated_app_admin_learning_paths_id_general_info_c523516e"), title: translate(lang, "migrated_app_admin_learning_paths_id_title_3ecd05b5"), description: translate(lang, "migrated_app_admin_learning_paths_id_description_630f611c"), publish: translate(lang, "migrated_app_admin_learning_paths_id_publish_visible_to_members_e351f250"), save: translate(lang, "migrated_app_admin_learning_paths_id_save_ace94b0c"), steps: translate(lang, "migrated_app_admin_learning_paths_id_steps_b264a064"), saveSteps: translate(lang, "migrated_app_admin_learning_paths_id_save_steps_76773cba"), noSteps: translate(lang, "migrated_app_admin_learning_paths_id_no_steps_yet_75fbe9e0"), addActivity: translate(lang, "migrated_app_admin_learning_paths_id_search_and_add_an_activity_below_72b1e257"), required: translate(lang, "migrated_app_admin_learning_paths_id_required_690584b1"), minScore: translate(lang, "migrated_app_admin_learning_paths_id_min_score_f3e2c44a"), editTab: translate(lang, "migrated_app_admin_learning_paths_id_edit_09bd73a4"), enrollmentsTab: translate(lang, "migrated_app_admin_learning_paths_id_enrollments_cc5d44ca"), totalEnrollments: translate(lang, "migrated_app_admin_learning_paths_id_total_enrollments_a12198be"), completed: translate(lang, "migrated_app_admin_learning_paths_id_completed_674d23dd"), completionRate: translate(lang, "migrated_app_admin_learning_paths_id_completion_rate_b1ae3c9d"), noEnrollments: translate(lang, "migrated_app_admin_learning_paths_id_no_enrollments_yet_605f5e78"), savedMsg: translate(lang, "migrated_app_admin_learning_paths_id_saved_9369c72f"), saveFailedMsg: translate(lang, "migrated_app_admin_learning_paths_id_save_failed_9b9c2fe0"), stepsSavedMsg: translate(lang, "migrated_app_admin_learning_paths_id_steps_saved_a58ad608"), stepsFailedMsg: translate(lang, "migrated_app_admin_learning_paths_id_steps_could_not_be_saved_21191504"), published: translate(lang, "migrated_app_admin_learning_paths_id_published_a5af94de"), draft: translate(lang, "migrated_app_admin_learning_paths_id_draft_22973983"), searchPlaceholder: translate(lang, "migrated_app_admin_learning_paths_id_type_an_activity_name_to_add_c54f6fa0") };
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

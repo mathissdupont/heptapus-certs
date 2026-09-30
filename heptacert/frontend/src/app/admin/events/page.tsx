@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch, getMySubscription, getSelectedOrganizationId, setSelectedOrganizationId } from "@/lib/api";
 import { orgRoleLabel, canManageEvents } from "@/lib/orgRoles";
@@ -30,7 +29,7 @@ import ConfirmModal from "@/components/Admin/ConfirmModal";
 import EmptyState from "@/components/Admin/EmptyState";
 import { StatCard } from "@/components/Admin/StatCard";
 import CreateEventDrawer from "@/components/Admin/CreateEventDrawer";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate, type TranslationKey } from "@/lib/i18n";
 
 type EventOut = {
   id: number;
@@ -52,16 +51,16 @@ type EventType = "certificate_event" | "seminar" | "workshop" | "conference" | "
 type OrganizationContext = { id: number; org_name: string; role: string; owned: boolean; permissions: string[] };
 type OrganizationVenue = { id: number; name: string; capacity?: number | null; location?: string | null; is_active: boolean };
 
-const EVENT_TYPE_OPTIONS: Array<{ value: EventType; label: { tr: string; en: string } }> = [
-  { value: "certificate_event", label: { tr: "Sertifikalı Etkinlik", en: "Certificate Event" } },
-  { value: "seminar", label: { tr: "Seminer", en: "Seminar" } },
-  { value: "workshop", label: { tr: "Workshop", en: "Workshop" } },
-  { value: "conference", label: { tr: "Konferans", en: "Conference" } },
-  { value: "concert", label: { tr: "Konser", en: "Concert" } },
-  { value: "training", label: { tr: "Eğitim", en: "Training" } },
-  { value: "club_event", label: { tr: "Kulüp Etkinliği", en: "Club Event" } },
-  { value: "online_event", label: { tr: "Online Etkinlik", en: "Online Event" } },
-  { value: "custom", label: { tr: "Özel Etkinlik", en: "Custom Event" } },
+const EVENT_TYPE_OPTIONS: Array<{ value: EventType; labelKey: TranslationKey }> = [
+  { value: "certificate_event", labelKey: "admin_settings_event_certificate" },
+  { value: "seminar", labelKey: "admin_settings_event_seminar" },
+  { value: "workshop", labelKey: "admin_settings_event_workshop" },
+  { value: "conference", labelKey: "admin_settings_event_conference" },
+  { value: "concert", labelKey: "admin_settings_event_concert" },
+  { value: "training", labelKey: "admin_settings_event_training" },
+  { value: "club_event", labelKey: "admin_settings_event_club" },
+  { value: "online_event", labelKey: "admin_settings_event_online" },
+  { value: "custom", labelKey: "admin_settings_event_custom" },
 ];
 
 export default function AdminEvents() {
@@ -87,100 +86,7 @@ export default function AdminEvents() {
   const [venues, setVenues] = useState<OrganizationVenue[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const copy = pickLang({
-    tr: {
-      title: "Etkinlikler",
-      subtitle: "Etkinliklerinizi yönetin ve sertifika süreçlerini takip edin",
-      loadFailed: "Yükleme başarısız.",
-      renamed: "Etkinlik yeniden adlandırıldı.",
-      renameFailed: "Yeniden adlandırma başarısız.",
-      deleted: "Etkinlik silindi.",
-      deleteFailed: "Silme işlemi başarısız.",
-      totalEvents: "Toplam Etkinlik",
-      totalCertificates: "Toplam Sertifika",
-      planStatus: "Plan Durumu",
-      premium: "Premium",
-      starter: "Başlangıç",
-      balance: "Bakiye",
-      newEvent: "Yeni Etkinlik",
-      allEventTypes: "Tüm Türler",
-      searchPlaceholder: "Etkinlik ara...",
-      eventCount: (n: number) => `${n} etkinlik`,
-      filteredCount: (n: number, t: number) => `${n} / ${t} etkinlik`,
-      emptyTitle: "Henüz Etkinlik Yok",
-      emptyBody: "İlk etkinliğinizi oluşturmak için sağ üstteki butonu kullanın.",
-      searchEmptyTitle: "Aramaya uyan etkinlik bulunamadı",
-      searchEmptyBody: "Filtreyi temizleyerek tüm etkinlikleri listeleyin.",
-      clearFilter: "Temizle",
-      rename: "Yeniden Adlandır",
-      eventDetails: "Etkinlik Detayları",
-      paidPlanRequired: "Ücretli plan gerekli",
-      copied: "Kopyalandı!",
-      registerLink: "Kayıt Linki",
-      delete: "Sil",
-      deleteTitle: "Etkinliği sil",
-      deleteDescription: (eventName: string) =>
- `"${eventName}" etkinliğini ve tüm sertifikalarını kalıcı olarak silmek istediğinizden emin misiniz?`,
-      superadmin: "Superadmin",
-      certificates: "Sertifikalar",
-      tickets: "Biletler",
-      templateUploaded: "Şablon yüklendi",
-      templateMissing: "Şablon eksik",
-      organization: "Organizasyon",
-      orgContext: "Etkinlikleri hangi kurum adına yönettiğini seç.",
-      ownOrg: "Kendi kurumum",
-      noEventAccess: "etkinlik yetkisi yok",
-      noEventPermTitle: "Bu kurumda etkinlik yönetme yetkin yok",
-      noEventPermBody: "Bu organizasyonda yalnızca yetkili olduğun alanlara erişebilirsin. Etkinlikleri yönetmek için kendi kurumuna geç.",
-      switchToOwn: "Kendi kurumuma geç",
-    },
-    en: {
-      title: "Events",
-      subtitle: "Manage your events and track certificate workflows",
-      loadFailed: "Failed to load data.",
-      renamed: "Event renamed.",
-      renameFailed: "Failed to rename event.",
-      deleted: "Event deleted.",
-      deleteFailed: "Failed to delete event.",
-      totalEvents: "Total Events",
-      totalCertificates: "Total Certificates",
-      planStatus: "Plan Status",
-      premium: "Premium",
-      starter: "Starter",
-      balance: "Balance",
-      newEvent: "New Event",
-      allEventTypes: "All Types",
-      searchPlaceholder: "Search events...",
-      eventCount: (n: number) => `${n} events`,
-      filteredCount: (n: number, t: number) => `${n} of ${t} events`,
-      emptyTitle: "No Events Yet",
-      emptyBody: "Use the button above to create your first event.",
-      searchEmptyTitle: "No events match your search",
-      searchEmptyBody: "Clear the filter to list all events.",
-      clearFilter: "Clear",
-      rename: "Rename",
-      eventDetails: "Event Details",
-      paidPlanRequired: "Paid plan required",
-      copied: "Copied!",
-      registerLink: "Registration Link",
-      delete: "Delete",
-      deleteTitle: "Delete event",
-      deleteDescription: (eventName: string) =>
- `Are you sure you want to permanently delete "${eventName}" and all of its certificates?`,
-      superadmin: "Superadmin",
-      certificates: "Certificates",
-      tickets: "Tickets",
-      templateUploaded: "Template uploaded",
-      templateMissing: "Template missing",
-      organization: "Organization",
-      orgContext: "Choose which organization owns these events.",
-      ownOrg: "My organization",
-      noEventAccess: "no event access",
-      noEventPermTitle: "You don't have event access in this organization",
-      noEventPermBody: "In this organization you can only access the areas you're authorized for. Switch to your own organization to manage events.",
-      switchToOwn: "Switch to my organization",
-    },
-  }, lang);
+  const copy = { title: translate(lang, "migrated_app_admin_events_events_0cf28b30"), subtitle: translate(lang, "migrated_app_admin_events_manage_your_events_and_track_certificate_w_9dfcb7a0"), loadFailed: translate(lang, "migrated_app_admin_events_failed_to_load_data_2407c16b"), renamed: translate(lang, "migrated_app_admin_events_event_renamed_08d8b2ed"), renameFailed: translate(lang, "migrated_app_admin_events_failed_to_rename_event_ac0167a9"), deleted: translate(lang, "migrated_app_admin_events_event_deleted_dbd9ed49"), deleteFailed: translate(lang, "migrated_app_admin_events_failed_to_delete_event_13fe6988"), totalEvents: translate(lang, "migrated_app_admin_events_total_events_8f804d20"), totalCertificates: translate(lang, "migrated_app_admin_events_total_certificates_4c219e82"), planStatus: translate(lang, "migrated_app_admin_events_plan_status_8e80d971"), premium: "Premium", starter: translate(lang, "migrated_app_admin_events_starter_70a3ae58"), balance: translate(lang, "migrated_app_admin_events_balance_b6fe99e2"), newEvent: translate(lang, "migrated_app_admin_events_new_event_e2186dc8"), allEventTypes: translate(lang, "migrated_app_admin_events_all_types_a2808922"), searchPlaceholder: translate(lang, "migrated_app_admin_events_search_events_0b5cff2f"), eventCount: (n: number) => translate(lang, "migrated_app_admin_events_value0_events_e15aff4e", { value0: n }), filteredCount: (n: number, t: number) => translate(lang, "migrated_app_admin_events_value0_of_value1_events_c76fe439", { value0: n, value1: t }), emptyTitle: translate(lang, "migrated_app_admin_events_no_events_yet_b2294c82"), emptyBody: translate(lang, "migrated_app_admin_events_use_the_button_above_to_create_your_first__35f274f0"), searchEmptyTitle: translate(lang, "migrated_app_admin_events_no_events_match_your_search_5e0d0f6e"), searchEmptyBody: translate(lang, "migrated_app_admin_events_clear_the_filter_to_list_all_events_a226f085"), clearFilter: translate(lang, "migrated_app_admin_events_clear_e0d77aa0"), rename: translate(lang, "migrated_app_admin_events_rename_8d2579e9"), eventDetails: translate(lang, "migrated_app_admin_events_event_details_fafaa7b7"), paidPlanRequired: translate(lang, "migrated_app_admin_events_paid_plan_required_71e92672"), copied: translate(lang, "migrated_app_admin_events_copied_7a27e83d"), registerLink: translate(lang, "migrated_app_admin_events_registration_link_518c0a19"), delete: translate(lang, "migrated_app_admin_events_delete_2462ad14"), deleteTitle: translate(lang, "migrated_app_admin_events_delete_event_91fe1687"), deleteDescription: (eventName: string) => translate(lang, "migrated_app_admin_events_are_you_sure_you_want_to_permanently_delet_723c1dcc", { value0: eventName }), superadmin: "Superadmin", certificates: translate(lang, "migrated_app_admin_events_certificates_5c42f5fb"), tickets: translate(lang, "migrated_app_admin_events_tickets_9f10da00"), templateUploaded: translate(lang, "migrated_app_admin_events_template_uploaded_fc409814"), templateMissing: translate(lang, "migrated_app_admin_events_template_missing_f1f7ba22"), organization: translate(lang, "migrated_app_admin_events_organization_dc04f7db"), orgContext: translate(lang, "migrated_app_admin_events_choose_which_organization_owns_these_event_4dcb0190"), ownOrg: translate(lang, "migrated_app_admin_events_my_organization_69d9771f"), noEventAccess: translate(lang, "migrated_app_admin_events_no_event_access_f63fbb93"), noEventPermTitle: translate(lang, "migrated_app_admin_events_you_don_t_have_event_access_in_this_organi_d7ece6ef"), noEventPermBody: translate(lang, "migrated_app_admin_events_in_this_organization_you_can_only_access_t_619a7cff"), switchToOwn: translate(lang, "migrated_app_admin_events_switch_to_my_organization_e82cd9c7") };
 
   function copyRegisterLink(id: number, publicId?: string | null) {
     const routeId = publicId || String(id);
@@ -399,7 +305,7 @@ export default function AdminEvents() {
         >
           <option value="all">{copy.allEventTypes}</option>
           {EVENT_TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{pickLang(opt.label, lang)}</option>
+            <option key={opt.value} value={opt.value}>{translate(lang, opt.labelKey)}</option>
           ))}
         </select>
         <span className="shrink-0 text-sm text-surface-400">
@@ -515,7 +421,10 @@ export default function AdminEvents() {
                     <p className="truncate text-sm font-medium text-surface-900">{ev.name}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       <span className="badge-neutral text-11">
-                        {pickLang(EVENT_TYPE_OPTIONS.find((o) => o.value === (ev.event_type || "certificate_event"))?.label, lang) || ev.event_type}
+                        {(() => {
+                          const key = EVENT_TYPE_OPTIONS.find((o) => o.value === (ev.event_type || "certificate_event"))?.labelKey;
+                          return key ? translate(lang, key) : ev.event_type;
+                        })()}
                       </span>
                       {ev.ticketing_enabled && (
                         <span className="inline-flex items-center rounded-full border border-status-info-border bg-status-info-bg px-2 py-0.5 text-11 font-medium text-status-info-content">

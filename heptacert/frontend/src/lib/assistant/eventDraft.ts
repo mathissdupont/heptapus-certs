@@ -1,3 +1,6 @@
+
+import { translate } from "@/lib/i18n";
+import type { Lang } from "@/lib/i18n";
 import {
   compactText,
   tokenize,
@@ -277,118 +280,127 @@ export function buildSmartRegistrationFields(eventType: string): SuggestedRegist
   return presets[normalizedKey] ?? presets.certificate_event;
 }
 
-export function buildComplianceSuggestions(draft: EventDraft, lang = "tr"): string[] {
+export function buildComplianceSuggestions(draft: EventDraft, lang: Lang = "tr"): string[] {
   const suggestions: string[] = [];
   const privacyNeeded = draft.registrationEnabled || draft.requireEmailVerification || draft.registrationQuotaEnabled;
   if (privacyNeeded) {
-    suggestions.push(lang === "tr" ? "KVKK/aydınlatma metni ekleyin" : "Add a KVKK/privacy notice");
-    suggestions.push(lang === "tr" ? "Kayıt formuna açık rıza kutusu ekleyin" : "Add a consent checkbox to the registration form");
-    suggestions.push(lang === "tr" ? "Veri işleme amacı ve saklama süresini belirtin" : "State the purpose of processing and retention period");
+    suggestions.push(translate(lang, "migrated_lib_assistant_eventdraft_add_a_kvkk_privacy_notice_1c37f201"));
+    suggestions.push(translate(lang, "migrated_lib_assistant_eventdraft_add_a_consent_checkbox_to_the_registration_e0a3d7b2"));
+    suggestions.push(translate(lang, "migrated_lib_assistant_eventdraft_state_the_purpose_of_processing_and_retent_e4b69ddf"));
   }
   if (draft.visibility === "public" || draft.visibility === "unlisted") {
-    suggestions.push(lang === "tr" ? "Gizlilik politikası / şartlar bağlantısı ekleyin" : "Add a privacy policy / terms link");
+    suggestions.push(translate(lang, "migrated_lib_assistant_eventdraft_add_a_privacy_policy_terms_link_7f251a8d"));
   }
   if (draft.eventType === "online_event" || draft.eventType === "conference" || draft.eventType === "workshop") {
-    suggestions.push(lang === "tr" ? "İletişim ve bilgilendirme onaylarını ayrı tutun" : "Keep contact and information consent separate");
+    suggestions.push(translate(lang, "migrated_lib_assistant_eventdraft_keep_contact_and_information_consent_separ_c3d159aa"));
   }
   return Array.from(new Set(suggestions));
 }
 
-export function validateDraft(draft: EventDraft, lang = "tr"): string[] {
+export function validateDraft(draft: EventDraft, lang: Lang = "tr"): string[] {
   const errs: string[] = [];
 
   if (!draft.name || !draft.name.trim()) {
-    errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
+    errs.push(translate(lang, "migrated_lib_assistant_eventdraft_event_name_is_required_73d213bc"));
   }
 
   if (!draft.eventDate || !draft.eventDate.trim()) {
-    errs.push(lang === "tr" ? "Etkinlik tarihi gerekli" : "Event date is required");
+    errs.push(translate(lang, "migrated_lib_assistant_eventdraft_event_date_is_required_0c4cf6f0"));
   }
 
   if (draft.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(draft.eventDate)) {
-    errs.push(lang === "tr" ? "Tarih YYYY-MM-DD formatında olmalı" : "Date must be YYYY-MM-DD");
+    errs.push(translate(lang, "migrated_lib_assistant_eventdraft_date_must_be_yyyy_mm_dd_6c58bf0b"));
   }
 
   if (draft.registrationQuotaEnabled && draft.registrationQuota && isNaN(Number(draft.registrationQuota))) {
-    errs.push(lang === "tr" ? "Kontenjan sayısal olmalı" : "Quota must be numeric");
+    errs.push(translate(lang, "migrated_lib_assistant_eventdraft_quota_must_be_numeric_9ab66a72"));
   }
 
   if (draft.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(draft.dataControllerContactEmail)) {
-    errs.push(lang === "tr" ? "Geçersiz e-posta adresi" : "Invalid data controller email");
+    errs.push(translate(lang, "migrated_lib_assistant_eventdraft_invalid_data_controller_email_c84dc7f6"));
   }
 
   return errs;
 }
 
-export function formatDraftSummary(draft: EventDraft, lang = "tr"): string {
-  const lines: string[] = [lang === "tr" ? `Ad: ${draft.name}` : `Name: ${draft.name}`];
-  if (draft.eventDate) lines.push(lang === "tr" ? `Tarih: ${draft.eventDate}` : `Date: ${draft.eventDate}`);
-  if (draft.eventLocation) lines.push(lang === "tr" ? `Konum: ${draft.eventLocation}` : `Location: ${draft.eventLocation}`);
-  if (draft.eventDescription) lines.push(lang === "tr" ? `Açıklama: ${draft.eventDescription}` : `Description: ${draft.eventDescription}`);
-  lines.push(lang === "tr" ? `Tip: ${draft.eventType}` : `Type: ${draft.eventType}`);
-  lines.push(lang === "tr" ? `Görünürlük: ${draft.visibility}` : `Visibility: ${draft.visibility}`);
-  if (draft.registrationQuotaEnabled && draft.registrationQuota) lines.push(lang === "tr" ? `Kontenjan: ${draft.registrationQuota}` : `Quota: ${draft.registrationQuota}`);
-  lines.push(lang === "tr" ? `Kayıt kapalı: ${draft.registrationClosed ? "Evet" : "Hayır"}` : `Registration closed: ${draft.registrationClosed ? "Yes" : "No"}`);
-  lines.push(lang === "tr" ? `E-posta doğrulama: ${draft.requireEmailVerification ? "Zorunlu" : "Kapalı"}` : `Email verification: ${draft.requireEmailVerification ? "Required" : "Off"}`);
-  lines.push(lang === "tr" ? `Özellikler: ${[draft.certificateEnabled ? "Sertifika" : null, draft.checkinEnabled ? "Check-in" : null, draft.ticketingEnabled ? "Biletleme" : null].filter(Boolean).join(", ")}` : `Features: ${[draft.certificateEnabled ? "Certificate" : null, draft.checkinEnabled ? "Check-in" : null, draft.ticketingEnabled ? "Ticketing" : null].filter(Boolean).join(", ")}`);
+export function formatDraftSummary(draft: EventDraft, lang: Lang = "tr"): string {
+  const lines: string[] = [translate(lang, "migrated_lib_assistant_eventdraft_name_value0_453bc071", { value0: draft.name })];
+  if (draft.eventDate) lines.push(translate(lang, "migrated_lib_assistant_eventdraft_date_value0_15233e78", { value0: draft.eventDate }));
+  if (draft.eventLocation) lines.push(translate(lang, "migrated_lib_assistant_eventdraft_location_value0_e137a178", { value0: draft.eventLocation }));
+  if (draft.eventDescription) lines.push(translate(lang, "migrated_lib_assistant_eventdraft_description_value0_a0070b52", { value0: draft.eventDescription }));
+  lines.push(translate(lang, "migrated_lib_assistant_eventdraft_type_value0_8d3f7620", { value0: draft.eventType }));
+  lines.push(translate(lang, "migrated_lib_assistant_eventdraft_visibility_value0_73c84ca3", { value0: draft.visibility }));
+  if (draft.registrationQuotaEnabled && draft.registrationQuota) lines.push(translate(lang, "migrated_lib_assistant_eventdraft_quota_value0_04802978", { value0: draft.registrationQuota }));
+  lines.push(translate(lang, "admin_assistant_registration_closed", {
+    state: translate(lang, draft.registrationClosed ? "admin_common_yes" : "admin_common_no"),
+  }));
+  lines.push(translate(lang, "admin_assistant_email_verification", {
+    state: translate(lang, draft.requireEmailVerification ? "admin_common_required" : "admin_common_off"),
+  }));
+  const features = [
+    draft.certificateEnabled ? translate(lang, "admin_feature_certificate") : null,
+    draft.checkinEnabled ? translate(lang, "admin_feature_checkin") : null,
+    draft.ticketingEnabled ? translate(lang, "admin_feature_ticketing") : null,
+  ].filter((value): value is string => Boolean(value));
+  lines.push(translate(lang, "admin_assistant_features", { features: features.join(", ") }));
   return lines.join("\n");
 }
 
-export function formatInferredDraftSummary(draft: EventDraft, lang = "tr"): string {
+export function formatInferredDraftSummary(draft: EventDraft, lang: Lang = "tr"): string {
   const inferred: string[] = [];
-  if (draft.name.trim()) inferred.push(lang === "tr" ? `Ad: ${draft.name}` : `Name: ${draft.name}`);
-  if (draft.eventDate.trim()) inferred.push(lang === "tr" ? `Tarih: ${draft.eventDate}` : `Date: ${draft.eventDate}`);
+  if (draft.name.trim()) inferred.push(translate(lang, "migrated_lib_assistant_eventdraft_name_value0_453bc071", { value0: draft.name }));
+  if (draft.eventDate.trim()) inferred.push(translate(lang, "migrated_lib_assistant_eventdraft_date_value0_15233e78", { value0: draft.eventDate }));
   if (draft.eventStartTime.trim() || draft.eventEndTime.trim()) {
-    inferred.push(lang === "tr" ? `Saat: ${draft.eventStartTime || "?"}${draft.eventEndTime ? `-${draft.eventEndTime}` : ""}` : `Time: ${draft.eventStartTime || "?"}${draft.eventEndTime ? `-${draft.eventEndTime}` : ""}`);
+    inferred.push(translate(lang, "migrated_lib_assistant_eventdraft_time_value0_value1_3e10e37a", { value0: draft.eventStartTime || "?", value1: draft.eventEndTime ? `-${draft.eventEndTime}` : "" }));
   }
-  if (draft.eventLocation.trim()) inferred.push(lang === "tr" ? `Konum: ${draft.eventLocation}` : `Location: ${draft.eventLocation}`);
-  if (draft.eventType.trim()) inferred.push(lang === "tr" ? `Tip: ${draft.eventType}` : `Type: ${draft.eventType}`);
-  if (draft.visibility.trim()) inferred.push(lang === "tr" ? `Görünürlük: ${draft.visibility}` : `Visibility: ${draft.visibility}`);
-  if (draft.registrationQuotaEnabled && draft.registrationQuota.trim()) inferred.push(lang === "tr" ? `Kontenjan: ${draft.registrationQuota}` : `Quota: ${draft.registrationQuota}`);
-  if (draft.registrationClosed) inferred.push(lang === "tr" ? "Kayıt kapalı" : "Registration closed");
-  if (!draft.requireEmailVerification) inferred.push(lang === "tr" ? "E-posta doğrulama kapalı" : "Email verification off");
-  if (draft.requiresApproval) inferred.push(lang === "tr" ? "Onay gerekiyor" : "Approval required");
-  if (draft.registrationFields.length > 0) inferred.push(lang === "tr" ? `Önerilen form alanları: ${draft.registrationFields.length}` : `Suggested form fields: ${draft.registrationFields.length}`);
-  return inferred.length > 0 ? inferred.join(", ") : (lang === "tr" ? "Henüz net bir alan yakalayamadım." : "I haven't inferred any clear fields yet.");
+  if (draft.eventLocation.trim()) inferred.push(translate(lang, "migrated_lib_assistant_eventdraft_location_value0_e137a178", { value0: draft.eventLocation }));
+  if (draft.eventType.trim()) inferred.push(translate(lang, "migrated_lib_assistant_eventdraft_type_value0_8d3f7620", { value0: draft.eventType }));
+  if (draft.visibility.trim()) inferred.push(translate(lang, "migrated_lib_assistant_eventdraft_visibility_value0_73c84ca3", { value0: draft.visibility }));
+  if (draft.registrationQuotaEnabled && draft.registrationQuota.trim()) inferred.push(translate(lang, "migrated_lib_assistant_eventdraft_quota_value0_04802978", { value0: draft.registrationQuota }));
+  if (draft.registrationClosed) inferred.push(translate(lang, "migrated_lib_assistant_eventdraft_registration_closed_44f579d5"));
+  if (!draft.requireEmailVerification) inferred.push(translate(lang, "migrated_lib_assistant_eventdraft_email_verification_off_e9a1329d"));
+  if (draft.requiresApproval) inferred.push(translate(lang, "migrated_lib_assistant_eventdraft_approval_required_643d869f"));
+  if (draft.registrationFields.length > 0) inferred.push(translate(lang, "migrated_lib_assistant_eventdraft_suggested_form_fields_value0_ecfb4382", { value0: draft.registrationFields.length }));
+  return inferred.length > 0 ? inferred.join(", ") : (translate(lang, "migrated_lib_assistant_eventdraft_i_haven_t_inferred_any_clear_fields_yet_e6063eab"));
 }
 
-export function formatMissingFieldsList(missing: EventWizardStep[], lang = "tr"): string {
+export function formatMissingFieldsList(missing: EventWizardStep[], lang: Lang = "tr"): string {
   const labels: Record<EventWizardStep, string> = {
     idle: "",
-    name: lang === "tr" ? "ad" : "name",
-    date: lang === "tr" ? "tarih" : "date",
-    location: lang === "tr" ? "konum" : "location",
-    description: lang === "tr" ? "açıklama" : "description",
-    type: lang === "tr" ? "etkinlik tipi" : "event type",
-    features: lang === "tr" ? "özellikler" : "features",
-    confirm: lang === "tr" ? "onay" : "confirmation",
+    name: translate(lang, "migrated_lib_assistant_eventdraft_name_d4b0066e"),
+    date: translate(lang, "migrated_lib_assistant_eventdraft_date_c9774395"),
+    location: translate(lang, "migrated_lib_assistant_eventdraft_location_ef8d8b0f"),
+    description: translate(lang, "migrated_lib_assistant_eventdraft_description_a90bcf3b"),
+    type: translate(lang, "migrated_lib_assistant_eventdraft_event_type_ba946daa"),
+    features: translate(lang, "migrated_lib_assistant_eventdraft_features_6c5b3eca"),
+    confirm: translate(lang, "migrated_lib_assistant_eventdraft_confirmation_34fd3ac0"),
   };
   const readable = missing.map((s) => labels[s]).filter(Boolean);
-  if (!readable.length) return lang === "tr" ? "Eksik alan kalmadı." : "No fields are missing.";
-  return lang === "tr" ? `Eksik kalanlar: ${readable.join(", ")}.` : `Still missing: ${readable.join(", ")}.`;
+  if (!readable.length) return translate(lang, "migrated_lib_assistant_eventdraft_no_fields_are_missing_434cac5c");
+  return translate(lang, "migrated_lib_assistant_eventdraft_still_missing_value0_7890fc43", { value0: readable.join(", ") });
 }
 
-export function formatSuggestedFormFields(fields: SuggestedRegistrationField[], lang = "tr"): string {
-  if (!fields.length) return lang === "tr" ? "Önerilen kayıt formu alanı yok." : "No suggested registration fields.";
+export function formatSuggestedFormFields(fields: SuggestedRegistrationField[], lang: Lang = "tr"): string {
+  if (!fields.length) return translate(lang, "migrated_lib_assistant_eventdraft_no_suggested_registration_fields_0030670a");
   const names = fields.slice(0, 4).map((f) => f.label);
-  const suffix = fields.length > 4 ? (lang === "tr" ? ` ve ${fields.length - 4} alan daha` : ` and ${fields.length - 4} more`) : "";
-  return lang === "tr" ? `Önerilen kayıt formu alanları: ${names.join(", ")}${suffix}.` : `Suggested registration fields: ${names.join(", ")}${suffix}.`;
+  const suffix = fields.length > 4 ? (translate(lang, "migrated_lib_assistant_eventdraft_and_value0_more_285e00d2", { value0: fields.length - 4 })) : "";
+  return translate(lang, "migrated_lib_assistant_eventdraft_suggested_registration_fields_value0_value_e61a0013", { value0: names.join(", "), value1: suffix });
 }
 
-export function formatComplianceSuggestions(draft: EventDraft, lang = "tr"): string {
+export function formatComplianceSuggestions(draft: EventDraft, lang: Lang = "tr"): string {
   const suggestions = buildComplianceSuggestions(draft, lang);
-  if (!suggestions.length) return lang === "tr" ? "KVKK için ek öneri yok." : "No extra compliance suggestions.";
-  return lang === "tr" ? `KVKK / gizlilik önerileri: ${suggestions.join(", ")}.` : `Compliance suggestions: ${suggestions.join(", ")}.`;
+  if (!suggestions.length) return translate(lang, "migrated_lib_assistant_eventdraft_no_extra_compliance_suggestions_3d385541");
+  return translate(lang, "migrated_lib_assistant_eventdraft_compliance_suggestions_value0_d63a935c", { value0: suggestions.join(", ") });
 }
 
-export function buildWizardProgressMessage(draft: EventDraft, lang = "tr"): string {
+export function buildWizardProgressMessage(draft: EventDraft, lang: Lang = "tr"): string {
   const missing = getMissingWizardFields(draft);
   const inferredSummary = formatInferredDraftSummary(draft, lang);
   const missingSummary = formatMissingFieldsList(missing, lang);
   const formSummary = formatSuggestedFormFields(draft.registrationFields, lang);
   const complianceSummary = formatComplianceSuggestions(draft, lang);
-  const header = lang === "tr" ? `Şunları anladım: ${inferredSummary}` : `I understood: ${inferredSummary}`;
-  const footer = missing.length === 0 ? (lang === "tr" ? "Taslak tamamlandı. Onaylarsanız oluşturacağım." : "The draft is complete. I will create it once you confirm.") : missingSummary;
+  const header = translate(lang, "migrated_lib_assistant_eventdraft_i_understood_value0_fe06857f", { value0: inferredSummary });
+  const footer = missing.length === 0 ? (translate(lang, "migrated_lib_assistant_eventdraft_the_draft_is_complete_i_will_create_it_onc_eb10691d")) : missingSummary;
   return `${header}\n${formSummary}\n${complianceSummary}\n${footer}`;
 }
 

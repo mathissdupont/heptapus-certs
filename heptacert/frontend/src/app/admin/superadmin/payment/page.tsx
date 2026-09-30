@@ -12,7 +12,7 @@ import {
 import { apiFetch } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
 import { useToast } from "@/hooks/useToast";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type PaymentConfig = {
   enabled: boolean;
@@ -104,41 +104,7 @@ export default function SuperadminPaymentPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const copy = lang === "tr"
-    ? {
-        title: "Ödeme Ayarları",
-        subtitle: "Platform genelinde ödeme kabulünü, aktif sağlayıcıyı ve gizli anahtarları merkezi olarak yönetin",
-        refresh: "Yenile",
-        save: "Kaydet",
-        loadFailed: "Ödeme ayarları yüklenemedi",
-        saveFailed: "Ödeme ayarları kaydedilemedi",
-        saveSuccess: "Ödeme ayarları kaydedildi",
-        systemStatus: "Ödeme sistemi",
-        enabled: "Açık",
-        disabled: "Kapalı",
-        activeProvider: "Aktif sağlayıcı",
-        configuredFields: "Dolu alan",
-        providers: "Sağlayıcılar",
-        helper: "Kart altyapısını değiştirirken tüm gizli alanları tekrar doğrulayın. Bu ekran yalnızca platform düzeyinde çalışır.",
-        chooseProvider: "Aktif sağlayıcıyı seçin ve gerekli gizli anahtarları yönetin.",
-      }
-    : {
-        title: "Payment Settings",
-        subtitle: "Control global payment availability, the active provider, and secret keys from one place",
-        refresh: "Refresh",
-        save: "Save",
-        loadFailed: "Failed to load payment settings",
-        saveFailed: "Failed to save payment settings",
-        saveSuccess: "Payment settings saved",
-        systemStatus: "Payments",
-        enabled: "Enabled",
-        disabled: "Disabled",
-        activeProvider: "Active provider",
-        configuredFields: "Filled fields",
-        providers: "Providers",
-        helper: "Re-check all secrets when switching the card processor. This screen controls the platform-wide payment setup.",
-        chooseProvider: "Choose the active provider and manage the required secrets.",
-      };
+  const copy = { title: translate(lang, "migrated_app_admin_superadmin_payment_payment_settings_7f053807"), subtitle: translate(lang, "migrated_app_admin_superadmin_payment_control_global_payment_availability_the_ac_cec242c8"), refresh: translate(lang, "migrated_app_admin_superadmin_payment_refresh_ae64b265"), save: translate(lang, "migrated_app_admin_superadmin_payment_save_38ce3b18"), loadFailed: translate(lang, "migrated_app_admin_superadmin_payment_failed_to_load_payment_settings_a79216b9"), saveFailed: translate(lang, "migrated_app_admin_superadmin_payment_failed_to_save_payment_settings_6947cfc2"), saveSuccess: translate(lang, "migrated_app_admin_superadmin_payment_payment_settings_saved_d4b74181"), systemStatus: translate(lang, "migrated_app_admin_superadmin_payment_payments_07a59ac3"), enabled: translate(lang, "migrated_app_admin_superadmin_payment_enabled_0664f950"), disabled: translate(lang, "migrated_app_admin_superadmin_payment_disabled_781054c9"), activeProvider: translate(lang, "migrated_app_admin_superadmin_payment_active_provider_c4b40165"), configuredFields: translate(lang, "migrated_app_admin_superadmin_payment_filled_fields_aebad067"), providers: translate(lang, "migrated_app_admin_superadmin_payment_providers_da79896b"), helper: translate(lang, "migrated_app_admin_superadmin_payment_re_check_all_secrets_when_switching_the_ca_328b166d"), chooseProvider: translate(lang, "migrated_app_admin_superadmin_payment_choose_the_active_provider_and_manage_the__8299c8a1") };
 
   const load = async (mode: "load" | "refresh" = "load") => {
     try {

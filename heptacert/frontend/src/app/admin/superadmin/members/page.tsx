@@ -14,7 +14,7 @@ import {
   type SuperadminBulkEmailJob,
   type SuperadminAudienceItem,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type SourceFilter = "all" | "public_members" | "attendees" | "organizers";
 
@@ -22,113 +22,7 @@ export default function SuperadminMembersPage() {
   const { lang } = useI18n();
   const copy = useMemo(
     () =>
-      lang === "tr"
-        ? {
-            title: "Üyeler ve Toplu Mail",
-            subtitle: "Tüm üyeleri ve kayıtlı katılımcıları tek panelde görüntüleyin, toplu duyuru gönderin.",
-            source: "Hedef kitle",
-            all: "Tüm alıcılar",
-            members: "Herkese açık üyeler",
-            attendees: "Kayıtlı katılımcılar",
-            organizers: "Organizatör hesaplar",
-            search: "Email ara...",
-            refresh: "Yenile",
-            uniqueAudience: "Benzersiz alıcı",
-            publicMembers: "Herkese açık üye e-postası",
-            attendeeEmails: "Katılımcı email",
-            organizerEmails: "Organizatör email",
-            matchedRows: "Filtrelenen satır",
-            mailSubject: "Mail konusu",
-            mailBody: "Mail içeriği (HTML destekli)",
-            dryRun: "Dry-run (sadece hedef say)",
-            send: "Toplu Mail Gönder",
-            sending: "Gönderiliyor...",
-            loadError: "Liste yüklenemedi",
-            sendError: "Toplu mail gönderimi başarısız",
-            invalidForm: "Konu ve içerik zorunludur",
-            confirmSend: "Bu işlem seçili kitleye toplu mail gönderecek. Devam etmek istiyor musunuz?",
-            result: "Sonuç",
-            campaigns: "Kampanya geçmişi",
-            status: "Durum",
-            progress: "İlerleme",
-            created: "Oluşturuldu",
-            actions: "İşlemler",
-            cancel: "İptal Et",
-            retry: "Tekrar Dene",
-            launching: "Kampanya başlatılıyor...",
-            launchCampaign: "Kampanya Başlat",
-            email: "Email",
-            sources: "Kaynaklar",
-            empty: "Kayıt bulunamadı",
-            emptyCampaigns: "Henüz kampanya yok",
-            badgeMember: "Herkese açık üye",
-            badgeAttendee: "Katılımcı",
-            badgeOrganizer: "Organizatör",
-            composerTitle: "Toplu Mail Gönder",
-            composerHint: "Konu ve HTML içerik girin, ardından dry-run ile hedef sayısını kontrol edin veya kampanyayı başlatın.",
-            audienceSummary: "Kitle özeti",
-            filterTitle: "Hedef filtresi",
-            notePublicOnly: "Yalnızca herkese açık üyeler",
-            noteOrganizersOnly: "Yalnızca organizatör hesaplar",
-            status_pending: "Sırada",
-            status_sending: "Gönderiliyor",
-            status_completed: "Tamamlandı",
-            status_failed: "Başarısız",
-            status_cancelled: "İptal",
-          }
-        : {
-            title: "Members & Bulk Email",
-            subtitle: "View all members and registered attendees in one panel and send platform-wide announcements.",
-            source: "Audience",
-            all: "All recipients",
-            members: "Public members",
-            attendees: "Registered attendees",
-            organizers: "Organizer accounts",
-            search: "Search email...",
-            refresh: "Refresh",
-            uniqueAudience: "Unique recipients",
-            publicMembers: "Public member emails",
-            attendeeEmails: "Attendee emails",
-            organizerEmails: "Organizer emails",
-            matchedRows: "Filtered rows",
-            mailSubject: "Email subject",
-            mailBody: "Email content (HTML supported)",
-            dryRun: "Dry run (count targets only)",
-            send: "Send Bulk Email",
-            sending: "Sending...",
-            loadError: "Failed to load audience",
-            sendError: "Failed to send bulk email",
-            invalidForm: "Subject and content are required",
-            confirmSend: "This will send a bulk email to the selected audience. Continue?",
-            result: "Result",
-            campaigns: "Campaign history",
-            status: "Status",
-            progress: "Progress",
-            created: "Created",
-            actions: "Actions",
-            cancel: "Cancel",
-            retry: "Retry",
-            launching: "Launching campaign...",
-            launchCampaign: "Launch Campaign",
-            email: "Email",
-            sources: "Sources",
-            empty: "No records found",
-            emptyCampaigns: "No campaigns yet",
-            badgeMember: "Public member",
-            badgeAttendee: "Attendee",
-            badgeOrganizer: "Organizer",
-            composerTitle: "Send Bulk Email",
-            composerHint: "Enter subject and HTML content, then dry-run to preview targets or launch the campaign.",
-            audienceSummary: "Audience summary",
-            filterTitle: "Target filter",
-            notePublicOnly: "Public members only",
-            noteOrganizersOnly: "Organizer accounts only",
-            status_pending: "Pending",
-            status_sending: "Sending",
-            status_completed: "Completed",
-            status_failed: "Failed",
-            status_cancelled: "Cancelled",
-          },
+      ({ title: translate(lang, "migrated_app_admin_superadmin_members_members_bulk_email_322452fb"), subtitle: translate(lang, "migrated_app_admin_superadmin_members_view_all_members_and_registered_attendees__7f4b84d7"), source: translate(lang, "migrated_app_admin_superadmin_members_audience_7153185c"), all: translate(lang, "migrated_app_admin_superadmin_members_all_recipients_aad30536"), members: translate(lang, "migrated_app_admin_superadmin_members_public_members_a9494fda"), attendees: translate(lang, "migrated_app_admin_superadmin_members_registered_attendees_9f2fd88b"), organizers: translate(lang, "migrated_app_admin_superadmin_members_organizer_accounts_bbedcf2d"), search: translate(lang, "migrated_app_admin_superadmin_members_search_email_1e07936c"), refresh: translate(lang, "migrated_app_admin_superadmin_members_refresh_dde9d603"), uniqueAudience: translate(lang, "migrated_app_admin_superadmin_members_unique_recipients_5d8541ae"), publicMembers: translate(lang, "migrated_app_admin_superadmin_members_public_member_emails_bf4a47e2"), attendeeEmails: translate(lang, "migrated_app_admin_superadmin_members_attendee_emails_6638461e"), organizerEmails: translate(lang, "migrated_app_admin_superadmin_members_organizer_emails_bb0b3504"), matchedRows: translate(lang, "migrated_app_admin_superadmin_members_filtered_rows_420327a6"), mailSubject: translate(lang, "migrated_app_admin_superadmin_members_email_subject_62759980"), mailBody: translate(lang, "migrated_app_admin_superadmin_members_email_content_html_supported_99cc8b28"), dryRun: translate(lang, "migrated_app_admin_superadmin_members_dry_run_count_targets_only_ac1bd974"), send: translate(lang, "migrated_app_admin_superadmin_members_send_bulk_email_13b02d5b"), sending: translate(lang, "migrated_app_admin_superadmin_members_sending_7525b61b"), loadError: translate(lang, "migrated_app_admin_superadmin_members_failed_to_load_audience_93a149cb"), sendError: translate(lang, "migrated_app_admin_superadmin_members_failed_to_send_bulk_email_441ba343"), invalidForm: translate(lang, "migrated_app_admin_superadmin_members_subject_and_content_are_required_4a7c0935"), confirmSend: translate(lang, "migrated_app_admin_superadmin_members_this_will_send_a_bulk_email_to_the_selecte_5564e8ff"), result: translate(lang, "migrated_app_admin_superadmin_members_result_c62d2227"), campaigns: translate(lang, "migrated_app_admin_superadmin_members_campaign_history_def9d3a8"), status: translate(lang, "migrated_app_admin_superadmin_members_status_d3af0b15"), progress: translate(lang, "migrated_app_admin_superadmin_members_progress_28c4ee0c"), created: translate(lang, "migrated_app_admin_superadmin_members_created_980260ef"), actions: translate(lang, "migrated_app_admin_superadmin_members_actions_e2451b1f"), cancel: translate(lang, "migrated_app_admin_superadmin_members_cancel_2c78e4fc"), retry: translate(lang, "migrated_app_admin_superadmin_members_retry_360107e0"), launching: translate(lang, "migrated_app_admin_superadmin_members_launching_campaign_4931435f"), launchCampaign: translate(lang, "migrated_app_admin_superadmin_members_launch_campaign_860fea4e"), email: translate(lang, "migrated_app_admin_superadmin_members_email_a9601b9a"), sources: translate(lang, "migrated_app_admin_superadmin_members_sources_3da20dc0"), empty: translate(lang, "migrated_app_admin_superadmin_members_no_records_found_1860875a"), emptyCampaigns: translate(lang, "migrated_app_admin_superadmin_members_no_campaigns_yet_07a3f264"), badgeMember: translate(lang, "migrated_app_admin_superadmin_members_public_member_b09e07ee"), badgeAttendee: translate(lang, "migrated_app_admin_superadmin_members_attendee_dac98a72"), badgeOrganizer: translate(lang, "migrated_app_admin_superadmin_members_organizer_b62b08ee"), composerTitle: translate(lang, "migrated_app_admin_superadmin_members_send_bulk_email_416d2c11"), composerHint: translate(lang, "migrated_app_admin_superadmin_members_enter_subject_and_html_content_then_dry_ru_d0b2457a"), audienceSummary: translate(lang, "migrated_app_admin_superadmin_members_audience_summary_3baf60a0"), filterTitle: translate(lang, "migrated_app_admin_superadmin_members_target_filter_711e65d1"), notePublicOnly: translate(lang, "migrated_app_admin_superadmin_members_public_members_only_0f23d0d3"), noteOrganizersOnly: translate(lang, "migrated_app_admin_superadmin_members_organizer_accounts_only_87032b67"), status_pending: translate(lang, "migrated_app_admin_superadmin_members_pending_633678b6"), status_sending: translate(lang, "migrated_app_admin_superadmin_members_sending_51099031"), status_completed: translate(lang, "migrated_app_admin_superadmin_members_completed_fc89e8ed"), status_failed: translate(lang, "migrated_app_admin_superadmin_members_failed_2b6281ce"), status_cancelled: translate(lang, "migrated_app_admin_superadmin_members_cancelled_527d0df4") }),
     [lang]
   );
 
@@ -241,7 +135,7 @@ export default function SuperadminMembersPage() {
       return;
     }
     if (!testEmail.trim() || !testEmail.includes("@")) {
-      setError(lang === "tr" ? "Geçerli bir test alıcısı girin" : "Enter a valid test recipient");
+      setError(translate(lang, "migrated_app_admin_superadmin_members_enter_a_valid_test_recipient_6e0ed506"));
       return;
     }
 
@@ -254,9 +148,9 @@ export default function SuperadminMembersPage() {
         subject,
         body_html: bodyHtml,
       });
-      setResultMessage(`${lang === "tr" ? "Test maili gönderildi" : "Test email sent"}: ${res.to_email}`);
+      setResultMessage(`${translate(lang, "migrated_app_admin_superadmin_members_test_email_sent_3baee7be")}: ${res.to_email}`);
     } catch (e: any) {
-      setError(e?.message || (lang === "tr" ? "Test maili gönderilemedi" : "Failed to send test email"));
+      setError(e?.message || (translate(lang, "migrated_app_admin_superadmin_members_failed_to_send_test_email_8e1f99f8")));
     } finally {
       setTestSending(false);
     }
@@ -414,7 +308,7 @@ export default function SuperadminMembersPage() {
         <div className="grid gap-3 rounded-2xl border border-surface-200 bg-surface-50 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <label className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">
-              {lang === "tr" ? "Test alıcısı" : "Test recipient"}
+              {translate(lang, "migrated_app_admin_superadmin_members_test_recipient_441f19bf")}
             </span>
             <input
               type="email"
@@ -427,8 +321,8 @@ export default function SuperadminMembersPage() {
           <button className="btn-secondary" onClick={() => void onSendTest()} disabled={testSending || submitting}>
             {testSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
             {testSending
-              ? lang === "tr" ? "Test gönderiliyor..." : "Sending test..."
-              : lang === "tr" ? "Test Maili Gönder" : "Send Test Email"}
+              ? translate(lang, "migrated_app_admin_superadmin_members_sending_test_58da9a2e")
+              : translate(lang, "migrated_app_admin_superadmin_members_send_test_email_cbbf9529")}
           </button>
         </div>
 

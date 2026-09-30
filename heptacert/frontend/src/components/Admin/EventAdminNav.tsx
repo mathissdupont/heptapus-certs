@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import Link from "next/link";
 import {
   createContext,
@@ -39,7 +38,7 @@ import {
   Megaphone,
   Radio,
 } from "lucide-react";
-import { useI18n, type Lang } from "@/lib/i18n";
+import { useI18n, type Lang, type TranslationKey, translate } from "@/lib/i18n";
 import { apiFetch, getEventAccess, type EventAccessOut, type EventOut, type EventTeamPermission } from "@/lib/api";
 
 type EventAdminTab =
@@ -69,36 +68,36 @@ type EventAdminTab =
 
 type NavItem = {
   tab: EventAdminTab;
-  label: { tr: string; en: string };
+  label: TranslationKey;
   icon: React.ElementType;
   href: (id: string | number) => string;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { tab: "details",      label: { tr: "Detaylar",       en: "Details"      }, icon: FolderKanban, href: (id) => `/admin/events/${id}` },
-  { tab: "attendees",    label: { tr: "Katılımcılar",   en: "Attendees"    }, icon: Users,        href: (id) => `/admin/events/${id}/attendees` },
-  { tab: "approvals",    label: { tr: "Onaylar",        en: "Approvals"    }, icon: ClipboardList, href: (id) => `/admin/events/${id}/approvals` },
-  { tab: "certificates", label: { tr: "Sertifikalar",   en: "Certificates" }, icon: LockKeyhole,  href: (id) => `/admin/events/${id}/certificates` },
-  { tab: "sessions",     label: { tr: "Oturumlar",      en: "Sessions"     }, icon: QrCode,       href: (id) => `/admin/events/${id}/sessions` },
-  { tab: "email",        label: { tr: "E-posta",        en: "Email"        }, icon: Mail,         href: (id) => `/admin/events/${id}/email-templates` },
-  { tab: "editor",       label: { tr: "Editör",         en: "Editor"       }, icon: Palette,      href: (id) => `/admin/events/${id}/editor` },
-  { tab: "checkin",      label: { tr: "Check-in",       en: "Check-in"     }, icon: UserCheck,    href: (id) => `/admin/events/${id}/checkin` },
-  { tab: "tickets",      label: { tr: "Biletler",       en: "Tickets"      }, icon: Ticket,       href: (id) => `/admin/events/${id}/tickets` },
+  { tab: "details",      label: "admin_event_nav_details", icon: FolderKanban, href: (id) => `/admin/events/${id}` },
+  { tab: "attendees",    label: "admin_event_nav_attendees", icon: Users, href: (id) => `/admin/events/${id}/attendees` },
+  { tab: "approvals",    label: "admin_event_nav_approvals", icon: ClipboardList, href: (id) => `/admin/events/${id}/approvals` },
+  { tab: "certificates", label: "admin_event_nav_certificates", icon: LockKeyhole, href: (id) => `/admin/events/${id}/certificates` },
+  { tab: "sessions",     label: "admin_event_nav_sessions", icon: QrCode, href: (id) => `/admin/events/${id}/sessions` },
+  { tab: "email",        label: "admin_event_nav_email", icon: Mail, href: (id) => `/admin/events/${id}/email-templates` },
+  { tab: "editor",       label: "admin_event_nav_editor", icon: Palette, href: (id) => `/admin/events/${id}/editor` },
+  { tab: "checkin",      label: "admin_event_nav_checkin", icon: UserCheck, href: (id) => `/admin/events/${id}/checkin` },
+  { tab: "tickets",      label: "admin_event_nav_tickets", icon: Ticket, href: (id) => `/admin/events/${id}/tickets` },
   // — overflow tabs (visible in "More" menu) —
-  { tab: "analytics",    label: { tr: "Analitik",       en: "Analytics"    }, icon: BarChart3,    href: (id) => `/admin/events/${id}/advanced-analytics` },
-  { tab: "surveys",      label: { tr: "Anketler",       en: "Surveys"      }, icon: ClipboardList,href: (id) => `/admin/events/${id}/surveys` },
-  { tab: "segments",     label: { tr: "Segmentler",     en: "Segments"     }, icon: ListFilter,   href: (id) => `/admin/events/${id}/segments` },
-  { tab: "team",         label: { tr: "Ekip",           en: "Team"         }, icon: UserCog,      href: (id) => `/admin/events/${id}/team` },
-  { tab: "gamification", label: { tr: "Oyunlaştırma",   en: "Gamification" }, icon: Target,       href: (id) => `/admin/events/${id}/gamification` },
-  { tab: "raffles",      label: { tr: "Çekilişler",     en: "Raffles"      }, icon: Gift,         href: (id) => `/admin/events/${id}/raffles` },
-  { tab: "automations",  label: { tr: "Otomasyon",      en: "Automation"   }, icon: Workflow,     href: (id) => `/admin/events/${id}/automations` },
-  { tab: "ops",          label: { tr: "Canlı Ops",      en: "Live Ops"     }, icon: Activity,     href: (id) => `/admin/events/${id}/ops` },
-  { tab: "quiz",         label: { tr: "Sınav",          en: "Quiz"         }, icon: FileQuestion,  href: (id) => `/admin/events/${id}/quiz` },
-  { tab: "presentations", label: { tr: "Sunumlar",       en: "Presentations" }, icon: Presentation, href: (id) => `/admin/events/${id}/presentations` },
-  { tab: "cfp",          label: { tr: "Bildiriler",     en: "Proposals"    }, icon: Megaphone,     href: (id) => `/admin/events/${id}/cfp` },
-  { tab: "live",         label: { tr: "Canlı",          en: "Live"         }, icon: Radio,         href: (id) => `/admin/events/${id}/live` },
-  { tab: "cpd",          label: { tr: "CPD",            en: "CPD"          }, icon: GraduationCap, href: (id) => `/admin/events/${id}/cpd` },
-  { tab: "settings",     label: { tr: "Ayarlar",        en: "Settings"     }, icon: Settings,     href: (id) => `/admin/events/${id}/settings` },
+  { tab: "analytics", label: "admin_event_nav_analytics", icon: BarChart3, href: (id) => `/admin/events/${id}/advanced-analytics` },
+  { tab: "surveys", label: "admin_event_nav_surveys", icon: ClipboardList, href: (id) => `/admin/events/${id}/surveys` },
+  { tab: "segments", label: "admin_event_nav_segments", icon: ListFilter, href: (id) => `/admin/events/${id}/segments` },
+  { tab: "team", label: "admin_event_nav_team", icon: UserCog, href: (id) => `/admin/events/${id}/team` },
+  { tab: "gamification", label: "admin_event_nav_gamification", icon: Target, href: (id) => `/admin/events/${id}/gamification` },
+  { tab: "raffles", label: "admin_event_nav_raffles", icon: Gift, href: (id) => `/admin/events/${id}/raffles` },
+  { tab: "automations", label: "admin_event_nav_automations", icon: Workflow, href: (id) => `/admin/events/${id}/automations` },
+  { tab: "ops", label: "admin_event_nav_ops", icon: Activity, href: (id) => `/admin/events/${id}/ops` },
+  { tab: "quiz", label: "admin_event_nav_quiz", icon: FileQuestion, href: (id) => `/admin/events/${id}/quiz` },
+  { tab: "presentations", label: "admin_event_nav_presentations", icon: Presentation, href: (id) => `/admin/events/${id}/presentations` },
+  { tab: "cfp", label: "admin_event_nav_cfp", icon: Megaphone, href: (id) => `/admin/events/${id}/cfp` },
+  { tab: "live", label: "admin_event_nav_live", icon: Radio, href: (id) => `/admin/events/${id}/live` },
+  { tab: "cpd", label: "admin_event_nav_cpd", icon: GraduationCap, href: (id) => `/admin/events/${id}/cpd` },
+  { tab: "settings", label: "admin_event_nav_settings", icon: Settings, href: (id) => `/admin/events/${id}/settings` },
 ];
 
 // First N tabs are shown inline; the rest go into the "More" dropdown
@@ -250,10 +249,7 @@ export default function EventAdminNav({
   const activeItem = visibleNavItems.find((item) => item.tab === resolvedActive);
   const ActiveIcon = activeItem?.icon;
 
-  const copy = pickLang({
-    tr: { allEvents: "Tüm Etkinlikler", eventFallback: (id: string | number) => `Etkinlik #${id}`, more: "Daha Fazla" },
-    en: { allEvents: "All Events",       eventFallback: (id: string | number) => `Event #${id}`,   more: "More" },
-  }, lang);
+  const copy = { allEvents: translate(lang, "migrated_components_admin_eventadminnav_all_events_9a600b64"), eventFallback: (id: string | number) => translate(lang, "migrated_components_admin_eventadminnav_event_value0_f1e018f6", { value0: id }), more: translate(lang, "migrated_components_admin_eventadminnav_more_5fdfc3ed") };
 
   useEffect(() => {
     let cancelled = false;
@@ -359,7 +355,7 @@ export default function EventAdminNav({
                     }`}
                   >
                     <Icon className={`h-4 w-4 shrink-0 ${isAct ? "text-surface-700" : "text-surface-400"}`} />
-                    <span className="min-w-0 truncate">{pickLang(label, lang)}</span>
+                    <span className="min-w-0 truncate">{translate(lang, label)}</span>
                   </Link>
                 );
               })
@@ -405,7 +401,7 @@ export default function EventAdminNav({
                 className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-surface-200 bg-surface-50 px-3 py-2 text-sm font-semibold text-surface-900"
               >
                 {ActiveIcon && <ActiveIcon className="h-4 w-4 shrink-0 text-surface-500" />}
-                <span className="min-w-0 truncate">{pickLang(activeItem.label, lang)}</span>
+                <span className="min-w-0 truncate">{translate(lang, activeItem.label)}</span>
               </Link>
             )}
             <button
@@ -435,7 +431,7 @@ export default function EventAdminNav({
                       }`}
                     >
                       <Icon className="h-4 w-4 shrink-0 text-surface-400" />
-                      <span className="min-w-0 truncate">{pickLang(label, lang)}</span>
+                      <span className="min-w-0 truncate">{translate(lang, label)}</span>
                     </Link>
                   );
                 })}
@@ -470,7 +466,7 @@ export default function EventAdminNav({
                         : "text-surface-500 hover:text-surface-800"
                     }`}
                   >
-                    {pickLang(label, lang)}
+                    {translate(lang, label)}
                   </Link>
                 );
               })}
@@ -512,7 +508,7 @@ export default function EventAdminNav({
                             }`}
                           >
                             <Icon className="h-4 w-4 shrink-0 text-surface-400" />
-                            {pickLang(label, lang)}
+                            {translate(lang, label)}
                           </Link>
                         );
                       })}
@@ -541,5 +537,6 @@ function NavSkeleton({ variant }: { variant: "inline" | "sidebar" }) {
 }
 
 function getActiveLabel(active: EventAdminTab, lang: Lang) {
-  return pickLang(NAV_ITEMS.find((item) => item.tab === active)?.label, lang) ?? "";
+  const key = NAV_ITEMS.find((item) => item.tab === active)?.label;
+  return key ? translate(lang, key) : "";
 }

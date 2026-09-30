@@ -10,7 +10,7 @@ import {
   deleteScheduledReport,
   listReportTypes,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 import EventSummaryExport from "@/components/Admin/EventSummaryExport";
 
 const FREQUENCIES_TR = [
@@ -54,85 +54,7 @@ function formatDate(iso: string | null, lang?: string | null): string {
 
 export default function ScheduledReportsPage() {
   const { lang } = useI18n();
-  const copy = lang === "tr"
-    ? {
-        pageTitle: "Zamanlanmış Raporlar",
-        btnNewReport: "+ Yeni Rapor",
-        errorClose: "kapat",
-        formTitleCreate: "Yeni Rapor",
-        formTitleEdit: "Raporu Düzenle",
-        labelReportName: "Rapor Adı",
-        placeholderReportName: "Haftalık Eğitim Özeti",
-        labelReportType: "Rapor Tipi",
-        selectPlaceholder: "Seçiniz…",
-        labelFrequency: "Sıklık",
-        labelRecipients: "Alıcılar (virgül veya yeni satırla ayırın)",
-        placeholderRecipients: "ornek@sirket.com, diger@sirket.com",
-        labelActive: "Aktif",
-        btnCancel: "İptal",
-        btnSave: "Kaydet",
-        btnSaving: "Kaydediliyor…",
-        deleteTitle: "Raporu Sil",
-        deleteConfirm: "Bu zamanlanmış raporu silmek istediğinizden emin misiniz?",
-        btnDelete: "Sil",
-        emptyTitle: "Henüz zamanlanmış rapor yok.",
-        emptyAction: "İlk raporu oluştur",
-        tableColName: "Ad",
-        tableColType: "Tip",
-        tableColFrequency: "Sıklık",
-        tableColRecipients: "Alıcılar",
-        tableColLastRun: "Son Çalışma",
-        tableColNextRun: "Sonraki Çalışma",
-        tableColStatus: "Durum",
-        statusActive: "Aktif",
-        statusInactive: "Pasif",
-        btnEdit: "Düzenle",
-        btnDeleteRow: "Sil",
-        loading: "Yükleniyor…",
-        errLoad: "Yüklenemedi",
-        errSave: "Kaydedilemedi",
-        errDelete: "Silinemedi",
-        frequencies: FREQUENCIES_TR,
-      }
-    : {
-        pageTitle: "Scheduled Reports",
-        btnNewReport: "+ New Report",
-        errorClose: "close",
-        formTitleCreate: "New Report",
-        formTitleEdit: "Edit Report",
-        labelReportName: "Report Name",
-        placeholderReportName: "Weekly Training Summary",
-        labelReportType: "Report Type",
-        selectPlaceholder: "Select…",
-        labelFrequency: "Frequency",
-        labelRecipients: "Recipients (separate by comma or new line)",
-        placeholderRecipients: "example@company.com, other@company.com",
-        labelActive: "Active",
-        btnCancel: "Cancel",
-        btnSave: "Save",
-        btnSaving: "Saving…",
-        deleteTitle: "Delete Report",
-        deleteConfirm: "Are you sure you want to delete this scheduled report?",
-        btnDelete: "Delete",
-        emptyTitle: "No scheduled reports yet.",
-        emptyAction: "Create the first report",
-        tableColName: "Name",
-        tableColType: "Type",
-        tableColFrequency: "Frequency",
-        tableColRecipients: "Recipients",
-        tableColLastRun: "Last Run",
-        tableColNextRun: "Next Run",
-        tableColStatus: "Status",
-        statusActive: "Active",
-        statusInactive: "Inactive",
-        btnEdit: "Edit",
-        btnDeleteRow: "Delete",
-        loading: "Loading…",
-        errLoad: "Failed to load",
-        errSave: "Failed to save",
-        errDelete: "Failed to delete",
-        frequencies: FREQUENCIES_EN,
-      };
+  const copy = { pageTitle: translate(lang, "migrated_app_admin_reports_scheduled_reports_925b4af2"), btnNewReport: translate(lang, "migrated_app_admin_reports_new_report_3940b681"), errorClose: translate(lang, "migrated_app_admin_reports_close_daec5c26"), formTitleCreate: translate(lang, "migrated_app_admin_reports_new_report_f1e6a37c"), formTitleEdit: translate(lang, "migrated_app_admin_reports_edit_report_26e2bf50"), labelReportName: translate(lang, "migrated_app_admin_reports_report_name_cfebd950"), placeholderReportName: translate(lang, "migrated_app_admin_reports_weekly_training_summary_9e9e7294"), labelReportType: translate(lang, "migrated_app_admin_reports_report_type_f33a0599"), selectPlaceholder: translate(lang, "migrated_app_admin_reports_select_d8acf8e6"), labelFrequency: translate(lang, "migrated_app_admin_reports_frequency_f11d28b7"), labelRecipients: translate(lang, "migrated_app_admin_reports_recipients_separate_by_comma_or_new_line_37e681c5"), placeholderRecipients: translate(lang, "migrated_app_admin_reports_example_company_com_other_company_com_8642e0b4"), labelActive: translate(lang, "migrated_app_admin_reports_active_0de533ab"), btnCancel: translate(lang, "migrated_app_admin_reports_cancel_9a2d50ff"), btnSave: translate(lang, "migrated_app_admin_reports_save_19e2e23a"), btnSaving: translate(lang, "migrated_app_admin_reports_saving_fb0c4c65"), deleteTitle: translate(lang, "migrated_app_admin_reports_delete_report_0203b1d9"), deleteConfirm: translate(lang, "migrated_app_admin_reports_are_you_sure_you_want_to_delete_this_sched_b1238e0b"), btnDelete: translate(lang, "migrated_app_admin_reports_delete_5a3d04f9"), emptyTitle: translate(lang, "migrated_app_admin_reports_no_scheduled_reports_yet_e833ac78"), emptyAction: translate(lang, "migrated_app_admin_reports_create_the_first_report_3a537756"), tableColName: translate(lang, "migrated_app_admin_reports_name_aa8977cc"), tableColType: translate(lang, "migrated_app_admin_reports_type_e5cffeef"), tableColFrequency: translate(lang, "migrated_app_admin_reports_frequency_9e021b94"), tableColRecipients: translate(lang, "migrated_app_admin_reports_recipients_c9ff72c8"), tableColLastRun: translate(lang, "migrated_app_admin_reports_last_run_cd5aec28"), tableColNextRun: translate(lang, "migrated_app_admin_reports_next_run_3257bf22"), tableColStatus: translate(lang, "migrated_app_admin_reports_status_370efdb2"), statusActive: translate(lang, "migrated_app_admin_reports_active_5f815b90"), statusInactive: translate(lang, "migrated_app_admin_reports_inactive_75ffe200"), btnEdit: translate(lang, "migrated_app_admin_reports_edit_30c96173"), btnDeleteRow: translate(lang, "migrated_app_admin_reports_delete_4b255114"), loading: translate(lang, "migrated_app_admin_reports_loading_adce8153"), errLoad: translate(lang, "migrated_app_admin_reports_failed_to_load_ab757800"), errSave: translate(lang, "migrated_app_admin_reports_failed_to_save_985c4a26"), errDelete: translate(lang, "migrated_app_admin_reports_failed_to_delete_80b14006"), frequencies: [{ value: "daily", label: translate(lang, "migrated_app_admin_reports_daily_d0b58bad") }, { value: "weekly", label: translate(lang, "migrated_app_admin_reports_weekly_6bcc73e9") }, { value: "monthly", label: translate(lang, "migrated_app_admin_reports_monthly_d3a8e818") }] };
 
   const [reports, setReports] = useState<ScheduledReportOut[]>([]);
   const [types, setTypes] = useState<{ value: string; label: string }[]>([]);

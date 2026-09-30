@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { AlertCircle, Inbox, Loader2 } from "lucide-react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type StateDisplayProps = {
   title?: string;
@@ -14,7 +14,7 @@ type StateDisplayProps = {
 
 export function LoadingState({ description }: { description?: string }) {
   const { lang } = useI18n();
-  const label = description ?? (lang === "tr" ? "Yükleniyor..." : "Loading...");
+  const label = description ?? (translate(lang, "migrated_components_admin_adminstate_loading_1cc7f473"));
   return (
     <div className="flex w-full min-h-[140px] items-center justify-center gap-3 rounded-xl border border-surface-150 bg-surface-50 p-6">
       <Loader2 className="h-4 w-4 animate-spin text-surface-400" />
@@ -25,7 +25,7 @@ export function LoadingState({ description }: { description?: string }) {
 
 export function ErrorState({ title, description, action, className = "" }: StateDisplayProps) {
   const { lang } = useI18n();
-  const resolvedTitle = title ?? (lang === "tr" ? "Bir hata oluştu" : "An error occurred");
+  const resolvedTitle = title ?? (translate(lang, "migrated_components_admin_adminstate_an_error_occurred_1d173fa0"));
   return (
     <div className={`w-full rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-5 ${className}`}>
       <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:text-left sm:gap-4">
@@ -44,7 +44,7 @@ export function ErrorState({ title, description, action, className = "" }: State
 
 export function EmptyState({ title, description, icon, action, className = "" }: StateDisplayProps) {
   const { lang } = useI18n();
-  const resolvedTitle = title ?? (lang === "tr" ? "Kayıt bulunamadı" : "No records found");
+  const resolvedTitle = title ?? (translate(lang, "migrated_components_admin_adminstate_no_records_found_27642a81"));
   return (
     <div className={`flex w-full flex-col items-center justify-center px-6 py-14 text-center sm:py-16 ${className}`}>
       <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-surface-200 bg-surface-50 text-surface-400">

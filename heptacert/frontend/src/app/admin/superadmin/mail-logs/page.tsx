@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertCircle, Loader2, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
 import { listSuperadminEmailActivity, type SuperadminEmailActivityItem } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type ChannelFilter = "all" | "event_bulk" | "superadmin_bulk" | "crm_bulk" | "automation";
 
@@ -12,57 +12,7 @@ export default function SuperadminMailLogsPage() {
   const { lang } = useI18n();
   const copy = useMemo(
     () =>
-      lang === "tr"
-        ? {
-            title: "Mail Logları",
-            subtitle: "Kim hangi maili ne zaman gönderdi, tüm kampanya kanallarında merkezi olarak izleyin.",
-            refresh: "Yenile",
-            channel: "Kanal",
-            all: "Tüm kanallar",
-            eventBulk: "Event Bulk",
-            superadminBulk: "Superadmin Bulk",
-            crmBulk: "CRM Toplu Mail",
-            automation: "Otomasyon",
-            status: "Durum",
-            allStatus: "Tüm durumlar",
-            search: "Gönderen, konu veya etkinlik ara...",
-            total: "Toplam",
-            sent: "Gönderilen",
-            failed: "Başarısız",
-            sender: "Gönderen",
-            subject: "Konu",
-            event: "Etkinlik",
-            recipientGroup: "Alıcı grubu",
-            progress: "İlerleme",
-            created: "Oluşturuldu",
-            noRows: "Kayıt bulunamadı",
-            loadError: "Mail logları yüklenemedi",
-          }
-        : {
-            title: "Mail Logs",
-            subtitle: "Track who sent which email and when, across all campaign channels.",
-            refresh: "Refresh",
-            channel: "Channel",
-            all: "All channels",
-            eventBulk: "Event Bulk",
-            superadminBulk: "Superadmin Bulk",
-            crmBulk: "CRM Bulk Mail",
-            automation: "Automation",
-            status: "Status",
-            allStatus: "All statuses",
-            search: "Search sender, subject, or event...",
-            total: "Total",
-            sent: "Sent",
-            failed: "Failed",
-            sender: "Sender",
-            subject: "Subject",
-            event: "Event",
-            recipientGroup: "Recipient group",
-            progress: "Progress",
-            created: "Created",
-            noRows: "No records found",
-            loadError: "Failed to load mail logs",
-          },
+      ({ title: translate(lang, "migrated_app_admin_superadmin_mail_logs_mail_logs_41714b92"), subtitle: translate(lang, "migrated_app_admin_superadmin_mail_logs_track_who_sent_which_email_and_when_across_e3aab5af"), refresh: translate(lang, "migrated_app_admin_superadmin_mail_logs_refresh_555d6b84"), channel: translate(lang, "migrated_app_admin_superadmin_mail_logs_channel_82db8469"), all: translate(lang, "migrated_app_admin_superadmin_mail_logs_all_channels_28f4e45a"), eventBulk: translate(lang, "migrated_app_admin_superadmin_mail_logs_event_bulk_39fac21f"), superadminBulk: translate(lang, "migrated_app_admin_superadmin_mail_logs_superadmin_bulk_4c730c05"), crmBulk: translate(lang, "migrated_app_admin_superadmin_mail_logs_crm_bulk_mail_21191103"), automation: translate(lang, "migrated_app_admin_superadmin_mail_logs_automation_a3507da0"), status: translate(lang, "migrated_app_admin_superadmin_mail_logs_status_fb690c6c"), allStatus: translate(lang, "migrated_app_admin_superadmin_mail_logs_all_statuses_655bc307"), search: translate(lang, "migrated_app_admin_superadmin_mail_logs_search_sender_subject_or_event_bdf620d5"), total: translate(lang, "migrated_app_admin_superadmin_mail_logs_total_4343372b"), sent: translate(lang, "migrated_app_admin_superadmin_mail_logs_sent_b07c6e2b"), failed: translate(lang, "migrated_app_admin_superadmin_mail_logs_failed_17910a5e"), sender: translate(lang, "migrated_app_admin_superadmin_mail_logs_sender_1b498e8b"), subject: translate(lang, "migrated_app_admin_superadmin_mail_logs_subject_2d5f93d9"), event: translate(lang, "migrated_app_admin_superadmin_mail_logs_event_968fa1c3"), recipientGroup: translate(lang, "migrated_app_admin_superadmin_mail_logs_recipient_group_b935d8cb"), progress: translate(lang, "migrated_app_admin_superadmin_mail_logs_progress_e2c48bef"), created: translate(lang, "migrated_app_admin_superadmin_mail_logs_created_631055de"), noRows: translate(lang, "migrated_app_admin_superadmin_mail_logs_no_records_found_1681d563"), loadError: translate(lang, "migrated_app_admin_superadmin_mail_logs_failed_to_load_mail_logs_e2535f0a") }),
     [lang]
   );
 

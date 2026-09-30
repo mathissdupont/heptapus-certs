@@ -13,7 +13,7 @@ import {
   getLeadForm, updateLeadForm, getLeadFormSubmissions,
   type LeadFormOut, type FormFieldDef, type LeadSubmissionOut,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type Tab = "builder" | "submissions" | "embed";
 
@@ -23,120 +23,7 @@ export default function LeadFormBuilderPage() {
   const formId = Number(params.id);
   const { lang } = useI18n();
 
-  const copy = lang === "tr"
-    ? {
-        // Field type labels
-        fieldTypes: [
-          { value: "text",     label: "Metin" },
-          { value: "email",    label: "E-posta" },
-          { value: "tel",      label: "Telefon" },
-          { value: "number",   label: "Sayı" },
-          { value: "textarea", label: "Uzun Metin" },
-          { value: "dropdown", label: "Dropdown" },
-          { value: "checkbox", label: "Onay Kutusu" },
-        ],
-        // Destination options
-        destCrm: "CRM Profili Oluştur",
-        destNone: "Sadece Kaydet",
-        // Tabs
-        tabBuilder: "Oluşturucu",
-        tabSubmissions: (n: number) => `Gönderimler (${n})`,
-        tabEmbed: "Embed",
-        // Status
-        active: "Aktif",
-        passive: "Pasif",
-        // Toast messages
-        saved: "Kaydedildi.",
-        saveFailed: "Kayıt başarısız.",
-        copied: "Kopyalandı!",
-        linkCopied: "Link kopyalandı!",
-        // Builder — meta card
-        formSettings: "Form Ayarları",
-        labelFormName: "Form Adı",
-        labelDestination: "Hedef",
-        labelAutoTag: "Otomatik Tag",
-        placeholderAutoTag: "ör: web-lead-2026",
-        labelRedirectUrl: "Yönlendirme URL (opsiyonel)",
-        placeholderRedirectUrl: "https://siteniz.com/tesekkurler",
-        activeCheckbox: "Aktif (form dış dünyaya açık olsun)",
-        // Builder — fields card
-        fieldsTitle: (n: number) => `Alanlar (${n})`,
-        noFields: "Henüz alan yok.",
-        fieldN: (n: number) => `Alan ${n}`,
-        labelFieldLabel: "Etiket",
-        placeholderFieldLabel: "Ad Soyad",
-        labelFieldName: "Alan Adı (otomatik)",
-        placeholderFieldName: "ad_soyad",
-        labelFieldType: "Tür",
-        labelPlaceholder: "Placeholder",
-        labelOptions: "Seçenekler (virgülle ayırın)",
-        placeholderOptions: "Seçenek A, Seçenek B, Seçenek C",
-        requiredField: "Zorunlu alan",
-        addField: "Alan Ekle",
-        save: "Kaydet",
-        // Submissions tab
-        noSubmissions: "Henüz gönderim yok.",
-        colDate: "Tarih",
-        // Embed tab
-        embedTitle: "Bağlantı & Embed",
-        labelStandardLink: "Standart Link",
-        btnCopy: "Kopyala",
-        btnOpen: "Aç",
-        labelEmbedCode: "iframe Embed Kodu",
-        btnCopyEmbed: "Embed kodunu kopyala",
-      }
-    : {
-        fieldTypes: [
-          { value: "text",     label: "Text" },
-          { value: "email",    label: "Email" },
-          { value: "tel",      label: "Phone" },
-          { value: "number",   label: "Number" },
-          { value: "textarea", label: "Long Text" },
-          { value: "dropdown", label: "Dropdown" },
-          { value: "checkbox", label: "Checkbox" },
-        ],
-        destCrm: "Create CRM Profile",
-        destNone: "Save Only",
-        tabBuilder: "Builder",
-        tabSubmissions: (n: number) => `Submissions (${n})`,
-        tabEmbed: "Embed",
-        active: "Active",
-        passive: "Inactive",
-        saved: "Saved.",
-        saveFailed: "Save failed.",
-        copied: "Copied!",
-        linkCopied: "Link copied!",
-        formSettings: "Form Settings",
-        labelFormName: "Form Name",
-        labelDestination: "Destination",
-        labelAutoTag: "Auto Tag",
-        placeholderAutoTag: "e.g. web-lead-2026",
-        labelRedirectUrl: "Redirect URL (optional)",
-        placeholderRedirectUrl: "https://yoursite.com/thank-you",
-        activeCheckbox: "Active (form is publicly accessible)",
-        fieldsTitle: (n: number) => `Fields (${n})`,
-        noFields: "No fields yet.",
-        fieldN: (n: number) => `Field ${n}`,
-        labelFieldLabel: "Label",
-        placeholderFieldLabel: "Full Name",
-        labelFieldName: "Field Name (auto)",
-        placeholderFieldName: "full_name",
-        labelFieldType: "Type",
-        labelPlaceholder: "Placeholder",
-        labelOptions: "Options (comma-separated)",
-        placeholderOptions: "Option A, Option B, Option C",
-        requiredField: "Required field",
-        addField: "Add Field",
-        save: "Save",
-        noSubmissions: "No submissions yet.",
-        colDate: "Date",
-        embedTitle: "Link & Embed",
-        labelStandardLink: "Standard Link",
-        btnCopy: "Copy",
-        btnOpen: "Open",
-        labelEmbedCode: "iframe Embed Code",
-        btnCopyEmbed: "Copy embed code",
-      };
+  const copy = { fieldTypes: [{ value: "text", label: translate(lang, "migrated_app_admin_lead_forms_id_text_01181f88") }, { value: "email", label: translate(lang, "migrated_app_admin_lead_forms_id_email_10cb46f2") }, { value: "tel", label: translate(lang, "migrated_app_admin_lead_forms_id_phone_c58c0fcf") }, { value: "number", label: translate(lang, "migrated_app_admin_lead_forms_id_number_9709cb6a") }, { value: "textarea", label: translate(lang, "migrated_app_admin_lead_forms_id_long_text_6e4636a1") }, { value: "dropdown", label: "Dropdown" }, { value: "checkbox", label: translate(lang, "migrated_app_admin_lead_forms_id_checkbox_471650d6") }], destCrm: translate(lang, "migrated_app_admin_lead_forms_id_create_crm_profile_2eb8acf0"), destNone: translate(lang, "migrated_app_admin_lead_forms_id_save_only_f5bddb3e"), tabBuilder: translate(lang, "migrated_app_admin_lead_forms_id_builder_c712f394"), tabSubmissions: (n: number) => translate(lang, "migrated_app_admin_lead_forms_id_submissions_value0_e3d6d2cd", { value0: n }), tabEmbed: translate(lang, "migrated_app_admin_lead_forms_id_embed_1d636076"), active: translate(lang, "migrated_app_admin_lead_forms_id_active_5063c095"), passive: translate(lang, "migrated_app_admin_lead_forms_id_inactive_747dd496"), saved: translate(lang, "migrated_app_admin_lead_forms_id_saved_a2e99736"), saveFailed: translate(lang, "migrated_app_admin_lead_forms_id_save_failed_fc1ed791"), copied: translate(lang, "migrated_app_admin_lead_forms_id_copied_e6c682ac"), linkCopied: translate(lang, "migrated_app_admin_lead_forms_id_link_copied_180b82d6"), formSettings: translate(lang, "migrated_app_admin_lead_forms_id_form_settings_5d7c4e5a"), labelFormName: translate(lang, "migrated_app_admin_lead_forms_id_form_name_0e1dc042"), labelDestination: translate(lang, "migrated_app_admin_lead_forms_id_destination_3e2be8f0"), labelAutoTag: translate(lang, "migrated_app_admin_lead_forms_id_auto_tag_8dfbb0b0"), placeholderAutoTag: translate(lang, "migrated_app_admin_lead_forms_id_e_g_web_lead_2026_3328ce36"), labelRedirectUrl: translate(lang, "migrated_app_admin_lead_forms_id_redirect_url_optional_e12c0f93"), placeholderRedirectUrl: translate(lang, "migrated_app_admin_lead_forms_id_https_yoursite_com_thank_you_b6c05023"), activeCheckbox: translate(lang, "migrated_app_admin_lead_forms_id_active_form_is_publicly_accessible_40e80254"), fieldsTitle: (n: number) => translate(lang, "migrated_app_admin_lead_forms_id_fields_value0_2a03054a", { value0: n }), noFields: translate(lang, "migrated_app_admin_lead_forms_id_no_fields_yet_7ecef382"), fieldN: (n: number) => translate(lang, "migrated_app_admin_lead_forms_id_field_value0_6f4d5e13", { value0: n }), labelFieldLabel: translate(lang, "migrated_app_admin_lead_forms_id_label_6d1e927b"), placeholderFieldLabel: translate(lang, "migrated_app_admin_lead_forms_id_full_name_3f1945f3"), labelFieldName: translate(lang, "migrated_app_admin_lead_forms_id_field_name_auto_5e7a0bea"), placeholderFieldName: translate(lang, "migrated_app_admin_lead_forms_id_full_name_f479baab"), labelFieldType: translate(lang, "migrated_app_admin_lead_forms_id_type_692c000f"), labelPlaceholder: translate(lang, "migrated_app_admin_lead_forms_id_placeholder_a70cdf73"), labelOptions: translate(lang, "migrated_app_admin_lead_forms_id_options_comma_separated_7f905153"), placeholderOptions: translate(lang, "migrated_app_admin_lead_forms_id_option_a_option_b_option_c_3f58c2d9"), requiredField: translate(lang, "migrated_app_admin_lead_forms_id_required_field_843e2b0f"), addField: translate(lang, "migrated_app_admin_lead_forms_id_add_field_9c32310e"), save: translate(lang, "migrated_app_admin_lead_forms_id_save_63095e80"), noSubmissions: translate(lang, "migrated_app_admin_lead_forms_id_no_submissions_yet_c73f1e12"), colDate: translate(lang, "migrated_app_admin_lead_forms_id_date_ae32e957"), embedTitle: translate(lang, "migrated_app_admin_lead_forms_id_link_embed_81fc96f3"), labelStandardLink: translate(lang, "migrated_app_admin_lead_forms_id_standard_link_0ccc6777"), btnCopy: translate(lang, "migrated_app_admin_lead_forms_id_copy_6b342bc0"), btnOpen: translate(lang, "migrated_app_admin_lead_forms_id_open_6d15a8ce"), labelEmbedCode: translate(lang, "migrated_app_admin_lead_forms_id_iframe_embed_code_8207eb69"), btnCopyEmbed: translate(lang, "migrated_app_admin_lead_forms_id_copy_embed_code_296d034b") };
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

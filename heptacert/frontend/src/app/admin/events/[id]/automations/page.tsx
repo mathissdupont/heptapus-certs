@@ -6,7 +6,7 @@ import { Bell, Loader2, Mail, Plus, Trash2, Webhook, Workflow, ChevronRight, Che
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import EmailTemplateSelect from "@/components/Admin/EmailTemplateSelect";
 import { FeatureGate } from "@/lib/useSubscription";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 import {
   createEventAutomation,
   deleteEventAutomation,
@@ -60,41 +60,7 @@ export default function EventAutomationsPage() {
   const eventId = Number(params.id);
   const { lang } = useI18n();
 
-  const copy = lang === "tr" ? {
-    gate: "Otomasyon kuralları Growth ve Enterprise planlarında kullanılabilir.",
-    title: "Otomasyon Kuralları",
-    subtitle: "Katılım, no-show, sertifika, anket ve rozet durumlarına göre e-posta, hatırlatma veya webhook aksiyonları tanımlayın.",
-    loadError: "Otomasyonlar yüklenemedi.",
-    nameRequired: "Kural adı gerekli.",
-    templateRequired: "E-posta aksiyonu için şablon seçin.",
-    saveError: "Kural kaydedilemedi.",
-    deleteConfirm: "Bu otomasyon kuralı silinsin mi?",
-    deleteError: "Kural silinemedi.",
-    dispatchResult: (sent: number, skipped: number, failed: number) => `${sent} aksiyon çalıştı, ${skipped} zaten işlenmiş, ${failed} başarısız.`,
-    dispatchError: "Otomasyonlar çalıştırılamadı.",
-    dryRun: "Simülasyon Önizleme",
-    logs: "Otomasyon Çalışma Geçmişi",
-    dryRunResult: (count: number) => `${count} hedef bulundu.`,
-    newRule: "Yeni Kural",
-    runNow: "Şimdi Tetikle",
-  } : {
-    gate: "Automation rules are available on Growth and Enterprise plans.",
-    title: "Automation Rules",
-    subtitle: "Define email, reminder, or webhook actions based on attendance, no-shows, certificates, surveys, and badges.",
-    loadError: "Could not load automations.",
-    nameRequired: "Rule name is required.",
-    templateRequired: "Choose a template for the email action.",
-    saveError: "Could not save rule.",
-    deleteConfirm: "Delete this automation rule?",
-    deleteError: "Could not delete rule.",
-    dispatchResult: (sent: number, skipped: number, failed: number) => `${sent} actions ran, ${skipped} already processed, ${failed} failed.`,
-    dispatchError: "Could not run automations.",
-    dryRun: "Preview Simulation",
-    logs: "Automation Run History",
-    dryRunResult: (count: number) => `${count} targets found.`,
-    newRule: "New Rule",
-    runNow: "Trigger Now",
-  };
+  const copy = { gate: translate(lang, "migrated_app_admin_events_id_automations_automation_rules_are_available_on_growth_a_1636de74"), title: translate(lang, "migrated_app_admin_events_id_automations_automation_rules_8686c775"), subtitle: translate(lang, "migrated_app_admin_events_id_automations_define_email_reminder_or_webhook_actions_b_7328999e"), loadError: translate(lang, "migrated_app_admin_events_id_automations_could_not_load_automations_12ba9ebe"), nameRequired: translate(lang, "migrated_app_admin_events_id_automations_rule_name_is_required_ff2b99d9"), templateRequired: translate(lang, "migrated_app_admin_events_id_automations_choose_a_template_for_the_email_action_df3042b3"), saveError: translate(lang, "migrated_app_admin_events_id_automations_could_not_save_rule_87cf5edf"), deleteConfirm: translate(lang, "migrated_app_admin_events_id_automations_delete_this_automation_rule_f7e8df55"), deleteError: translate(lang, "migrated_app_admin_events_id_automations_could_not_delete_rule_fef49ab5"), dispatchResult: (sent: number, skipped: number, failed: number) => translate(lang, "migrated_app_admin_events_id_automations_value0_actions_ran_value1_already_processe_7673b6fb", { value0: sent, value1: skipped, value2: failed }), dispatchError: translate(lang, "migrated_app_admin_events_id_automations_could_not_run_automations_d440a808"), dryRun: translate(lang, "migrated_app_admin_events_id_automations_preview_simulation_c725a012"), logs: translate(lang, "migrated_app_admin_events_id_automations_automation_run_history_9329a5a1"), dryRunResult: (count: number) => translate(lang, "migrated_app_admin_events_id_automations_value0_targets_found_578fe4d0", { value0: count }), newRule: translate(lang, "migrated_app_admin_events_id_automations_new_rule_7b3954cc"), runNow: translate(lang, "migrated_app_admin_events_id_automations_trigger_now_000a50d9") };
 
   const [summary, setSummary] = useState<AutomationSummary | null>(null);
   const [loading, setLoading] = useState(true);

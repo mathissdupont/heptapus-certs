@@ -1,12 +1,11 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, UserPlus, Loader2, AlertCircle } from "lucide-react";
 import { createManualAttendee } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 interface AddAttendeeModalProps {
   open: boolean;
@@ -25,32 +24,7 @@ export default function AddAttendeeModal({ open, onClose, onAdded, eventId }: Ad
   const [adding, setAdding] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const copy = pickLang({
-    tr: {
-      title: "Katılımcı Ekle",
-      emailLabel: "E-posta",
-      emailPlaceholder: "ornek@mail.com",
-      firstNameLabel: "Ad",
-      lastNameLabel: "Soyad",
-      required: "E-posta, ad ve soyad alanları zorunlu.",
-      add: "Katılımcı Ekle",
-      adding: "Ekleniyor...",
-      added: "Katılımcı başarıyla eklendi.",
-      failed: "Katılımcı eklenemedi.",
-    },
-    en: {
-      title: "Add Attendee",
-      emailLabel: "Email",
-      emailPlaceholder: "example@mail.com",
-      firstNameLabel: "First Name",
-      lastNameLabel: "Last Name",
-      required: "Email, first name and last name are required.",
-      add: "Add Attendee",
-      adding: "Adding...",
-      added: "Attendee added successfully.",
-      failed: "Failed to add attendee.",
-    },
-  }, lang);
+  const copy = { title: translate(lang, "migrated_components_admin_addattendeemodal_add_attendee_9eb0c8fb"), emailLabel: translate(lang, "migrated_components_admin_addattendeemodal_email_6d2c2e13"), emailPlaceholder: translate(lang, "migrated_components_admin_addattendeemodal_example_mail_com_87fee230"), firstNameLabel: translate(lang, "migrated_components_admin_addattendeemodal_first_name_38f7e500"), lastNameLabel: translate(lang, "migrated_components_admin_addattendeemodal_last_name_60c6cabe"), required: translate(lang, "migrated_components_admin_addattendeemodal_email_first_name_and_last_name_are_require_9d8b853a"), add: translate(lang, "migrated_components_admin_addattendeemodal_add_attendee_ddceaa0a"), adding: translate(lang, "migrated_components_admin_addattendeemodal_adding_e27df22c"), added: translate(lang, "migrated_components_admin_addattendeemodal_attendee_added_successfully_b7ac7f8e"), failed: translate(lang, "migrated_components_admin_addattendeemodal_failed_to_add_attendee_c4aae044") };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -91,7 +65,7 @@ export default function AddAttendeeModal({ open, onClose, onAdded, eventId }: Ad
                 </div>
                 <h2 className="text-sm font-semibold text-surface-900">{copy.title}</h2>
               </div>
-              <button onClick={onClose} aria-label={lang === "tr" ? "Kapat" : "Close"} className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 transition-colors"><X className="h-4 w-4" /></button>
+              <button onClick={onClose} aria-label={translate(lang, "migrated_components_admin_addattendeemodal_close_81548374")} className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 transition-colors"><X className="h-4 w-4" /></button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 p-5">

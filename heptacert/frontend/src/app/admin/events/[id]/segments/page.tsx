@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -35,7 +34,7 @@ import {
   type SavedAudienceSegment,
 } from "@/lib/api";
 import { FeatureGate } from "@/lib/useSubscription";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate, type TranslationKey } from "@/lib/i18n";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
 
@@ -47,15 +46,15 @@ const STANDARD_KEYS: AudienceSegmentKey[] = [
  "repeat_attendees",
 ];
 
-const SEGMENT_KEY_LABELS: Record<string, { tr: string; en: string }> = {
-  attended_no_certificate: { tr: "Katıldı, Sertifikasız", en: "Attended, No Certificate" },
-  certificate_holders:     { tr: "Sertifika Alanlar",     en: "Certificate Holders" },
-  survey_respondents:      { tr: "Anket Yanıtlayanlar",   en: "Survey Respondents" },
-  no_shows:                { tr: "Gelmeyen Kayıtlılar",   en: "No-Shows" },
-  repeat_attendees:        { tr: "Tekrar Katılanlar",      en: "Repeat Attendees" },
-  registration_answer:     { tr: "Kayıt Cevabı",          en: "Registration Answer" },
-  location_filter:         { tr: "Lokasyon Filtresi",      en: "Location Filter" },
-  composition:             { tr: "Kural Grubu",            en: "Rule Group" },
+const SEGMENT_KEY_LABELS: Record<string, TranslationKey> = {
+  attended_no_certificate: "admin_segment_attended_no_certificate",
+  certificate_holders: "admin_segment_certificate_holders",
+  survey_respondents: "admin_segment_survey_respondents",
+  no_shows: "admin_segment_no_shows",
+  repeat_attendees: "admin_segment_repeat_attendees",
+  registration_answer: "admin_segment_registration_answer",
+  location_filter: "admin_segment_location_filter",
+  composition: "admin_segment_composition",
 };
 
 type EventSheetsStatus = {
@@ -75,93 +74,9 @@ export default function EventSegmentsPage() {
   const eventId = Number(params.id);
   const { lang } = useI18n();
 
-  const copy = lang === "tr" ? {
-    gate: "Katılımcı segmentasyonu Growth ve Enterprise planlarında kullanılabilir.",
-    title: "Katılımcı Segmentleri",
-    subtitle: "Katılım, sertifika, anket, tekrar katılım ve kayıt cevabı filtreleriyle hedef kitleleri hızlıca ayırın.",
-    loadError: "Segmentler yüklenemedi.",
-    previewError: "Segment önizlemesi yüklenemedi.",
-    exportError: "Segment export alınamadı.",
-    dynamicFilter: "Dinamik Filtreleme İstasyonu",
-    fieldPlaceholder: "Kayıt alanı ID, örn. department",
-    answerPlaceholder: "Cevap içerir, örn. Pazarlama",
-    locationPlaceholder: "Lokasyon/şehir, örn. İzmir",
-    apply: "Sorguyu Uygula",
-    preview: "Önizle",
-    previewTitle: "Canlı Önizleme",
-    people: "kişi",
-    chooseSegment: "Bir segment seçin",
-    previewHint: "İlk 50 katılımcı burada listelenir.",
-    emailVerified: "E-posta onaylı",
-    surveyDone: "Anket tamam",
-    savedSegments: "Kaydedilen segmentler",
-    saveSegment: "Segmenti kaydet",
-    segmentName: "Segment adı",
-    builder: "Kural Grubu Mimarı (Composition)",
-    addRule: "Kural Ekle",
-    runBuilder: "Grubu Önizle",
-    exportJobs: "Arka Plan Export İşleri",
-    queuedExport: "Export kuyruğa alındı.",
-    syncSheets: "Google Sheets sync",
-    backgroundExport: "Arka planda export",
-  } : {
-    gate: "Audience segmentation is available on Growth and Enterprise plans.",
-    title: "Participant Segments",
-    subtitle: "Quickly split audiences by attendance, certificates, surveys, repeat attendance, and registration answers.",
-    loadError: "Could not load segments.",
-    previewError: "Could not load segment preview.",
-    exportError: "Could not export segment.",
-    dynamicFilter: "Dynamic Filtering Station",
-    fieldPlaceholder: "Registration field ID, e.g. department",
-    answerPlaceholder: "Answer contains, e.g. Marketing",
-    locationPlaceholder: "Location/city, e.g. Izmir",
-    apply: "Apply Query",
-    preview: "Preview",
-    previewTitle: "Live Preview",
-    people: "people",
-    chooseSegment: "Choose a segment",
-    previewHint: "The first 50 participants appear here.",
-    emailVerified: "Email verified",
-    surveyDone: "Survey complete",
-    savedSegments: "Saved segments",
-    saveSegment: "Save segment",
-    segmentName: "Segment name",
-    builder: "Rule Group Builder (Composition)",
-    addRule: "Add Rule",
-    runBuilder: "Preview Group",
-    exportJobs: "Background Export Jobs",
-    queuedExport: "Export queued.",
-    syncSheets: "Google Sheets sync",
-    backgroundExport: "Background export",
-  };
+  const copy = { gate: translate(lang, "migrated_app_admin_events_id_segments_audience_segmentation_is_available_on_grow_0bbeccc8"), title: translate(lang, "migrated_app_admin_events_id_segments_participant_segments_0ba0a03b"), subtitle: translate(lang, "migrated_app_admin_events_id_segments_quickly_split_audiences_by_attendance_cert_f7dacef7"), loadError: translate(lang, "migrated_app_admin_events_id_segments_could_not_load_segments_778061d9"), previewError: translate(lang, "migrated_app_admin_events_id_segments_could_not_load_segment_preview_6324bef7"), exportError: translate(lang, "migrated_app_admin_events_id_segments_could_not_export_segment_258aeba1"), dynamicFilter: translate(lang, "migrated_app_admin_events_id_segments_dynamic_filtering_station_1abf9cba"), fieldPlaceholder: translate(lang, "migrated_app_admin_events_id_segments_registration_field_id_e_g_department_5d3dac77"), answerPlaceholder: translate(lang, "migrated_app_admin_events_id_segments_answer_contains_e_g_marketing_1f387907"), locationPlaceholder: translate(lang, "migrated_app_admin_events_id_segments_location_city_e_g_izmir_7085e3a2"), apply: translate(lang, "migrated_app_admin_events_id_segments_apply_query_7b284c32"), preview: translate(lang, "migrated_app_admin_events_id_segments_preview_390b29f2"), previewTitle: translate(lang, "migrated_app_admin_events_id_segments_live_preview_6b5b984a"), people: translate(lang, "migrated_app_admin_events_id_segments_people_31ceefe6"), chooseSegment: translate(lang, "migrated_app_admin_events_id_segments_choose_a_segment_922463ac"), previewHint: translate(lang, "migrated_app_admin_events_id_segments_the_first_50_participants_appear_here_7a799892"), emailVerified: translate(lang, "migrated_app_admin_events_id_segments_email_verified_8940787e"), surveyDone: translate(lang, "migrated_app_admin_events_id_segments_survey_complete_1952af3f"), savedSegments: translate(lang, "migrated_app_admin_events_id_segments_saved_segments_1682d1ef"), saveSegment: translate(lang, "migrated_app_admin_events_id_segments_save_segment_1cf6992d"), segmentName: translate(lang, "migrated_app_admin_events_id_segments_segment_name_bc581b8b"), builder: translate(lang, "migrated_app_admin_events_id_segments_rule_group_builder_composition_521a952a"), addRule: translate(lang, "migrated_app_admin_events_id_segments_add_rule_247b3658"), runBuilder: translate(lang, "migrated_app_admin_events_id_segments_preview_group_7075898a"), exportJobs: translate(lang, "migrated_app_admin_events_id_segments_background_export_jobs_b0bf31f7"), queuedExport: translate(lang, "migrated_app_admin_events_id_segments_export_queued_a2e94c7d"), syncSheets: translate(lang, "migrated_app_admin_events_id_segments_google_sheets_sync_b58f9917"), backgroundExport: translate(lang, "migrated_app_admin_events_id_segments_background_export_a7173a16") };
 
-  const sheetsCopy = lang === "tr" ? {
-    title: "Segment Google Sheets Otomasyonu",
-    subtitle: "Seçili segment için ayrı bir Google Sheet oluşturun; büyük listeleri CSV indirmeden ekibinizle paylaşın.",
-    googleNotConfigured: "Google OAuth ayarları .env içinde eksik.",
-    googleNotConnected: "Google hesabı bağlı değil",
-    grantGoogle: "Google İzni Ver",
-    completeGooglePermission: "Sheets İznini Tamamla",
-    createSegmentSheet: "Sheet Oluştur ve Eşitle",
-    syncSegmentSheet: "Segmenti Sheets'e Eşitle",
-    openSheet: "Sheet'i Aç",
-    latestSheet: "Son segment sheet'i",
-    checkingSheets: "Durum kontrol ediliyor",
-    missingPermission: "Sheets izni eksik",
-  } : {
-    title: "Segment Google Sheets Automation",
-    subtitle: "Create a dedicated Google Sheet for the selected segment and share large lists without downloading CSV files.",
-    googleNotConfigured: "Google OAuth settings are missing in .env.",
-    googleNotConnected: "Google account is not connected",
-    grantGoogle: "Grant Google Access",
-    completeGooglePermission: "Complete Sheets Permission",
-    createSegmentSheet: "Create Sheet and Sync",
-    syncSegmentSheet: "Sync Segment to Sheets",
-    openSheet: "Open Sheet",
-    latestSheet: "Latest segment sheet",
-    checkingSheets: "Checking status",
-    missingPermission: "Sheets permission missing",
-  };
+  const sheetsCopy = { title: translate(lang, "migrated_app_admin_events_id_segments_segment_google_sheets_automation_9fc15898"), subtitle: translate(lang, "migrated_app_admin_events_id_segments_create_a_dedicated_google_sheet_for_the_se_13f763f2"), googleNotConfigured: translate(lang, "migrated_app_admin_events_id_segments_google_oauth_settings_are_missing_in_env_fd0830f5"), googleNotConnected: translate(lang, "migrated_app_admin_events_id_segments_google_account_is_not_connected_7fc730b1"), grantGoogle: translate(lang, "migrated_app_admin_events_id_segments_grant_google_access_4321e547"), completeGooglePermission: translate(lang, "migrated_app_admin_events_id_segments_complete_sheets_permission_78f206d3"), createSegmentSheet: translate(lang, "migrated_app_admin_events_id_segments_create_sheet_and_sync_eb280f37"), syncSegmentSheet: translate(lang, "migrated_app_admin_events_id_segments_sync_segment_to_sheets_ecd04a19"), openSheet: translate(lang, "migrated_app_admin_events_id_segments_open_sheet_05451f89"), latestSheet: translate(lang, "migrated_app_admin_events_id_segments_latest_segment_sheet_1173ed67"), checkingSheets: translate(lang, "migrated_app_admin_events_id_segments_checking_status_7926f5b6"), missingPermission: translate(lang, "migrated_app_admin_events_id_segments_sheets_permission_missing_b956aa4a") };
 
   const [segments, setSegments] = useState<AudienceSegment[]>([]);
   const [savedSegments, setSavedSegments] = useState<SavedAudienceSegment[]>([]);
@@ -518,11 +433,11 @@ export default function EventSegmentsPage() {
                   >
                     {STANDARD_KEYS.map(key => (
                       <option key={key} value={key}>
-                        {pickLang(SEGMENT_KEY_LABELS[key], lang) ?? key}
+                        {SEGMENT_KEY_LABELS[key] ? translate(lang, SEGMENT_KEY_LABELS[key]) : key}
                       </option>
                     ))}
-                    <option value="registration_answer">{pickLang(SEGMENT_KEY_LABELS.registration_answer, lang)}</option>
-                    <option value="location_filter">{pickLang(SEGMENT_KEY_LABELS.location_filter, lang)}</option>
+                    <option value="registration_answer">{translate(lang, SEGMENT_KEY_LABELS.registration_answer)}</option>
+                    <option value="location_filter">{translate(lang, SEGMENT_KEY_LABELS.location_filter)}</option>
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-surface-400" />
                 </div>
@@ -562,8 +477,8 @@ export default function EventSegmentsPage() {
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <div className="relative inline-flex items-center select-none flex-1 sm:flex-initial">
                 <select value={piiMode} onChange={event => setPiiMode(event.target.value as "masked" | "full")} className="w-full sm:w-44 min-h-[34px] appearance-none rounded-xl border border-surface-200 bg-raised px-3 text-xs font-semibold outline-none hover:border-surface-300 cursor-pointer">
-                  <option value="masked">{lang === "tr" ? "PII Maskeli" : "Masked PII"}</option>
-                  <option value="full">{lang === "tr" ? "Tam Veri (Enterprise)" : "Full Data (Enterprise)"}</option>
+                  <option value="masked">{translate(lang, "migrated_app_admin_events_id_segments_masked_pii_8fc04c9c")}</option>
+                  <option value="full">{translate(lang, "migrated_app_admin_events_id_segments_full_data_enterprise_0d82a3f6")}</option>
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-surface-400" />
               </div>

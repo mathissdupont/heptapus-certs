@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
@@ -11,7 +10,7 @@ import {
   CheckSquare, Square, MoreHorizontal, Zap,
 } from "lucide-react";
 import { apiFetch, API_BASE, getToken } from "@/lib/api";
-import { useT, useI18n } from "@/lib/i18n";
+import { useT, useI18n, translate, type TranslationKey } from "@/lib/i18n";
 import { useToast } from "@/hooks/useToast";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
@@ -42,10 +41,10 @@ type CertificateOut = {
 
 type CertificateListOut = { items: CertificateOut[]; total: number; page: number; limit: number };
 
-const STATUS_CONFIG: Record<CertStatus, { dot: string; text: string; label: { tr: string; en: string } }> = {
-  active:  { dot: "bg-emerald-500", text: "text-status-success-content", label: { tr: "Aktif",          en: "Active"  } },
-  revoked: { dot: "bg-red-400",     text: "text-status-danger-content",     label: { tr: "İptal Edildi",    en: "Revoked" } },
-  expired: { dot: "bg-amber-400",   text: "text-status-warning-content",   label: { tr: "Süresi Dolmuş",   en: "Expired" } },
+const STATUS_CONFIG: Record<CertStatus, { dot: string; text: string; labelKey: TranslationKey }> = {
+  active:  { dot: "bg-emerald-500", text: "text-status-success-content", labelKey: "admin_certificate_status_active" },
+  revoked: { dot: "bg-red-400", text: "text-status-danger-content", labelKey: "admin_certificate_status_revoked" },
+  expired: { dot: "bg-amber-400", text: "text-status-warning-content", labelKey: "admin_certificate_status_expired" },
 };
 
 export default function CertificatesPage() {
@@ -78,59 +77,7 @@ export default function CertificatesPage() {
 
   const allSelected = items.length > 0 && items.every((c) => selectedIds.has(c.id));
 
-  const copy = useMemo(() => lang === "tr"
-    ? {
-        pageTitle: "Sertifikalar",
-        pageSubtitle: "Sertifika yönetimi, filtreleme ve dışa aktarım",
-        exportCsv: "CSV İndir", exportExcel: "Excel İndir",
-        issueCert: "Sertifika Oluştur",
-        statusAll: "Tüm Durumlar", statusActive: "Aktif", statusRevoked: "İptal", statusExpired: "Süresi Dolmuş",
-        searchPlaceholder: "İsme göre ara...",
-        refresh: "Yenile",
-        total: "Toplam", selected: "Seçili", page: "Sayfa",
-        autoRenewOn: "Oto-yenile açık", autoRenewOff: "Oto-yenile kapalı",
-        autoRenewEnable: "Oto-yenileyi Aç", autoRenewDisable: "Oto-yenileyi Kapat",
-        verify: "Doğrula", download: "PDF İndir",
-        setActive: "Aktif Yap", revoke: "İptal Et", expire: "Süreyi Bitir",
-        delete: "Sil",
-        locked: "PDF yok",
-        days: "gün", remaining: "kalan",
-        deleteSingleTitle: "Sertifikayı sil",
-        deleteSingleBody: "Bu sertifikayı kalıcı olarak silmek istediğinize emin misiniz?",
-        bulkDeleteTitle: "Toplu sil", bulkRevokeTitle: "Toplu iptal",
-        bulkExpireTitle: "Toplu süre bitir", bulkEnableRenewTitle: "Toplu oto-yenileme aç",
-        bulkDisableRenewTitle: "Toplu oto-yenileme kapat",
-        bulkBody: (n: number, a: string) => `Seçili ${n} sertifika için "${a}" işlemini onaylıyor musunuz?`,
-        empty: "Sertifika bulunamadı",
-        selectedCount: (n: number) => `${n} sertifika seçili`,
-        selectionTitle: "Toplu işlem hazır",
-      }
-    : {
-        pageTitle: "Certificates",
-        pageSubtitle: "Certificate management, filtering and export",
-        exportCsv: "Export CSV", exportExcel: "Export Excel",
-        issueCert: "Issue Certificate",
-        statusAll: "All Statuses", statusActive: "Active", statusRevoked: "Revoked", statusExpired: "Expired",
-        searchPlaceholder: "Search by name...",
-        refresh: "Refresh",
-        total: "Total", selected: "Selected", page: "Page",
-        autoRenewOn: "Auto-renew on", autoRenewOff: "Auto-renew off",
-        autoRenewEnable: "Enable Auto-Renew", autoRenewDisable: "Disable Auto-Renew",
-        verify: "Verify", download: "Download PDF",
-        setActive: "Set Active", revoke: "Revoke", expire: "Mark Expired",
-        delete: "Delete",
-        locked: "No PDF",
-        days: "days", remaining: "remaining",
-        deleteSingleTitle: "Delete certificate",
-        deleteSingleBody: "Are you sure you want to permanently delete this certificate?",
-        bulkDeleteTitle: "Bulk delete", bulkRevokeTitle: "Bulk revoke",
-        bulkExpireTitle: "Bulk expire", bulkEnableRenewTitle: "Enable auto-renew in bulk",
-        bulkDisableRenewTitle: "Disable auto-renew in bulk",
-        bulkBody: (n: number, a: string) => `Confirm "${a}" for ${n} selected certificates?`,
-        empty: "No certificates found",
-        selectedCount: (n: number) => `${n} certificates selected`,
-        selectionTitle: "Bulk action ready",
-      }, [lang]);
+  const copy = useMemo(() => ({ pageTitle: translate(lang, "migrated_app_admin_events_id_certificates_certificates_7b2eecd5"), pageSubtitle: translate(lang, "migrated_app_admin_events_id_certificates_certificate_management_filtering_and_expor_bf200938"), exportCsv: translate(lang, "migrated_app_admin_events_id_certificates_export_csv_7743a71b"), exportExcel: translate(lang, "migrated_app_admin_events_id_certificates_export_excel_2e926794"), issueCert: translate(lang, "migrated_app_admin_events_id_certificates_issue_certificate_807ebdb5"), statusAll: translate(lang, "migrated_app_admin_events_id_certificates_all_statuses_346fa870"), statusActive: translate(lang, "migrated_app_admin_events_id_certificates_active_80e29759"), statusRevoked: translate(lang, "migrated_app_admin_events_id_certificates_revoked_153e84ee"), statusExpired: translate(lang, "migrated_app_admin_events_id_certificates_expired_4976ad61"), searchPlaceholder: translate(lang, "migrated_app_admin_events_id_certificates_search_by_name_959cd358"), refresh: translate(lang, "migrated_app_admin_events_id_certificates_refresh_7582db2f"), total: translate(lang, "migrated_app_admin_events_id_certificates_total_3712d639"), selected: translate(lang, "migrated_app_admin_events_id_certificates_selected_bad7082f"), page: translate(lang, "migrated_app_admin_events_id_certificates_page_d8306bfe"), autoRenewOn: translate(lang, "migrated_app_admin_events_id_certificates_auto_renew_on_4fe53ad6"), autoRenewOff: translate(lang, "migrated_app_admin_events_id_certificates_auto_renew_off_7bedfb00"), autoRenewEnable: translate(lang, "migrated_app_admin_events_id_certificates_enable_auto_renew_5a3aa3a0"), autoRenewDisable: translate(lang, "migrated_app_admin_events_id_certificates_disable_auto_renew_78cadd4d"), verify: translate(lang, "migrated_app_admin_events_id_certificates_verify_c760b86d"), download: translate(lang, "migrated_app_admin_events_id_certificates_download_pdf_f56b7eae"), setActive: translate(lang, "migrated_app_admin_events_id_certificates_set_active_5e1bfa3c"), revoke: translate(lang, "migrated_app_admin_events_id_certificates_revoke_37ceb2ef"), expire: translate(lang, "migrated_app_admin_events_id_certificates_mark_expired_69c839e4"), delete: translate(lang, "migrated_app_admin_events_id_certificates_delete_4b534300"), locked: translate(lang, "migrated_app_admin_events_id_certificates_no_pdf_32a43f2b"), days: translate(lang, "migrated_app_admin_events_id_certificates_days_9763528f"), remaining: translate(lang, "migrated_app_admin_events_id_certificates_remaining_5361f125"), deleteSingleTitle: translate(lang, "migrated_app_admin_events_id_certificates_delete_certificate_999ac37d"), deleteSingleBody: translate(lang, "migrated_app_admin_events_id_certificates_are_you_sure_you_want_to_permanently_delet_4bb8639a"), bulkDeleteTitle: translate(lang, "migrated_app_admin_events_id_certificates_bulk_delete_e11a9354"), bulkRevokeTitle: translate(lang, "migrated_app_admin_events_id_certificates_bulk_revoke_766fe366"), bulkExpireTitle: translate(lang, "migrated_app_admin_events_id_certificates_bulk_expire_714a2a41"), bulkEnableRenewTitle: translate(lang, "migrated_app_admin_events_id_certificates_enable_auto_renew_in_bulk_4adc8d32"), bulkDisableRenewTitle: translate(lang, "migrated_app_admin_events_id_certificates_disable_auto_renew_in_bulk_941118c1"), bulkBody: (n: number, a: string) => translate(lang, "migrated_app_admin_events_id_certificates_confirm_value0_for_value1_selected_certifi_c01416a7", { value0: a, value1: n }), empty: translate(lang, "migrated_app_admin_events_id_certificates_no_certificates_found_01d9b297"), selectedCount: (n: number) => translate(lang, "migrated_app_admin_events_id_certificates_value0_certificates_selected_aca3b074", { value0: n }), selectionTitle: translate(lang, "migrated_app_admin_events_id_certificates_bulk_action_ready_85facff9") }), [lang]);
 
   const query = useMemo(() => {
     const qs = new URLSearchParams();
@@ -180,7 +127,7 @@ export default function CertificatesPage() {
   async function patchStatus(certId: number, next: CertStatus) {
     try {
       await apiFetch(`/admin/certificates/${certId}`, { method: "PATCH", body: JSON.stringify({ status: next }) });
-      toast.success(lang === "tr" ? "Durum güncellendi." : "Status updated.");
+      toast.success(translate(lang, "migrated_app_admin_events_id_certificates_status_updated_e5caa6ad"));
       await load();
     } catch (e: unknown) {
       toast.error((e as { message?: string })?.message || "Update failed.");
@@ -202,7 +149,7 @@ export default function CertificatesPage() {
     setDeleteLoading(true);
     try {
       await apiFetch(`/admin/certificates/${deleteTargetId}`, { method: "DELETE" });
-      toast.success(lang === "tr" ? "Sertifika silindi." : "Certificate deleted.");
+      toast.success(translate(lang, "migrated_app_admin_events_id_certificates_certificate_deleted_c918c842"));
       setDeleteTargetId(null);
       await load();
     } catch (e: unknown) {
@@ -220,7 +167,7 @@ export default function CertificatesPage() {
         method: "POST",
         body: JSON.stringify({ cert_ids: [...selectedIds], action: bulkTarget }),
       });
-      toast.success(`${selectedIds.size} ${lang === "tr" ? "sertifika işlendi." : "certificates processed."}`);
+      toast.success(`${selectedIds.size} ${translate(lang, "migrated_app_admin_events_id_certificates_certificates_processed_34ab06f6")}`);
       setBulkTarget(null);
       setSelectedIds(new Set());
       await load();
@@ -250,7 +197,7 @@ export default function CertificatesPage() {
   }
 
   function formatRemaining(c: CertificateOut) {
-    if (c.status === "expired" || c.days_remaining === 0) return lang === "tr" ? "Süresi doldu" : "Expired";
+    if (c.status === "expired" || c.days_remaining === 0) return translate(lang, "migrated_app_admin_events_id_certificates_expired_c470c1fd");
     if (typeof c.days_remaining === "number") return `${c.days_remaining} ${copy.days}`;
     if (c.hosting_ends_at) return new Date(c.hosting_ends_at).toLocaleDateString(localeTag(lang));
     return "—";
@@ -323,7 +270,7 @@ export default function CertificatesPage() {
       <div className="overflow-hidden rounded-xl border border-surface-200 bg-raised shadow-card">
         {/* Table header */}
         <div className="flex items-center gap-3 border-b border-surface-100 bg-surface-50 px-5 py-3">
-          <button onClick={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(items.map((c) => c.id)))} aria-label={allSelected ? (lang === "tr" ? "Tümünü kaldır" : "Deselect all") : (lang === "tr" ? "Tümünü seç" : "Select all")} className="text-surface-400 hover:text-surface-900 transition-colors">
+          <button onClick={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(items.map((c) => c.id)))} aria-label={allSelected ? (translate(lang, "migrated_app_admin_events_id_certificates_deselect_all_845efbba")) : (translate(lang, "migrated_app_admin_events_id_certificates_select_all_97a07099"))} className="text-surface-400 hover:text-surface-900 transition-colors">
             {allSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
           </button>
           <span className="text-11 font-semibold uppercase tracking-wider text-surface-500">{t("certs_title")}</span>
@@ -361,7 +308,7 @@ export default function CertificatesPage() {
                   className={`flex items-center gap-3 px-5 py-3.5 transition-colors ${isSelected ? "bg-surface-50" : "hover:bg-surface-50/60"}`}
                 >
                   {/* Checkbox */}
-                  <button onClick={() => toggleSelect(c.id)} aria-label={isSelected ? (lang === "tr" ? "Seçimi kaldır" : "Deselect") : (lang === "tr" ? "Seç" : "Select")} aria-pressed={isSelected} className="shrink-0 text-surface-300 hover:text-surface-700 transition-colors">
+                  <button onClick={() => toggleSelect(c.id)} aria-label={isSelected ? (translate(lang, "migrated_app_admin_events_id_certificates_deselect_804ceb1d")) : (translate(lang, "migrated_app_admin_events_id_certificates_select_681e7ce8"))} aria-pressed={isSelected} className="shrink-0 text-surface-300 hover:text-surface-700 transition-colors">
                     {isSelected ? <CheckSquare className="h-4 w-4 text-surface-900" /> : <Square className="h-4 w-4" />}
                   </button>
 
@@ -372,7 +319,7 @@ export default function CertificatesPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-medium text-surface-900">{c.student_name}</p>
-                      <span className={`text-xs font-medium ${sc.text}`}>{pickLang(sc.label, lang)}</span>
+                      <span className={`text-xs font-medium ${sc.text}`}>{translate(lang, sc.labelKey)}</span>
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-surface-400">
                       <span className="font-mono">{c.uuid.split("-")[0]}</span>
@@ -402,7 +349,7 @@ export default function CertificatesPage() {
 
                     {/* Row context menu */}
                     <div className="relative" ref={menuOpen ? rowMenuRef : null}>
-                      <button onClick={() => setRowMenuId(menuOpen ? null : c.id)} aria-label={lang === "tr" ? "İşlemler" : "Actions"} aria-expanded={menuOpen} className="btn-ghost px-2 py-1.5">
+                      <button onClick={() => setRowMenuId(menuOpen ? null : c.id)} aria-label={translate(lang, "migrated_app_admin_events_id_certificates_actions_ee1a768c")} aria-expanded={menuOpen} className="btn-ghost px-2 py-1.5">
                         <MoreHorizontal className="h-3.5 w-3.5" />
                       </button>
                       <AnimatePresence>

@@ -23,7 +23,7 @@ import {
   Zap,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type NavItem = {
   href: string;
@@ -164,7 +164,7 @@ export default function SuperadminLayout({
     return (
       <div className="flex items-center justify-center p-16 text-sm text-surface-500">
         <span className="animate-pulse">
-          {lang === "tr" ? "Yetki kontrol ediliyor..." : "Checking access..."}
+          {translate(lang, "migrated_app_admin_superadmin_checking_access_9be8f0a2")}
         </span>
       </div>
     );
@@ -190,9 +190,7 @@ export default function SuperadminLayout({
         <div className="min-w-0">
           <h1 className="text-base font-black tracking-tight text-surface-900">Super Admin</h1>
           <p className="hidden text-xs text-surface-500 sm:block">
-            {lang === "tr"
-              ? "Platform yönetim merkezi — sadece süper yöneticiler"
-              : "Platform control center — superadmins only"}
+            {translate(lang, "migrated_app_admin_superadmin_platform_control_center_superadmins_only_88696c08")}
           </p>
         </div>
         <div className="ml-auto flex items-center gap-1.5 rounded-full border border-status-warning-border bg-status-warning-bg/60 px-2.5 py-1">

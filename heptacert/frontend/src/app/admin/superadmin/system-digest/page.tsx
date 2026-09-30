@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sparkles, Mail, Loader2 } from "lucide-react";
 import PageHeader from "@/components/Admin/PageHeader";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 import { getSystemDigestConfig, updateSystemDigestConfig, sendSystemDigestNow, sendSystemDigestTest, SystemEmailDigestConfigOut } from "@/lib/api";
 
 export default function SuperadminSystemDigestPage() {
@@ -47,10 +47,10 @@ export default function SuperadminSystemDigestPage() {
   }, [config]);
 
   const copy = {
-    title: lang === "tr" ? "Sistem Maili" : "System Digest",
-    subtitle: lang === "tr" ? "Haftalık/günlük arka plan digest ayarları" : "Configure scheduled system digest emails",
-    save: lang === "tr" ? "Kaydet" : "Save",
-    sendNow: lang === "tr" ? "Şimdi Gönder" : "Send Now",
+    title: translate(lang, "migrated_app_admin_superadmin_system_digest_system_digest_7bef07d8"),
+    subtitle: translate(lang, "migrated_app_admin_superadmin_system_digest_configure_scheduled_system_digest_emails_c53b120b"),
+    save: translate(lang, "migrated_app_admin_superadmin_system_digest_save_99f14ae0"),
+    sendNow: translate(lang, "migrated_app_admin_superadmin_system_digest_send_now_6b9041bd"),
   };
 
   if (loading) return (<div className="flex items-center justify-center p-24"><Loader2 className="h-8 w-8 animate-spin text-brand-500" /></div>);
@@ -64,40 +64,40 @@ export default function SuperadminSystemDigestPage() {
       <div className="card p-6">
         <label className="flex items-center gap-3">
           <input type="checkbox" checked={config.enabled} onChange={(e) => setConfig({ ...config, enabled: e.target.checked })} />
-          <span className="ml-2">{lang === "tr" ? "Etkin" : "Enabled"}</span>
+          <span className="ml-2">{translate(lang, "migrated_app_admin_superadmin_system_digest_enabled_71c10122")}</span>
         </label>
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Sıklık" : "Frequency"}</label>
+            <label className="block text-sm text-surface-600 mb-1">{translate(lang, "migrated_app_admin_superadmin_system_digest_frequency_adcdd102")}</label>
             <select value={config.frequency} onChange={(e) => setConfig({ ...config, frequency: e.target.value as any })} className="input-field w-full">
-              <option value="daily">{lang === "tr" ? "Günlük" : "Daily"}</option>
-              <option value="weekly">{lang === "tr" ? "Haftalık" : "Weekly"}</option>
+              <option value="daily">{translate(lang, "migrated_app_admin_superadmin_system_digest_daily_84a9ea51")}</option>
+              <option value="weekly">{translate(lang, "migrated_app_admin_superadmin_system_digest_weekly_b3a07e44")}</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Gönderim Saati (0-23)" : "Send Hour (0-23)"}</label>
+            <label className="block text-sm text-surface-600 mb-1">{translate(lang, "migrated_app_admin_superadmin_system_digest_send_hour_0_23_45e41847")}</label>
             <input type="number" min={0} max={23} value={config.send_hour} onChange={(e) => setConfig({ ...config, send_hour: Number(e.target.value) })} className={`input-field w-full ${formErrors.send_hour ? "border-status-danger-border" : ""}`} />
             {formErrors.send_hour && <p className="text-xs text-status-danger-content mt-1">{formErrors.send_hour}</p>}
           </div>
 
           {config.frequency === "weekly" && (
             <div>
-              <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Haftanın Günü (0=Paz, 6=Cum)" : "Send Weekday (0=Sun, 6=Sat)"}</label>
+              <label className="block text-sm text-surface-600 mb-1">{translate(lang, "migrated_app_admin_superadmin_system_digest_send_weekday_0_sun_6_sat_d029f256")}</label>
               <input type="number" min={0} max={6} value={config.send_weekday ?? 0} onChange={(e) => setConfig({ ...config, send_weekday: Number(e.target.value) })} className={`input-field w-full ${formErrors.send_weekday ? "border-status-danger-border" : ""}`} />
               {formErrors.send_weekday && <p className="text-xs text-status-danger-content mt-1">{formErrors.send_weekday}</p>}
             </div>
           )}
 
           <div>
-            <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Maks Etkinlik Sayısı" : "Max Events"}</label>
+            <label className="block text-sm text-surface-600 mb-1">{translate(lang, "migrated_app_admin_superadmin_system_digest_max_events_bf4d9a01")}</label>
             <input type="number" min={0} value={config.max_events} onChange={(e) => setConfig({ ...config, max_events: Number(e.target.value) })} className={`input-field w-full ${formErrors.max_events ? "border-status-danger-border" : ""}`} />
             {formErrors.max_events && <p className="text-xs text-status-danger-content mt-1">{formErrors.max_events}</p>}
           </div>
 
           <div>
-            <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Maks Gönderiler" : "Max Posts"}</label>
+            <label className="block text-sm text-surface-600 mb-1">{translate(lang, "migrated_app_admin_superadmin_system_digest_max_posts_59244c56")}</label>
             <input type="number" min={0} value={config.max_posts} onChange={(e) => setConfig({ ...config, max_posts: Number(e.target.value) })} className={`input-field w-full ${formErrors.max_posts ? "border-status-danger-border" : ""}`} />
             {formErrors.max_posts && <p className="text-xs text-status-danger-content mt-1">{formErrors.max_posts}</p>}
           </div>
@@ -105,13 +105,13 @@ export default function SuperadminSystemDigestPage() {
 
         <div className="mt-6 flex gap-3">
           <button disabled={saving || Object.keys(formErrors).length > 0} onClick={async () => {
-            try { setSaving(true); setError(null); await updateSystemDigestConfig(config); setSaving(false); setSuccessMessage(lang === "tr" ? "Kaydedildi" : "Saved"); setTimeout(() => setSuccessMessage(null), 4000); }
+            try { setSaving(true); setError(null); await updateSystemDigestConfig(config); setSaving(false); setSuccessMessage(translate(lang, "migrated_app_admin_superadmin_system_digest_saved_dc738aea")); setTimeout(() => setSuccessMessage(null), 4000); }
             catch (e: any) { setSaving(false); setError(e?.message || "Save failed"); }
           }} className="btn-primary">{saving ? "Saving..." : copy.save}</button>
 
           <button disabled={sending} onClick={async () => {
-            if (!confirm(lang === "tr" ? "Sistem digest'ini şimdi göndermek istediğinizden emin misiniz?" : "Send system digest now?")) return;
-            try { setSending(true); setError(null); await sendSystemDigestNow(); setSending(false); setSuccessMessage(lang === "tr" ? "Gönderildi" : "Sent"); setTimeout(() => setSuccessMessage(null), 4000); }
+            if (!confirm(translate(lang, "migrated_app_admin_superadmin_system_digest_send_system_digest_now_bb86be01"))) return;
+            try { setSending(true); setError(null); await sendSystemDigestNow(); setSending(false); setSuccessMessage(translate(lang, "migrated_app_admin_superadmin_system_digest_sent_e6516f52")); setTimeout(() => setSuccessMessage(null), 4000); }
             catch (e: any) { setSending(false); setError(e?.message || "Send failed"); }
           }} className="btn-secondary">{sending ? "Sending..." : copy.sendNow}</button>
 
@@ -137,13 +137,13 @@ export default function SuperadminSystemDigestPage() {
             } catch (err: any) {
               setError(err?.message || "Preview failed");
             } finally { setPreviewing(false); }
-          }} className="btn-ghost">{previewing ? (lang === "tr" ? "Önizleniyor..." : "Previewing...") : (lang === "tr" ? "Önizle" : "Preview")}</button>
+          }} className="btn-ghost">{previewing ? (translate(lang, "migrated_app_admin_superadmin_system_digest_previewing_7b71d18b")) : (translate(lang, "migrated_app_admin_superadmin_system_digest_preview_8d23e7fe"))}</button>
         </div>
-        {config.last_sent_at && <p className="mt-4 text-sm text-surface-500">{(lang === "tr" ? "Son gönderim" : "Last sent")}: {new Date(config.last_sent_at).toLocaleString()}</p>}
+        {config.last_sent_at && <p className="mt-4 text-sm text-surface-500">{(translate(lang, "migrated_app_admin_superadmin_system_digest_last_sent_0815fe0a"))}: {new Date(config.last_sent_at).toLocaleString()}</p>}
         <div className="mt-6 grid gap-3 rounded-2xl border border-surface-200 bg-surface-50 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <label className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">
-              {lang === "tr" ? "Test alıcısı" : "Test recipient"}
+              {translate(lang, "migrated_app_admin_superadmin_system_digest_test_recipient_71da74cf")}
             </span>
             <input
               type="email"
@@ -155,25 +155,25 @@ export default function SuperadminSystemDigestPage() {
           </label>
           <button disabled={testSending} onClick={async () => {
             if (!testEmail.trim() || !testEmail.includes("@")) {
-              setError(lang === "tr" ? "Geçerli bir test alıcısı girin" : "Enter a valid test recipient");
+              setError(translate(lang, "migrated_app_admin_superadmin_system_digest_enter_a_valid_test_recipient_81e02928"));
               return;
             }
             try {
               setTestSending(true);
               setError(null);
               const res = await sendSystemDigestTest(testEmail.trim());
-              setSuccessMessage(`${lang === "tr" ? "Test digest gönderildi" : "Test digest sent"}: ${res.to_email}`);
+              setSuccessMessage(`${translate(lang, "migrated_app_admin_superadmin_system_digest_test_digest_sent_2101041f")}: ${res.to_email}`);
               setTimeout(() => setSuccessMessage(null), 4000);
             } catch (e: any) {
-              setError(e?.message || (lang === "tr" ? "Test digest gönderilemedi" : "Failed to send test digest"));
+              setError(e?.message || (translate(lang, "migrated_app_admin_superadmin_system_digest_failed_to_send_test_digest_a88ad8f2")));
             } finally {
               setTestSending(false);
             }
           }} className="btn-secondary">
             {testSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
             {testSending
-              ? lang === "tr" ? "Test gönderiliyor..." : "Sending test..."
-              : lang === "tr" ? "Test Digest Gönder" : "Send Test Digest"}
+              ? translate(lang, "migrated_app_admin_superadmin_system_digest_sending_test_4420c34a")
+              : translate(lang, "migrated_app_admin_superadmin_system_digest_send_test_digest_d52bbc31")}
           </button>
         </div>
         {error && <div className="error-banner mt-4">{error}</div>}

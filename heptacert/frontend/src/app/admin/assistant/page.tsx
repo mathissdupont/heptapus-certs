@@ -2,26 +2,14 @@
 
 import { useEffect } from "react";
 import { MessageCircle, Sparkles } from "lucide-react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 import AIAssistant from "@/components/Admin/AIAssistant";
 
 export default function AdminAssistantPage() {
   const { lang } = useI18n();
 
   const copy =
-    lang === "tr"
-      ? {
-          title: "HeptaCert AI Asistan",
-          subtitle: "Sistem ve etkinlik yönetim merkezi",
-          status: "Aktif",
-          eyebrow: "Akıllı Yönetim Paneli",
-        }
-      : {
-          title: "HeptaCert AI Assistant",
-          subtitle: "System and event management center",
-          status: "Online",
-          eyebrow: "Smart Management Panel",
-        };
+    { title: translate(lang, "migrated_app_admin_assistant_heptacert_ai_assistant_fc33f514"), subtitle: translate(lang, "migrated_app_admin_assistant_system_and_event_management_center_f9833bb1"), status: translate(lang, "migrated_app_admin_assistant_online_7f6966f3"), eyebrow: translate(lang, "migrated_app_admin_assistant_smart_management_panel_ea3a2bcb") };
 
   useEffect(() => {
     try {

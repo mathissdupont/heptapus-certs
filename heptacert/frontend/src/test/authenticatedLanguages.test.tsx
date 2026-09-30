@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { I18nProvider, LanguageToggle, useI18n } from "@/lib/i18n";
+import { I18nProvider, LanguageToggle, translate, useI18n } from "@/lib/i18n";
 
 
 function LanguageProbe() {
@@ -23,6 +23,11 @@ describe("authenticated language selection", () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it("translates outside React and replaces named placeholders", () => {
+    expect(translate("en", "admin_assistant_response_error", { error: "Offline" }))
+      .toBe("I could not prepare a response right now: Offline.");
   });
 
   it("restores a third language and exposes all nine catalog options", async () => {

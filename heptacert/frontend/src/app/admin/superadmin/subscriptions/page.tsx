@@ -15,7 +15,7 @@ import PageHeader from "@/components/Admin/PageHeader";
 import EmptyState from "@/components/Admin/EmptyState";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
 import { useToast } from "@/hooks/useToast";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type SubscriptionRow = {
   id: number;
@@ -50,61 +50,7 @@ export default function SuperadminSubscriptionsPage() {
   const [grantPlan, setGrantPlan] = useState<string>("starter");
   const [grantDays, setGrantDays] = useState(30);
 
-  const copy = lang === "tr"
-    ? {
-        title: "Abonelikler",
-        subtitle: "Admin hesaplarına manuel plan tanımlayın, süreleri takip edin ve aktif abonelikleri denetleyin",
-        loadFailed: "Abonelikler yüklenemedi",
-        grantFailed: "Abonelik verilemedi",
-        grantSuccess: "Abonelik verildi",
-        revokeFailed: "Abonelik iptal edilemedi",
-        revokeSuccess: "Abonelik iptal edildi",
-        total: "Toplam abonelik",
-        active: "Aktif",
-        enterprise: "Kurumsal",
-        endingSoon: "Yakında biten",
-        grantTitle: "Manuel abonelik ver",
-        email: "Kullanıcı e-postası",
-        plan: "Plan",
-        days: "Gün",
-        grant: "Ver",
-        startedAt: "Başlangıç",
-        expiresAt: "Bitiş",
-        status: "Durum",
-        activeState: "Aktif",
-        inactiveState: "Pasif",
-        emptyTitle: "Henüz abonelik yok",
-        emptyBody: "İlk manuel plan atamasını yaparak listeyi oluşturmaya başlayın.",
-        deleteTitle: "Aboneliği iptal et",
-        deleteBody: "Bu aboneliği pasif duruma almak istediğinizden emin misiniz?",
-      }
-    : {
-        title: "Subscriptions",
-        subtitle: "Grant plans manually to admin accounts, monitor durations, and review active subscriptions",
-        loadFailed: "Failed to load subscriptions",
-        grantFailed: "Failed to grant subscription",
-        grantSuccess: "Subscription granted",
-        revokeFailed: "Failed to revoke subscription",
-        revokeSuccess: "Subscription revoked",
-        total: "Subscriptions",
-        active: "Active",
-        enterprise: "Enterprise",
-        endingSoon: "Ending soon",
-        grantTitle: "Grant manual subscription",
-        email: "User account email",
-        plan: "Plan",
-        days: "Days",
-        grant: "Grant",
-        startedAt: "Started",
-        expiresAt: "Expires",
-        status: "Status",
-        activeState: "Active",
-        inactiveState: "Inactive",
-        emptyTitle: "No subscriptions yet",
-        emptyBody: "Start by assigning the first manual plan from the panel above.",
-        deleteTitle: "Revoke subscription",
-        deleteBody: "Are you sure you want to set this subscription to inactive?",
-      };
+  const copy = { title: translate(lang, "migrated_app_admin_superadmin_subscriptions_subscriptions_48aac49c"), subtitle: translate(lang, "migrated_app_admin_superadmin_subscriptions_grant_plans_manually_to_admin_accounts_mon_3413ad5d"), loadFailed: translate(lang, "migrated_app_admin_superadmin_subscriptions_failed_to_load_subscriptions_558fe2b9"), grantFailed: translate(lang, "migrated_app_admin_superadmin_subscriptions_failed_to_grant_subscription_c0c9d754"), grantSuccess: translate(lang, "migrated_app_admin_superadmin_subscriptions_subscription_granted_37548885"), revokeFailed: translate(lang, "migrated_app_admin_superadmin_subscriptions_failed_to_revoke_subscription_bce6d7cf"), revokeSuccess: translate(lang, "migrated_app_admin_superadmin_subscriptions_subscription_revoked_5b499d6c"), total: translate(lang, "migrated_app_admin_superadmin_subscriptions_subscriptions_4d37142e"), active: translate(lang, "migrated_app_admin_superadmin_subscriptions_active_dfa5b078"), enterprise: translate(lang, "migrated_app_admin_superadmin_subscriptions_enterprise_f5c83dec"), endingSoon: translate(lang, "migrated_app_admin_superadmin_subscriptions_ending_soon_3a79d469"), grantTitle: translate(lang, "migrated_app_admin_superadmin_subscriptions_grant_manual_subscription_e976c27c"), email: translate(lang, "migrated_app_admin_superadmin_subscriptions_user_account_email_f6a3da9a"), plan: translate(lang, "migrated_app_admin_superadmin_subscriptions_plan_329dfbb9"), days: translate(lang, "migrated_app_admin_superadmin_subscriptions_days_0e7ca9d2"), grant: translate(lang, "migrated_app_admin_superadmin_subscriptions_grant_e0f5d927"), startedAt: translate(lang, "migrated_app_admin_superadmin_subscriptions_started_c263a34e"), expiresAt: translate(lang, "migrated_app_admin_superadmin_subscriptions_expires_60886cd5"), status: translate(lang, "migrated_app_admin_superadmin_subscriptions_status_86b00b0d"), activeState: translate(lang, "migrated_app_admin_superadmin_subscriptions_active_01fdb3e7"), inactiveState: translate(lang, "migrated_app_admin_superadmin_subscriptions_inactive_d585f385"), emptyTitle: translate(lang, "migrated_app_admin_superadmin_subscriptions_no_subscriptions_yet_44612ab9"), emptyBody: translate(lang, "migrated_app_admin_superadmin_subscriptions_start_by_assigning_the_first_manual_plan_f_e1c5390f"), deleteTitle: translate(lang, "migrated_app_admin_superadmin_subscriptions_revoke_subscription_a7ce5b9c"), deleteBody: translate(lang, "migrated_app_admin_superadmin_subscriptions_are_you_sure_you_want_to_set_this_subscrip_95601b80") };
 
   const load = async () => {
     try {

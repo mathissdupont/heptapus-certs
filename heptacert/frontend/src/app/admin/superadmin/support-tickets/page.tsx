@@ -4,7 +4,7 @@ import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, MessageCircle, ChevronDown, ChevronUp, Send, X, Check } from "lucide-react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
 import type { SubscriptionInfo } from "@/lib/api";
@@ -288,7 +288,7 @@ export default function SupportTicketsPage() {
                     className="w-full px-4 py-2 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 transition flex items-center justify-center gap-2"
                   >
                     <Send className="h-4 w-4" />
-                    {replying ? (lang === "tr" ? "Gönderiliyor..." : "Sending...") : text.send}
+                    {replying ? (translate(lang, "migrated_app_admin_superadmin_support_tickets_sending_b7ca99aa")) : text.send}
                   </button>
                 </div>
               )}

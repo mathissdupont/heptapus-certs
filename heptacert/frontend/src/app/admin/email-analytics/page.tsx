@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { Mail, TrendingUp, Loader2, AlertCircle, Send, BarChart3, MousePointerClick, Eye, Percent } from "lucide-react";
@@ -10,7 +9,7 @@ import { apiFetch } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
 import { FeatureGate } from "@/lib/useSubscription";
 import EmptyState from "@/components/Admin/EmptyState";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type Event = { id: number; name: string; event_date: string | null };
 
@@ -31,36 +30,7 @@ export default function EmailAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const copy = pickLang({
-    tr: {
-      loadFailed: "Etkinlikler yüklenemedi",
-      title: "E-posta Analitik",
-      subtitle: "Etkinlik bazlı e-posta teslimat ve performans takibi",
-      center: "E-posta Merkezi",
-      info: "E-posta analitikleri etkinlik bazında takip edilir. Aşağıdan bir etkinlik seçerek toplu e-posta iş geçmişini ve teslimat istatistiklerini inceleyebilirsiniz.",
-      emptyTitle: "Henüz etkinlik yok",
-      emptyBody: "E-posta analitiği görüntülemek için önce bir etkinlik oluşturun",
-      goEvents: "Etkinliklere Git",
-      events: "Etkinlikler",
-      chooseEvent: (count: number) => `${count} etkinlik · Analitik için etkinlik seçin`,
-      bulkEmail: "Toplu E-posta",
-      analytics: "Analitik",
-    },
-    en: {
-      loadFailed: "Failed to load events",
-      title: "Email Analytics",
-      subtitle: "Track delivery and performance by event",
-      center: "Email Center",
-      info: "Email analytics are tracked per event. Choose an event below to review bulk email job history and delivery metrics.",
-      emptyTitle: "No events yet",
-      emptyBody: "Create an event first to view email analytics",
-      goEvents: "Go to Events",
-      events: "Events",
-      chooseEvent: (count: number) => `${count} events · Choose an event for analytics`,
-      bulkEmail: "Bulk Email",
-      analytics: "Analytics",
-    },
-  }, lang);
+  const copy = { loadFailed: translate(lang, "migrated_app_admin_email_analytics_failed_to_load_events_361d7c71"), title: translate(lang, "migrated_app_admin_email_analytics_email_analytics_b9ba5a21"), subtitle: translate(lang, "migrated_app_admin_email_analytics_track_delivery_and_performance_by_event_e47250be"), center: translate(lang, "migrated_app_admin_email_analytics_email_center_801ba3d1"), info: translate(lang, "migrated_app_admin_email_analytics_email_analytics_are_tracked_per_event_choo_a83a4d10"), emptyTitle: translate(lang, "migrated_app_admin_email_analytics_no_events_yet_34dad637"), emptyBody: translate(lang, "migrated_app_admin_email_analytics_create_an_event_first_to_view_email_analyt_69cba607"), goEvents: translate(lang, "migrated_app_admin_email_analytics_go_to_events_131f12ce"), events: translate(lang, "migrated_app_admin_email_analytics_events_ff35fd18"), chooseEvent: (count: number) => translate(lang, "migrated_app_admin_email_analytics_value0_events_choose_an_event_for_analytic_e03084b5", { value0: count }), bulkEmail: translate(lang, "migrated_app_admin_email_analytics_bulk_email_4ed73881"), analytics: translate(lang, "migrated_app_admin_email_analytics_analytics_03ae6a4f") };
 
   useEffect(() => {
     fetchEvents();
@@ -115,11 +85,11 @@ export default function EmailAnalyticsPage() {
         {summary && summary.total_sent > 0 && (
           <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             {[
-              { label: lang === "tr" ? "Gönderilen" : "Sent", value: summary.total_sent.toLocaleString(), icon: Send, color: "text-surface-700" },
-              { label: lang === "tr" ? "Tekil Açılma" : "Unique Opens", value: summary.unique_opens.toLocaleString(), icon: Eye, color: "text-status-info-content" },
-              { label: lang === "tr" ? "Tekil Tıklama" : "Unique Clicks", value: summary.unique_clicks.toLocaleString(), icon: MousePointerClick, color: "text-status-info-content" },
-              { label: lang === "tr" ? "Açılma Oranı" : "Open Rate", value: `${summary.open_rate}%`, icon: Percent, color: "text-status-success-content" },
-              { label: lang === "tr" ? "Tıklama Oranı" : "Click Rate", value: `${summary.click_rate}%`, icon: Percent, color: "text-status-warning-content" },
+              { label: translate(lang, "migrated_app_admin_email_analytics_sent_1b43f2d1"), value: summary.total_sent.toLocaleString(), icon: Send, color: "text-surface-700" },
+              { label: translate(lang, "migrated_app_admin_email_analytics_unique_opens_38d0a121"), value: summary.unique_opens.toLocaleString(), icon: Eye, color: "text-status-info-content" },
+              { label: translate(lang, "migrated_app_admin_email_analytics_unique_clicks_03be1dc0"), value: summary.unique_clicks.toLocaleString(), icon: MousePointerClick, color: "text-status-info-content" },
+              { label: translate(lang, "migrated_app_admin_email_analytics_open_rate_1b6d1ecd"), value: `${summary.open_rate}%`, icon: Percent, color: "text-status-success-content" },
+              { label: translate(lang, "migrated_app_admin_email_analytics_click_rate_12d216f4"), value: `${summary.click_rate}%`, icon: Percent, color: "text-status-warning-content" },
               { label: "CTOR", value: `${summary.click_to_open_rate}%`, icon: TrendingUp, color: "text-status-danger-content" },
             ].map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="rounded-2xl border border-surface-100 bg-raised p-3.5 shadow-sm">

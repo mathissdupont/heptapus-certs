@@ -2,7 +2,7 @@
 
 import { type ReactNode } from "react";
 import { Inbox } from "lucide-react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 interface EmptyStateProps {
   title?: string;
@@ -14,7 +14,7 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description, icon, action, className = "" }: EmptyStateProps) {
   const { lang } = useI18n();
-  const resolvedTitle = title ?? (lang === "tr" ? "Veri bulunamadı" : "No data found");
+  const resolvedTitle = title ?? (translate(lang, "migrated_components_admin_emptystate_no_data_found_b6121b8b"));
   return (
     <div className={`flex w-full flex-col items-center justify-center px-6 py-14 text-center antialiased sm:py-16 ${className}`}>
       <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl border border-surface-200 bg-surface-50 text-surface-400">

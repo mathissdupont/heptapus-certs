@@ -1,13 +1,12 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Loader2, Zap } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate, type TranslationKey } from "@/lib/i18n";
 import DateTimeField from "./DateTimeField";
 
 type EventType =
@@ -36,16 +35,16 @@ interface CreateEventDrawerProps {
   venues?: OrganizationVenue[];
 }
 
-const EVENT_TYPE_OPTIONS: Array<{ value: EventType; label: { tr: string; en: string } }> = [
-  { value: "certificate_event", label: { tr: "Sertifikalı Etkinlik", en: "Certificate Event" } },
-  { value: "seminar", label: { tr: "Seminer", en: "Seminar" } },
-  { value: "workshop", label: { tr: "Workshop", en: "Workshop" } },
-  { value: "conference", label: { tr: "Konferans", en: "Conference" } },
-  { value: "concert", label: { tr: "Konser", en: "Concert" } },
-  { value: "training", label: { tr: "Eğitim", en: "Training" } },
-  { value: "club_event", label: { tr: "Kulüp Etkinliği", en: "Club Event" } },
-  { value: "online_event", label: { tr: "Online Etkinlik", en: "Online Event" } },
-  { value: "custom", label: { tr: "Özel Etkinlik", en: "Custom Event" } },
+const EVENT_TYPE_OPTIONS: Array<{ value: EventType; labelKey: TranslationKey }> = [
+  { value: "certificate_event", labelKey: "admin_settings_event_certificate" },
+  { value: "seminar", labelKey: "admin_settings_event_seminar" },
+  { value: "workshop", labelKey: "admin_settings_event_workshop" },
+  { value: "conference", labelKey: "admin_settings_event_conference" },
+  { value: "concert", labelKey: "admin_settings_event_concert" },
+  { value: "training", labelKey: "admin_settings_event_training" },
+  { value: "club_event", labelKey: "admin_settings_event_club" },
+  { value: "online_event", labelKey: "admin_settings_event_online" },
+  { value: "custom", labelKey: "admin_settings_event_custom" },
 ];
 
 type FeatureDefaults = {
@@ -123,58 +122,7 @@ export default function CreateEventDrawer({ open, onClose, onCreated, venues = [
     return fallbackDefaultsForEventType(nextType);
   }
 
-  const copy = pickLang({
-    tr: {
-      title: "Yeni Etkinlik",
-      nameLabel: "Etkinlik Adı",
-      namePlaceholder: "Örn: DevFest Ankara 2025",
-      typeLabel: "Etkinlik Türü",
-      featuresLabel: "Modüller",
-      certificate: "Sertifika",
-      checkin: "Check-in / Oturum",
-      ticket: "Bilet / Giriş Kartı",
-      registration: "Herkese Açık Kayıt",
-      raffle: "Çekiliş",
-      gamification: "Oyunlaştırma",
-      venueLabel: "Salon",
-      venueNone: "Salon seçme",
-      venueCapacity: "kişi",
-      startLabel: "Başlangıç",
-      endLabel: "Bitiş",
-      autoReserve: "Salon uygunsa otomatik rezervasyon oluştur",
-      startRequired: "Salon rezervasyonu için başlangıç ve bitiş zamanı gerekir.",
-      create: "Etkinlik Oluştur",
-      creating: "Oluşturuluyor...",
-      nameRequired: "Etkinlik adı zorunludur.",
-      created: (n: string) => `"${n}" oluşturuldu.`,
-      createFailed: "Etkinlik oluşturulamadı.",
-    },
-    en: {
-      title: "New Event",
-      nameLabel: "Event Name",
-      namePlaceholder: "e.g. DevFest Ankara 2025",
-      typeLabel: "Event Type",
-      featuresLabel: "Modules",
-      certificate: "Certificate",
-      checkin: "Check-in / Sessions",
-      ticket: "Ticket / Pass",
-      registration: "Public Registration",
-      raffle: "Raffle",
-      gamification: "Gamification",
-      venueLabel: "Venue",
-      venueNone: "No venue",
-      venueCapacity: "people",
-      startLabel: "Start",
-      endLabel: "End",
-      autoReserve: "Automatically reserve this venue if available",
-      startRequired: "Start and end time are required for venue reservations.",
-      create: "Create Event",
-      creating: "Creating...",
-      nameRequired: "Event name is required.",
-      created: (n: string) => `"${n}" created.`,
-      createFailed: "Failed to create event.",
-    },
-  }, lang);
+  const copy = { title: translate(lang, "migrated_components_admin_createeventdrawer_new_event_67e8cbaa"), nameLabel: translate(lang, "migrated_components_admin_createeventdrawer_event_name_987d7f35"), namePlaceholder: translate(lang, "migrated_components_admin_createeventdrawer_e_g_devfest_ankara_2025_fc2e9cbd"), typeLabel: translate(lang, "migrated_components_admin_createeventdrawer_event_type_887d2dc5"), featuresLabel: translate(lang, "migrated_components_admin_createeventdrawer_modules_2922db72"), certificate: translate(lang, "migrated_components_admin_createeventdrawer_certificate_ffe0c28e"), checkin: translate(lang, "migrated_components_admin_createeventdrawer_check_in_sessions_bd68e1df"), ticket: translate(lang, "migrated_components_admin_createeventdrawer_ticket_pass_9244df21"), registration: translate(lang, "migrated_components_admin_createeventdrawer_public_registration_2c9c590b"), raffle: translate(lang, "migrated_components_admin_createeventdrawer_raffle_49eb9ed5"), gamification: translate(lang, "migrated_components_admin_createeventdrawer_gamification_f85f3e54"), venueLabel: translate(lang, "migrated_components_admin_createeventdrawer_venue_b6e56f9d"), venueNone: translate(lang, "migrated_components_admin_createeventdrawer_no_venue_b2a6be7d"), venueCapacity: translate(lang, "migrated_components_admin_createeventdrawer_people_858f2e38"), startLabel: translate(lang, "migrated_components_admin_createeventdrawer_start_ea717a1b"), endLabel: translate(lang, "migrated_components_admin_createeventdrawer_end_49e8fda4"), autoReserve: translate(lang, "migrated_components_admin_createeventdrawer_automatically_reserve_this_venue_if_availa_e59f20f9"), startRequired: translate(lang, "migrated_components_admin_createeventdrawer_start_and_end_time_are_required_for_venue__336259e5"), create: translate(lang, "migrated_components_admin_createeventdrawer_create_event_c6bdfba9"), creating: translate(lang, "migrated_components_admin_createeventdrawer_creating_36083f9e"), nameRequired: translate(lang, "migrated_components_admin_createeventdrawer_event_name_is_required_cb7a58df"), created: (n: string) => translate(lang, "migrated_components_admin_createeventdrawer_value0_created_4385674d", { value0: n }), createFailed: translate(lang, "migrated_components_admin_createeventdrawer_failed_to_create_event_91ffc764") };
 
   function applyTypeDefaults(nextType: EventType) {
     const d = defaultsForEventType(nextType);
@@ -282,7 +230,7 @@ export default function CreateEventDrawer({ open, onClose, onCreated, venues = [
               <button
                 onClick={onClose}
                 className="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-700"
-                aria-label={lang === "tr" ? "Kapat" : "Close"}
+                aria-label={translate(lang, "migrated_components_admin_createeventdrawer_close_90ec6671")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -313,7 +261,7 @@ export default function CreateEventDrawer({ open, onClose, onCreated, venues = [
                 >
                   {EVENT_TYPE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
-                      {pickLang(opt.label, lang)}
+                      {translate(lang, opt.labelKey)}
                     </option>
                   ))}
                 </select>

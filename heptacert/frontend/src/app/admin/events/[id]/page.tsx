@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState, type ElementType } from "react";
 import Link from "next/link";
@@ -28,7 +27,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { apiFetch, type EventOut } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 import { ErrorState, LoadingState } from "@/components/Admin/AdminState";
 import EventSetupChecklist from "@/components/Admin/EventSetupChecklist";
 import EventActivityTimeline from "@/components/Admin/EventActivityTimeline";
@@ -78,70 +77,7 @@ export default function EventIndexPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const copy = pickLang({
-    tr: {
-      eyebrow: "Etkinlik Detayları",
-      loading: "Etkinlik detayları yükleniyor...",
-      error: "Etkinlik detayları yüklenemedi.",
-      registration: "Kayıt İstasyonu",
-      copyLink: "Kayıt Linkini Kopyala",
-      copied: "Kopyalandı",
-      openPublic: "Kayıt Sayfasını Aç",
-      description: "Katılımcı yönetimi, akıllı sertifika üretimi, bilet check-in oturumları ve e-posta akışlarını tek panelden yapılandırın.",
-      modules: "Yönetim Alanları",
-      quickSetup: "Hızlı Başlangıç",
-      quickSetupBody: "Önce kayıt formunu ve KVKK metnini ayarlayın, sonra katılımcıları ve otomasyonları bu ekrandan yönetin.",
-      attendees: "Katılımcılar",
-      attendeesBody: "Kayıtları, özel soru cevaplarını, biletleri ve katılımcı listelerini filtreleyin.",
-      settings: "Ayarlar",
-      settingsBody: "Kayıt formu kurgusu, KVKK metinleri, bilet ve akıllı otomasyon modüllerini yapılandırın.",
-      certificates: "Sertifikalar",
-      certificatesBody: "Üretilen dijital sertifikaları doğrulayın, listeleri ve dışa aktarım süreçlerini izleyin.",
-      editor: "Sertifika Editörü",
-      editorBody: "Zengin sertifika şablon tasarımlarını ve dinamik alan konumlarını ölçekleyin.",
-      sessions: "Oturumlar",
-      sessionsBody: "Giriş ve yoklama için QR check-in seanslarını ve katılım barajlarını yönetin.",
-      tickets: "Biletler",
-      ticketsBody: "Katılımcı giriş kartlarını, geçiş politikalarını ve bilet doğrulama akışını yönetin.",
-      raffles: "Çekilişler",
-      rafflesBody: "Katılım şartlarına uygun canlı çekiliş havuzları hazırlayın ve sunum modunu başlatın.",
-      gamification: "Oyunlaştırma",
-      gamificationBody: "Topluluk motivasyonu için rozet, puanlama ve görev ödüllendirme akışlarını kurgulayın.",
-      email: "E-posta",
-      emailBody: "Etkinliğe özel akıllı e-posta şablonlarını ve bildirim otomasyonlarını yönetin.",
-    },
-    en: {
-      eyebrow: "Event Details",
-      loading: "Loading event details...",
-      error: "Could not load event details.",
-      registration: "Registration Station",
-      copyLink: "Copy Registration Link",
-      copied: "Copied",
-      openPublic: "Open Registration Page",
-      description: "Finalize participant engagement, automated credential generation, ticket check-in workflows, and targeted email configurations.",
-      modules: "Management Areas",
-      quickSetup: "Quick Start",
-      quickSetupBody: "Set the registration form and privacy notice first, then manage attendees and automations from here.",
-      attendees: "Attendees",
-      attendeesBody: "Filter registrations, question-based responses, credential tags, and attendee lists.",
-      settings: "Settings",
-      settingsBody: "Configure registration rules, privacy nodes, ticket layouts, and organizational metadata.",
-      certificates: "Certificates",
-      certificatesBody: "Audit issued digital credentials, verify lookups, and track generation logs.",
-      editor: "Certificate Editor",
-      editorBody: "Design professional credential canvases and map dynamic variable placeholders.",
-      sessions: "Sessions",
-      sessionsBody: "Coordinate batch QR check-in sessions and control minimum compliance thresholds.",
-      tickets: "Tickets",
-      ticketsBody: "Govern event passes, credential bindings, and check-in validation pipelines.",
-      raffles: "Raffles",
-      rafflesBody: "Launch parameter-driven live engagement drawings and activate immersive stage view.",
-      gamification: "Gamification",
-      gamificationBody: "Deploy achievement badges, reward score rules, and behavior incentive pipelines.",
-      email: "Email",
-      emailBody: "Govern automated confirmation matrices and event-scoped template assets.",
-    },
-  }, lang);
+  const copy = { eyebrow: translate(lang, "migrated_app_admin_events_id_event_details_f4e026ad"), loading: translate(lang, "migrated_app_admin_events_id_loading_event_details_30e14576"), error: translate(lang, "migrated_app_admin_events_id_could_not_load_event_details_84f3a849"), registration: translate(lang, "migrated_app_admin_events_id_registration_station_ac85f29e"), copyLink: translate(lang, "migrated_app_admin_events_id_copy_registration_link_06403873"), copied: translate(lang, "migrated_app_admin_events_id_copied_0f8c7aff"), openPublic: translate(lang, "migrated_app_admin_events_id_open_registration_page_bb4402ab"), description: translate(lang, "migrated_app_admin_events_id_finalize_participant_engagement_automated__2967f2e8"), modules: translate(lang, "migrated_app_admin_events_id_management_areas_a1519085"), quickSetup: translate(lang, "migrated_app_admin_events_id_quick_start_c377aacc"), quickSetupBody: translate(lang, "migrated_app_admin_events_id_set_the_registration_form_and_privacy_noti_b323a021"), attendees: translate(lang, "migrated_app_admin_events_id_attendees_038ec960"), attendeesBody: translate(lang, "migrated_app_admin_events_id_filter_registrations_question_based_respon_b73afe0f"), settings: translate(lang, "migrated_app_admin_events_id_settings_7ab971df"), settingsBody: translate(lang, "migrated_app_admin_events_id_configure_registration_rules_privacy_nodes_c12ad622"), certificates: translate(lang, "migrated_app_admin_events_id_certificates_19e72377"), certificatesBody: translate(lang, "migrated_app_admin_events_id_audit_issued_digital_credentials_verify_lo_8b1523d3"), editor: translate(lang, "migrated_app_admin_events_id_certificate_editor_de5bc0ad"), editorBody: translate(lang, "migrated_app_admin_events_id_design_professional_credential_canvases_an_584500eb"), sessions: translate(lang, "migrated_app_admin_events_id_sessions_1f85eec5"), sessionsBody: translate(lang, "migrated_app_admin_events_id_coordinate_batch_qr_check_in_sessions_and__1d4b9a64"), tickets: translate(lang, "migrated_app_admin_events_id_tickets_c19bf50d"), ticketsBody: translate(lang, "migrated_app_admin_events_id_govern_event_passes_credential_bindings_an_2665e31a"), raffles: translate(lang, "migrated_app_admin_events_id_raffles_a08e9b3d"), rafflesBody: translate(lang, "migrated_app_admin_events_id_launch_parameter_driven_live_engagement_dr_84a70abc"), gamification: translate(lang, "migrated_app_admin_events_id_gamification_68084f35"), gamificationBody: translate(lang, "migrated_app_admin_events_id_deploy_achievement_badges_reward_score_rul_afbbca8c"), email: translate(lang, "migrated_app_admin_events_id_email_8c229083"), emailBody: translate(lang, "migrated_app_admin_events_id_govern_automated_confirmation_matrices_and_fa106533") };
 
   useEffect(() => {
     let active = true;
@@ -330,22 +266,20 @@ export default function EventIndexPage() {
                 <Activity className="h-4 w-4 stroke-[2]" />
               </div>
               <h2 className="mt-3.5 text-sm font-bold tracking-tight text-surface-900">
-                {lang === "tr" ? "Operasyon durumu" : "Operations health"}
+                {translate(lang, "migrated_app_admin_events_id_operations_health_e9367bff")}
               </h2>
               <p className="mt-1 text-xs leading-relaxed text-surface-400">
-                {lang === "tr"
-                  ? "Yoklama, sertifika ve bilet akış matrisini tek bakışta izleyin."
-                  : "Monitor attendance, ticket check-ins, and credential matrices."}
+                {translate(lang, "migrated_app_admin_events_id_monitor_attendance_ticket_check_ins_and_cr_52fef66c")}
               </p>
             </div>
 
             {/* Küçük Bilgi Matrisi */}
             <div className="mt-5 grid grid-cols-2 gap-2.5">
               {[
-                [lang === "tr" ? "Yoklama kaydı" : "Attendance", health.overview.attendance_records],
-                [lang === "tr" ? "Aktif sertifika" : "Credentials", health.overview.active_certificates],
+                [translate(lang, "migrated_app_admin_events_id_attendance_7f7a671c"), health.overview.attendance_records],
+                [translate(lang, "migrated_app_admin_events_id_credentials_90ae32e8"), health.overview.active_certificates],
                 [copy.attendees, health.overview.attendees],
-                [lang === "tr" ? "Bilet kullanımı" : "Tickets", `${health.overview.used_tickets}/${health.overview.tickets}`],
+                [translate(lang, "migrated_app_admin_events_id_tickets_c1f2dac3"), `${health.overview.used_tickets}/${health.overview.tickets}`],
               ].map(([lbl, val], idx) => (
                 <div key={idx} className="rounded-xl border border-surface-100 bg-surface-50/40 p-2.5 font-medium">
                   <p className="text-11 font-bold uppercase tracking-wider text-surface-400 truncate">{String(lbl)}</p>
@@ -371,12 +305,12 @@ export default function EventIndexPage() {
 
                     <span className="shrink-0 inline-flex rounded-md border border-white/60 bg-raised/50 px-1.5 py-0.5 text-11 font-bold uppercase tracking-wider text-surface-500 shadow-sm">
                       {item.status === "ok"
-                        ? lang === "tr" ? "Sağlıklı" : "Healthy"
+                        ? translate(lang, "migrated_app_admin_events_id_healthy_06c24a06")
                         : item.status === "warning"
-                          ? lang === "tr" ? "İnceleme" : "Review"
+                          ? translate(lang, "migrated_app_admin_events_id_review_0af268a6")
                           : item.status === "error"
-                            ? lang === "tr" ? "Hata" : "Error"
-                            : lang === "tr" ? "Pasif" : "Idle"}
+                            ? translate(lang, "migrated_app_admin_events_id_error_461da5fe")
+                            : translate(lang, "migrated_app_admin_events_id_idle_5227c75c")}
                     </span>
                   </div>
                 </div>

@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { localeTag } from "@/lib/localeTag";
 import { useEffect, useState } from "react";
 import { Loader2, AlertCircle, CreditCard, Coins, TrendingUp } from "lucide-react";
@@ -8,7 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/Admin/PageHeader";
 import { motion } from "framer-motion";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type Order = {
   id: number;
@@ -37,50 +36,7 @@ export default function TransactionsPage() {
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
 
-  const copy = pickLang({
-    tr: {
-      title: "Ödeme İşlemleri",
-      subtitle: "Ödeme siparişleri ve HeptaCoin işlem geçmişi",
-      loadError: "Veriler yüklenemedi",
-      orders: "Ödeme Siparişleri",
-      ordersEmpty: "Henüz ödeme siparişi yok",
-      history: "HeptaCoin Geçmişi",
-      historyEmpty: "Henüz coin işlemi yok",
-      records: "kayıt",
-      transactions: "işlem",
-      breadcrumbsPayments: "Ödeme İşlemleri",
-      orderFallback: (id: number) => `Sipariş #${id}`,
-      credit: "Yükleme",
-      spend: "Harcama",
-      status: {
-        pending: "Bekliyor",
-        paid: "Ödendi",
-        failed: "Başarısız",
-        refunded: "İade Edildi",
-      },
-    },
-    en: {
-      title: "Payments",
-      subtitle: "Payment orders and HeptaCoin transaction history",
-      loadError: "Failed to load data",
-      orders: "Payment Orders",
-      ordersEmpty: "No payment orders yet",
-      history: "HeptaCoin History",
-      historyEmpty: "No coin transactions yet",
-      records: "records",
-      transactions: "transactions",
-      breadcrumbsPayments: "Payments",
-      orderFallback: (id: number) => `Order #${id}`,
-      credit: "Credit",
-      spend: "Spend",
-      status: {
-        pending: "Pending",
-        paid: "Paid",
-        failed: "Failed",
-        refunded: "Refunded",
-      },
-    },
-  }, lang);
+  const copy = { title: translate(lang, "migrated_app_admin_payments_transactions_payments_7ddaa5a7"), subtitle: translate(lang, "migrated_app_admin_payments_transactions_payment_orders_and_heptacoin_transaction_h_0d80c287"), loadError: translate(lang, "migrated_app_admin_payments_transactions_failed_to_load_data_0b64ae88"), orders: translate(lang, "migrated_app_admin_payments_transactions_payment_orders_f29f5ec9"), ordersEmpty: translate(lang, "migrated_app_admin_payments_transactions_no_payment_orders_yet_2ba81831"), history: translate(lang, "migrated_app_admin_payments_transactions_heptacoin_history_50257783"), historyEmpty: translate(lang, "migrated_app_admin_payments_transactions_no_coin_transactions_yet_120f4feb"), records: translate(lang, "migrated_app_admin_payments_transactions_records_e92ac540"), transactions: translate(lang, "migrated_app_admin_payments_transactions_transactions_89eefc14"), breadcrumbsPayments: translate(lang, "migrated_app_admin_payments_transactions_payments_0e52ea21"), orderFallback: (id: number) => translate(lang, "migrated_app_admin_payments_transactions_order_value0_c521284b", { value0: id }), credit: translate(lang, "migrated_app_admin_payments_transactions_credit_7042928d"), spend: translate(lang, "migrated_app_admin_payments_transactions_spend_805d9b14"), status: { pending: translate(lang, "migrated_app_admin_payments_transactions_pending_2dff3de0"), paid: translate(lang, "migrated_app_admin_payments_transactions_paid_1d23ad3c"), failed: translate(lang, "migrated_app_admin_payments_transactions_failed_f406e015"), refunded: translate(lang, "migrated_app_admin_payments_transactions_refunded_f2a11272") } };
 
   const orderStatus: Record<string, { label: string; cls: string }> = {
     pending: { label: copy.status.pending, cls: "bg-status-warning-bg text-status-warning-content" },

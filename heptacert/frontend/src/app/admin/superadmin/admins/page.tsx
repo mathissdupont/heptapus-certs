@@ -20,7 +20,7 @@ import {
   creditSuperAdminCoins,
   AdminOut,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 import PageHeader from "@/components/Admin/PageHeader";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
 import { useToast } from "@/hooks/useToast";
@@ -30,81 +30,7 @@ export default function SuperAdminAdminsPage() {
   const { lang } = useI18n();
   const copy = useMemo(
     () =>
-      lang === "tr"
-        ? {
-            loadFailed: "Yöneticiler yüklenemedi",
-            emailRequired: "Email gerekli",
-            createFailed: "Yönetici oluşturulamadı",
-            roleFailed: "Rol güncellenemedi",
-            deleteFailed: "Yönetici silinemedi",
-            chooseAdmin: "HeptaCoin yüklenecek yönetici seçin",
-            validAmount: "Geçerli bir HeptaCoin miktarı girin",
-            creditSuccess: "hesabına {amount} HC tanımlandı.",
-            creditFailed: "HeptaCoin yüklenemedi",
-            title: "Yönetici Yönetimi",
-            subtitle: "Sistem yöneticilerini yönetin, rolleri ayarlayın ve bakiye tanımlayın",
-            addAdmin: "Yönetici Ekle",
-            coinTitle: "HeptaCoin Tanımla",
-            coinSubtitle: "Admin hesaplarına bakiye yükleyin ve anında kullanıma açın.",
-            selectAdmin: "Yönetici seçin",
-            amount: "Miktar",
-            loadBalance: "Bakiye Yükle",
-            searchEmail: "Email ile ara...",
-            noAdmin: "Yönetici bulunamadı",
-            email: "Email",
-            role: "Rol",
-            balance: "Bakiye",
-            createdAt: "Oluşturma",
-            actions: "İşlemler",
-            admin: "Yönetici",
-            superadmin: "Süper Yönetici",
-            saving: "Kaydediyor...",
-            save: "Kaydet",
-            cancel: "İptal",
-            newAdmin: "Yeni Yönetici Ekle",
-            emailAddress: "Email Adresi",
-            add: "Ekle",
-            adding: "Ekleniyor...",
-            deleteTitle: "Yöneticiyi sil",
-            deleteDesc: "Bu işlem geri alınamaz. Yöneticiyi silmek istediğinizden emin misiniz?",
-          }
-        : {
-            loadFailed: "Failed to load admins",
-            emailRequired: "Email is required",
-            createFailed: "Failed to create admin",
-            roleFailed: "Failed to update role",
-            deleteFailed: "Failed to delete admin",
-            chooseAdmin: "Select an admin account to credit",
-            validAmount: "Enter a valid HeptaCoin amount",
-            creditSuccess: "account was credited with {amount} HC.",
-            creditFailed: "Failed to credit HeptaCoin",
-            title: "Admin Management",
-            subtitle: "Manage platform admins, update their roles, and assign balances",
-            addAdmin: "Add Admin",
-            coinTitle: "Assign HeptaCoin",
-            coinSubtitle: "Credit admin accounts and make the balance available immediately.",
-            selectAdmin: "Select admin",
-            amount: "Amount",
-            loadBalance: "Load Balance",
-            searchEmail: "Search by email...",
-            noAdmin: "No admin found",
-            email: "Email",
-            role: "Role",
-            balance: "Balance",
-            createdAt: "Created",
-            actions: "Actions",
-            admin: "Admin",
-            superadmin: "Super Admin",
-            saving: "Saving...",
-            save: "Save",
-            cancel: "Cancel",
-            newAdmin: "Add New Admin",
-            emailAddress: "Email Address",
-            add: "Add",
-            adding: "Adding...",
-            deleteTitle: "Delete admin",
-            deleteDesc: "This action cannot be undone. Are you sure you want to delete this admin?",
-          },
+      ({ loadFailed: translate(lang, "migrated_app_admin_superadmin_admins_failed_to_load_admins_9677c312"), emailRequired: translate(lang, "migrated_app_admin_superadmin_admins_email_is_required_9583bb2e"), createFailed: translate(lang, "migrated_app_admin_superadmin_admins_failed_to_create_admin_882ab2d2"), roleFailed: translate(lang, "migrated_app_admin_superadmin_admins_failed_to_update_role_39753eff"), deleteFailed: translate(lang, "migrated_app_admin_superadmin_admins_failed_to_delete_admin_6c5571e3"), chooseAdmin: translate(lang, "migrated_app_admin_superadmin_admins_select_an_admin_account_to_credit_8495a789"), validAmount: translate(lang, "migrated_app_admin_superadmin_admins_enter_a_valid_heptacoin_amount_e8c9b39e"), creditSuccess: translate(lang, "migrated_app_admin_superadmin_admins_account_was_credited_with_amount_hc_c7fd507b"), creditFailed: translate(lang, "migrated_app_admin_superadmin_admins_failed_to_credit_heptacoin_2e8658a7"), title: translate(lang, "migrated_app_admin_superadmin_admins_admin_management_05cdad41"), subtitle: translate(lang, "migrated_app_admin_superadmin_admins_manage_platform_admins_update_their_roles__04ffaee3"), addAdmin: translate(lang, "migrated_app_admin_superadmin_admins_add_admin_16e01a99"), coinTitle: translate(lang, "migrated_app_admin_superadmin_admins_assign_heptacoin_5f2a4b3a"), coinSubtitle: translate(lang, "migrated_app_admin_superadmin_admins_credit_admin_accounts_and_make_the_balance_4acd822d"), selectAdmin: translate(lang, "migrated_app_admin_superadmin_admins_select_admin_a3467ea3"), amount: translate(lang, "migrated_app_admin_superadmin_admins_amount_fb95f24f"), loadBalance: translate(lang, "migrated_app_admin_superadmin_admins_load_balance_7792522d"), searchEmail: translate(lang, "migrated_app_admin_superadmin_admins_search_by_email_4b2d09f6"), noAdmin: translate(lang, "migrated_app_admin_superadmin_admins_no_admin_found_e3525335"), email: translate(lang, "migrated_app_admin_superadmin_admins_email_e16d0537"), role: translate(lang, "migrated_app_admin_superadmin_admins_role_85305cde"), balance: translate(lang, "migrated_app_admin_superadmin_admins_balance_1989212c"), createdAt: translate(lang, "migrated_app_admin_superadmin_admins_created_fd47604b"), actions: translate(lang, "migrated_app_admin_superadmin_admins_actions_3d847812"), admin: translate(lang, "migrated_app_admin_superadmin_admins_admin_b117963c"), superadmin: translate(lang, "migrated_app_admin_superadmin_admins_super_admin_6604971a"), saving: translate(lang, "migrated_app_admin_superadmin_admins_saving_efc9e694"), save: translate(lang, "migrated_app_admin_superadmin_admins_save_6e1eb97b"), cancel: translate(lang, "migrated_app_admin_superadmin_admins_cancel_a798f88d"), newAdmin: translate(lang, "migrated_app_admin_superadmin_admins_add_new_admin_f011707a"), emailAddress: translate(lang, "migrated_app_admin_superadmin_admins_email_address_11771277"), add: translate(lang, "migrated_app_admin_superadmin_admins_add_f3814460"), adding: translate(lang, "migrated_app_admin_superadmin_admins_adding_8931a0f2"), deleteTitle: translate(lang, "migrated_app_admin_superadmin_admins_delete_admin_ed8d376a"), deleteDesc: translate(lang, "migrated_app_admin_superadmin_admins_this_action_cannot_be_undone_are_you_sure__42ef2264") }),
     [lang]
   );
 

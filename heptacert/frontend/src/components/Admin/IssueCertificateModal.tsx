@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { localeTag } from "@/lib/localeTag";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,7 +7,7 @@ import { X, Zap, Loader2, AlertCircle, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 interface IssueCertificateModalProps {
   open: boolean;
@@ -38,48 +37,7 @@ export default function IssueCertificateModal({
   const [issuing, setIssuing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const copy = pickLang({
-    tr: {
-      title: "Sertifika Oluştur",
-      nameLabel: "Alıcı Adı",
-      namePlaceholder: "Örn. Ayşe Yılmaz",
-      termLabel: "Barındırma Süresi",
-      monthly: "Aylık",
-      yearly: "Yıllık (12 Ay)",
-      estimatedCost: "Tahmini maliyet",
-      issue: "Basım",
-      hosting: "Barındırma",
-      costUnknown: "Dosya boyutuna göre hesaplanır",
-      create: "Sertifika Oluştur",
-      creating: "Oluşturuluyor...",
-      nameRequired: "Lütfen geçerli bir isim girin.",
-      templateNotReady: "Sertifika şablonu hazır değil",
-      templateNotReadyBody: "Basım yapmadan önce sertifika görselini ve alan konumlarını editörde tamamlayın.",
-      openEditor: "Editörü Aç",
-      created: (n: string) => `"${n}" için sertifika oluşturuldu.`,
-      failed: "Sertifika basım işlemi başarısız.",
-    },
-    en: {
-      title: "Issue Certificate",
-      nameLabel: "Recipient Name",
-      namePlaceholder: "e.g. Alex Morgan",
-      termLabel: "Hosting Term",
-      monthly: "Monthly",
-      yearly: "Yearly (12 months)",
-      estimatedCost: "Estimated cost",
-      issue: "Issue",
-      hosting: "Hosting",
-      costUnknown: "Calculated from file size",
-      create: "Create Certificate",
-      creating: "Creating...",
-      nameRequired: "Please enter a valid name.",
-      templateNotReady: "Certificate template is not ready",
-      templateNotReadyBody: "Upload the certificate image and complete field positioning in the editor before issuing.",
-      openEditor: "Open Editor",
-      created: (n: string) => `Certificate for "${n}" created.`,
-      failed: "Certificate issue failed.",
-    },
-  }, lang);
+  const copy = { title: translate(lang, "migrated_components_admin_issuecertificatemodal_issue_certificate_83c248f8"), nameLabel: translate(lang, "migrated_components_admin_issuecertificatemodal_recipient_name_89e7a233"), namePlaceholder: translate(lang, "migrated_components_admin_issuecertificatemodal_e_g_alex_morgan_c89abc1e"), termLabel: translate(lang, "migrated_components_admin_issuecertificatemodal_hosting_term_84767cd0"), monthly: translate(lang, "migrated_components_admin_issuecertificatemodal_monthly_1e910643"), yearly: translate(lang, "migrated_components_admin_issuecertificatemodal_yearly_12_months_3ae8cf64"), estimatedCost: translate(lang, "migrated_components_admin_issuecertificatemodal_estimated_cost_6028a6e6"), issue: translate(lang, "migrated_components_admin_issuecertificatemodal_issue_5860cb15"), hosting: translate(lang, "migrated_components_admin_issuecertificatemodal_hosting_7d193e8a"), costUnknown: translate(lang, "migrated_components_admin_issuecertificatemodal_calculated_from_file_size_a33019b6"), create: translate(lang, "migrated_components_admin_issuecertificatemodal_create_certificate_d9d9c3d2"), creating: translate(lang, "migrated_components_admin_issuecertificatemodal_creating_7ad72d09"), nameRequired: translate(lang, "migrated_components_admin_issuecertificatemodal_please_enter_a_valid_name_620e2458"), templateNotReady: translate(lang, "migrated_components_admin_issuecertificatemodal_certificate_template_is_not_ready_12f774fb"), templateNotReadyBody: translate(lang, "migrated_components_admin_issuecertificatemodal_upload_the_certificate_image_and_complete__e4e26cc4"), openEditor: translate(lang, "migrated_components_admin_issuecertificatemodal_open_editor_af1b13c9"), created: (n: string) => translate(lang, "migrated_components_admin_issuecertificatemodal_certificate_for_value0_created_baefe6e5", { value0: n }), failed: translate(lang, "migrated_components_admin_issuecertificatemodal_certificate_issue_failed_1fd6959a") };
 
   function formatHc(units?: number | null) {
     if (typeof units !== "number") return "—";
@@ -139,7 +97,7 @@ export default function IssueCertificateModal({
                 </div>
                 <h2 className="text-sm font-semibold text-surface-900">{copy.title}</h2>
               </div>
-              <button onClick={onClose} aria-label={lang === "tr" ? "Kapat" : "Close"} className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-700 transition-colors">
+              <button onClick={onClose} aria-label={translate(lang, "migrated_components_admin_issuecertificatemodal_close_3f004c12")} className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-700 transition-colors">
                 <X className="h-4 w-4" />
               </button>
             </div>

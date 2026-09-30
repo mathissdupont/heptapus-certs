@@ -13,6 +13,7 @@ import { ru } from "@/locales/ru";
 import LanguageMenu from "@/components/i18n/LanguageMenu";
 import type { AppLocale } from "@/i18n/routing";
 import type { TranslationKey } from "@/locales/tr";
+export type { TranslationKey } from "@/locales/tr";
 
 // The authenticated app and locale-routed public pages share the same locale union and
 // flat catalogs. Legacy inline tr/en copy maps use pickLang() and fall back to English;
@@ -74,6 +75,25 @@ const I18nContext = createContext<I18nContextValue>({
   langLabels: LANG_LABELS,
 });
 
+/** Catalog translator for plain modules and components that cannot use hooks. */
+export function translate(
+  lang: Lang,
+  key: TranslationKey,
+  vars?: Record<string, string | number>,
+): string {
+  let str: string =
+    LOCALES[lang]?.[key] ??
+    LOCALES[FALLBACK_LANG]?.[key] ??
+    LOCALES[DEFAULT_LANG]?.[key] ??
+    key;
+  if (vars) {
+    Object.entries(vars).forEach(([name, value]) => {
+      str = str.replaceAll(`{${name}}`, String(value));
+    });
+  }
+  return str;
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>(DEFAULT_LANG);
 
@@ -101,20 +121,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: TranslationKey, vars?: Record<string, string | number>): string => {
-      // Resolution order: active language -> FALLBACK_LANG -> DEFAULT_LANG -> raw key.
-      let str: string =
-        LOCALES[lang]?.[key] ??
-        LOCALES[FALLBACK_LANG]?.[key] ??
-        LOCALES[DEFAULT_LANG]?.[key] ??
-        key;
-      if (vars) {
-        Object.entries(vars).forEach(([name, value]) => {
-          str = str.replace(`{${name}}`, String(value));
-        });
-      }
-      return str;
-    },
+    (key: TranslationKey, vars?: Record<string, string | number>): string => translate(lang, key, vars),
     [lang]
   );
 

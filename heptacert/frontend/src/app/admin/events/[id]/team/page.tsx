@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
@@ -19,16 +18,16 @@ import {
   type EventTeamRole,
   type EventTeamStatus,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate, type TranslationKey } from "@/lib/i18n";
 import { useToast } from "@/hooks/useToast";
 
-const ROLE_OPTIONS: Array<{ value: EventTeamRole; tr: string; en: string }> = [
-  { value: "manager", tr: "Yönetici", en: "Manager" },
-  { value: "checkin", tr: "Check-in görevlisi", en: "Check-in staff" },
-  { value: "certificate", tr: "Sertifika görevlisi", en: "Certificate staff" },
-  { value: "email", tr: "E-posta görevlisi", en: "Email staff" },
-  { value: "analytics", tr: "Analitik", en: "Analytics" },
-  { value: "viewer", tr: "Görüntüleyici", en: "Viewer" },
+const ROLE_OPTIONS: Array<{ value: EventTeamRole; labelKey: TranslationKey }> = [
+  { value: "manager", labelKey: "admin_team_role_manager" },
+  { value: "checkin", labelKey: "admin_team_role_checkin" },
+  { value: "certificate", labelKey: "admin_team_role_certificate" },
+  { value: "email", labelKey: "admin_team_role_email" },
+  { value: "analytics", labelKey: "admin_team_role_analytics" },
+  { value: "viewer", labelKey: "admin_team_role_viewer" },
 ];
 
 const ROLE_DEFAULTS: Record<EventTeamRole, EventTeamPermission[]> = {
@@ -40,16 +39,16 @@ const ROLE_DEFAULTS: Record<EventTeamRole, EventTeamPermission[]> = {
   viewer: ["event:view"],
 };
 
-const PERMISSIONS: Array<{ value: EventTeamPermission; tr: string; en: string }> = [
-  { value: "event:view", tr: "Etkinliği görüntüleyebilir", en: "Can view the event" },
-  { value: "team:manage", tr: "Ekip ve yetkileri yönetebilir", en: "Can manage team access" },
-  { value: "attendees:read", tr: "Katılımcı listesini görebilir", en: "Can view attendees" },
-  { value: "attendees:write", tr: "Katılımcı ekleyebilir ve silebilir", en: "Can add and remove attendees" },
-  { value: "checkin:write", tr: "Check-in ve bilet kontrolü yapabilir", en: "Can handle check-in and tickets" },
-  { value: "certificates:write", tr: "Sertifika işlemleri yapabilir", en: "Can manage certificates" },
-  { value: "email:write", tr: "E-posta işlemleri yapabilir", en: "Can manage emails" },
-  { value: "analytics:read", tr: "Analitikleri görebilir", en: "Can view analytics" },
-  { value: "settings:write", tr: "Etkinlik ayarlarını değiştirebilir", en: "Can change event settings" },
+const PERMISSIONS: Array<{ value: EventTeamPermission; labelKey: TranslationKey }> = [
+  { value: "event:view", labelKey: "admin_team_permission_event_view" },
+  { value: "team:manage", labelKey: "admin_team_permission_team_manage" },
+  { value: "attendees:read", labelKey: "admin_team_permission_attendees_read" },
+  { value: "attendees:write", labelKey: "admin_team_permission_attendees_write" },
+  { value: "checkin:write", labelKey: "admin_team_permission_checkin_write" },
+  { value: "certificates:write", labelKey: "admin_team_permission_certificates_write" },
+  { value: "email:write", labelKey: "admin_team_permission_email_write" },
+  { value: "analytics:read", labelKey: "admin_team_permission_analytics_read" },
+  { value: "settings:write", labelKey: "admin_team_permission_settings_write" },
 ];
 
 export default function EventTeamPage() {
@@ -67,55 +66,10 @@ export default function EventTeamPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [expandedMemberId, setExpandedMemberId] = useState<number | null>(null);
 
-  const copy = pickLang({
-    tr: {
-      title: "Etkinlik Ekibi",
-      subtitle: "Bu etkinlikte görev alacak kişilere rol bazlı erişim verin.",
-      email: "E-posta",
-      role: "Rol",
-      add: "Ekle",
-      addTeamMember: "Ekip Üyesi Ekle",
-      status: "Durum",
-      pending: "Davet bekliyor",
-      active: "Aktif",
-      disabled: "Pasif",
-      empty: "Henüz ekip üyesi yok.",
-      activity: "Ekip Hareketleri",
-      activityEmpty: "Henüz ekip hareketi görünmüyor.",
-      permissions: "Erişimler",
-      saved: "Ekip güncellendi.",
-      removed: "Ekip üyesi kaldırıldı.",
-      removeMember: "Ekipten kaldır",
-      rolePermissions: "Rol Yetkileri",
-      selectPermissions: "Yetkileri seçin veya rolü değiştirin",
-      cancel: "İptal",
-    },
-    en: {
-      title: "Event Team",
-      subtitle: "Give role-based access to people working on this event.",
-      email: "Email",
-      role: "Role",
-      add: "Add",
-      addTeamMember: "Add Team Member",
-      status: "Status",
-      pending: "Invite pending",
-      active: "Active",
-      disabled: "Disabled",
-      empty: "No team members yet.",
-      activity: "Team Activity",
-      activityEmpty: "No team activity yet.",
-      permissions: "Access",
-      saved: "Team updated.",
-      removed: "Team member removed.",
-      removeMember: "Remove from team",
-      rolePermissions: "Role Permissions",
-      selectPermissions: "Select permissions or change the role",
-      cancel: "Cancel",
-    },
-  }, lang);
+  const copy = { title: translate(lang, "migrated_app_admin_events_id_team_event_team_784d67d4"), subtitle: translate(lang, "migrated_app_admin_events_id_team_give_role_based_access_to_people_working_o_fb7f8eab"), email: translate(lang, "migrated_app_admin_events_id_team_email_a03bb5e1"), role: translate(lang, "migrated_app_admin_events_id_team_role_2c0c1339"), add: translate(lang, "migrated_app_admin_events_id_team_add_885a3707"), addTeamMember: translate(lang, "migrated_app_admin_events_id_team_add_team_member_89cd0f6a"), status: translate(lang, "migrated_app_admin_events_id_team_status_a3498383"), pending: translate(lang, "migrated_app_admin_events_id_team_invite_pending_23b2d482"), active: translate(lang, "migrated_app_admin_events_id_team_active_156b8b72"), disabled: translate(lang, "migrated_app_admin_events_id_team_disabled_75ac5572"), empty: translate(lang, "migrated_app_admin_events_id_team_no_team_members_yet_72cbf9df"), activity: translate(lang, "migrated_app_admin_events_id_team_team_activity_08cd24c3"), activityEmpty: translate(lang, "migrated_app_admin_events_id_team_no_team_activity_yet_d675bbe6"), permissions: translate(lang, "migrated_app_admin_events_id_team_access_1758b8a7"), saved: translate(lang, "migrated_app_admin_events_id_team_team_updated_3e9bb2d3"), removed: translate(lang, "migrated_app_admin_events_id_team_team_member_removed_e788d100"), removeMember: translate(lang, "migrated_app_admin_events_id_team_remove_from_team_ff28396c"), rolePermissions: translate(lang, "migrated_app_admin_events_id_team_role_permissions_45a462b0"), selectPermissions: translate(lang, "migrated_app_admin_events_id_team_select_permissions_or_change_the_role_89cb76a1"), cancel: translate(lang, "migrated_app_admin_events_id_team_cancel_209c4fbd") };
 
   const roleLabel = useMemo(() => {
-    return new Map(ROLE_OPTIONS.map((item) => [item.value, pickLang(item, lang)]));
+    return new Map(ROLE_OPTIONS.map((item) => [item.value, translate(lang, item.labelKey)]));
   }, [lang]);
 
   async function load() {
@@ -254,7 +208,7 @@ export default function EventTeamPage() {
               >
                 {ROLE_OPTIONS.map((item) => (
                   <option key={item.value} value={item.value}>
-                    {pickLang(item, lang)}
+                    {translate(lang, item.labelKey)}
                   </option>
                 ))}
               </select>
@@ -277,7 +231,7 @@ export default function EventTeamPage() {
                   } ${item.value === "event:view" ? "cursor-default opacity-80" : ""}`}
                 >
                   <CheckCircle2 className={`h-4 w-4 shrink-0 ${permissions.includes(item.value) ? "text-brand-600" : "text-surface-300"}`} />
-                  <span>{pickLang(item, lang)}</span>
+                  <span>{translate(lang, item.labelKey)}</span>
                 </button>
               ))}
             </div>
@@ -372,7 +326,7 @@ export default function EventTeamPage() {
                         >
                           {ROLE_OPTIONS.map((item) => (
                             <option key={item.value} value={item.value}>
-                              {pickLang(item, lang)}
+                              {translate(lang, item.labelKey)}
                             </option>
                           ))}
                         </select>
@@ -411,7 +365,7 @@ export default function EventTeamPage() {
                             } ${item.value === "event:view" ? "cursor-default opacity-80" : ""}`}
                           >
                             <CheckCircle2 className={`h-4 w-4 shrink-0 ${member.effective_permissions.includes(item.value) ? "text-brand-600" : "text-surface-300"}`} />
-                            <span>{pickLang(item, lang)}</span>
+                            <span>{translate(lang, item.labelKey)}</span>
                           </button>
                         ))}
                       </div>

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { apiFetch, getPlatformHealth } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
-import { useI18n, type Lang } from "@/lib/i18n";
+import { useI18n, type Lang, translate } from "@/lib/i18n";
 
 type SystemHealth = {
   disk_total_gb?: number;
@@ -39,7 +39,7 @@ function formatUptime(seconds: number, lang: Lang) {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  return lang === "tr" ? `${days} gün ${hours} sa ${minutes} dk` : `${days}d ${hours}h ${minutes}m`;
+  return translate(lang, "migrated_app_admin_superadmin_health_value0_d_value1_h_value2_m_50f4fd8a", { value0: days, value1: hours, value2: minutes });
 }
 
 export default function SuperadminHealthPage() {
@@ -51,41 +51,7 @@ export default function SuperadminHealthPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const copy = lang === "tr"
-    ? {
-        title: "Sistem Sağlığı",
-        subtitle: "Altyapı kapasitesini, veritabanı yükünü ve son aktiviteyi tek ekranda izleyin",
-        refresh: "Yenile",
-        loadFailed: "Sistem sağlığı bilgisi alınamadı",
-        diskUsage: "Disk kullanımı",
-        database: "Veritabanı",
-        uptime: "Çalışma süresi",
-        activity: "Son 24 saat",
-        freeSpace: "boş alan",
-        activeConnections: "aktif bağlantı",
-        operations: "işlem",
-        online: "Çevrimiçi",
-        onlineDetail: "Servisler yanıt veriyor ve sağlık metrikleri düzenli olarak güncelleniyor.",
-        probes: "Servis kontrolleri",
-        updatedAt: "Son güncelleme",
-      }
-    : {
-        title: "System Health",
-        subtitle: "Monitor infrastructure capacity, database load, and recent activity from one screen",
-        refresh: "Refresh",
-        loadFailed: "Failed to load system health data",
-        diskUsage: "Disk usage",
-        database: "Database",
-        uptime: "Uptime",
-        activity: "Last 24 hours",
-        freeSpace: "free space",
-        activeConnections: "active connections",
-        operations: "operations",
-        online: "Online",
-        onlineDetail: "Core services are responding and health metrics are updating normally.",
-        probes: "Service probes",
-        updatedAt: "Updated",
-      };
+  const copy = { title: translate(lang, "migrated_app_admin_superadmin_health_system_health_d19d53e0"), subtitle: translate(lang, "migrated_app_admin_superadmin_health_monitor_infrastructure_capacity_database_l_00af3913"), refresh: translate(lang, "migrated_app_admin_superadmin_health_refresh_0d1ac8b6"), loadFailed: translate(lang, "migrated_app_admin_superadmin_health_failed_to_load_system_health_data_8937535a"), diskUsage: translate(lang, "migrated_app_admin_superadmin_health_disk_usage_5cd2d710"), database: translate(lang, "migrated_app_admin_superadmin_health_database_c8be46f6"), uptime: translate(lang, "migrated_app_admin_superadmin_health_uptime_c325cdce"), activity: translate(lang, "migrated_app_admin_superadmin_health_last_24_hours_3fde1c4d"), freeSpace: translate(lang, "migrated_app_admin_superadmin_health_free_space_62bbd270"), activeConnections: translate(lang, "migrated_app_admin_superadmin_health_active_connections_7b33c0dd"), operations: translate(lang, "migrated_app_admin_superadmin_health_operations_27771465"), online: translate(lang, "migrated_app_admin_superadmin_health_online_f76c7cc9"), onlineDetail: translate(lang, "migrated_app_admin_superadmin_health_core_services_are_responding_and_health_me_504ed15a"), probes: translate(lang, "migrated_app_admin_superadmin_health_service_probes_d311202e"), updatedAt: translate(lang, "migrated_app_admin_superadmin_health_updated_5d26adaa") };
 
   const load = async (mode: "load" | "refresh" = "load") => {
     try {
@@ -262,19 +228,19 @@ export default function SuperadminHealthPage() {
             <div className="flex items-center gap-2 border-b border-surface-100 pb-3 mb-4">
               <Activity className="h-4 w-4 text-brand-600" />
               <h2 className="text-sm font-bold text-surface-900">
-                {lang === "tr" ? "Arkaplan İş Kuyruğu" : "Background Job Queue"}
+                {translate(lang, "migrated_app_admin_superadmin_health_background_job_queue_b4f2bbbb")}
               </h2>
               <span className="ml-auto rounded-full bg-status-success-bg px-2 py-0.5 text-11 font-bold text-status-success-content">
-                {lang === "tr" ? "Ayrı worker container'da çalışıyor" : "Runs in dedicated worker container"}
+                {translate(lang, "migrated_app_admin_superadmin_health_runs_in_dedicated_worker_container_c1201b17")}
               </span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {[
-                { key: "bulk_email", label: lang === "tr" ? "Toplu E-posta" : "Bulk Email" },
-                { key: "segment_export", label: lang === "tr" ? "Segment Export" : "Segment Export" },
-                { key: "document_export", label: lang === "tr" ? "Doküman Export" : "Document Export" },
-                { key: "certificate_bulk", label: lang === "tr" ? "Sertifika Bulk" : "Certificate Bulk" },
-                { key: "training_notifications", label: lang === "tr" ? "Eğitim Bildirimleri" : "Training Notifs" },
+                { key: "bulk_email", label: translate(lang, "migrated_app_admin_superadmin_health_bulk_email_aed1b98c") },
+                { key: "segment_export", label: translate(lang, "migrated_app_admin_superadmin_health_segment_export_f311f003") },
+                { key: "document_export", label: translate(lang, "migrated_app_admin_superadmin_health_document_export_bbda8338") },
+                { key: "certificate_bulk", label: translate(lang, "migrated_app_admin_superadmin_health_certificate_bulk_f86a274c") },
+                { key: "training_notifications", label: translate(lang, "migrated_app_admin_superadmin_health_training_notifs_cecf7616") },
               ].map(({ key, label }) => {
                 const q = jobs[key] || {};
                 const hasPending = (q.pending || 0) > 0 || (q.processing || 0) > 0;
@@ -290,9 +256,9 @@ export default function SuperadminHealthPage() {
                       <p className="text-11 font-bold text-surface-700 truncate">{label}</p>
                     </div>
                     <div className="space-y-0.5 text-11 text-surface-500">
-                      {q.pending !== undefined && <p>{lang === "tr" ? "Bekleyen" : "Pending"}: <span className="font-bold text-surface-700">{q.pending}</span></p>}
-                      {q.processing !== undefined && <p>{lang === "tr" ? "İşleniyor" : "Processing"}: <span className="font-bold text-surface-700">{q.processing}</span></p>}
-                      {q.failed_last_hour !== undefined && <p className={q.failed_last_hour > 0 ? "text-status-danger-content font-bold" : ""}>{lang === "tr" ? "Hata (1s)" : "Failed (1h)"}: <span className="font-bold">{q.failed_last_hour}</span></p>}
+                      {q.pending !== undefined && <p>{translate(lang, "migrated_app_admin_superadmin_health_pending_01358aae")}: <span className="font-bold text-surface-700">{q.pending}</span></p>}
+                      {q.processing !== undefined && <p>{translate(lang, "migrated_app_admin_superadmin_health_processing_d9e959b1")}: <span className="font-bold text-surface-700">{q.processing}</span></p>}
+                      {q.failed_last_hour !== undefined && <p className={q.failed_last_hour > 0 ? "text-status-danger-content font-bold" : ""}>{translate(lang, "migrated_app_admin_superadmin_health_failed_1h_89a7caa0")}: <span className="font-bold">{q.failed_last_hour}</span></p>}
                     </div>
                   </div>
                 );

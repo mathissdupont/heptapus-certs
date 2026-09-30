@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { MessageCircle, X, Send, AlertCircle, Lightbulb, User, Sparkles, Command } from "lucide-react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
+import type { Lang } from "@/lib/i18n";
 import { apiFetch } from "@/lib/api";
 import { detectIntent, shouldStartCreateEventWizard } from "@/lib/assistant/intent";
 import { findFaqAnswer } from "@/lib/assistant/faq";
@@ -36,14 +37,14 @@ interface AssistantResponse {
   suggestions?: Record<string, unknown>;
 }
 
-function summarizeMissingFields(step: EventWizardStep, lang: string): string {
+function summarizeMissingFields(step: EventWizardStep, lang: Lang): string {
   switch (step) {
-    case "name": return lang === "tr" ? "Etkinlik adı eksik." : "Event name is missing.";
-    case "date": return lang === "tr" ? "Tarih eksik." : "Date is missing.";
-    case "location": return lang === "tr" ? "Konum eksik." : "Location is missing.";
-    case "description": return lang === "tr" ? "Açıklama eksik." : "Description is missing.";
-    case "type": return lang === "tr" ? "Etkinlik tipi eksik." : "Event type is missing.";
-    default: return lang === "tr" ? "Özellikler gözden geçirilmeli." : "Features should be reviewed.";
+    case "name": return translate(lang, "migrated_components_admin_aiassistant_event_name_is_missing_cf44d6a5");
+    case "date": return translate(lang, "migrated_components_admin_aiassistant_date_is_missing_258c3275");
+    case "location": return translate(lang, "migrated_components_admin_aiassistant_location_is_missing_2c1e3867");
+    case "description": return translate(lang, "migrated_components_admin_aiassistant_description_is_missing_9fb0a625");
+    case "type": return translate(lang, "migrated_components_admin_aiassistant_event_type_is_missing_0b4d2c9d");
+    default: return translate(lang, "migrated_components_admin_aiassistant_features_should_be_reviewed_a56c77b8");
   }
 }
 
@@ -98,7 +99,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      message: lang === "tr" ? "Merhaba! Size etkinlik oluşturma ve yönetiminde yardımcı olmak için buradayım. Ne sorunuz var?" : "Hello! I'm here to help you with event creation and management. What questions do you have?",
+      message: translate(lang, "migrated_components_admin_aiassistant_hello_i_m_here_to_help_you_with_event_crea_7a11108d"),
       timestamp: new Date().toISOString()
     }
   ]);
@@ -142,7 +143,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         setMessages([
           {
             role: "assistant",
-            message: lang === "tr" ? "Merhaba! Size etkinlik oluşturma ve yönetiminde yardımcı olmak için buradayım. Ne sorunuz var?" : "Hello! I'm here to help you with event creation and management. What questions do you have?",
+            message: translate(lang, "migrated_components_admin_aiassistant_hello_i_m_here_to_help_you_with_event_crea_7a11108d"),
             timestamp: new Date().toISOString(),
           },
         ]);
@@ -226,9 +227,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       const lastUser = messages.slice().reverse().find((m) => m.role === "user")?.message || "";
       const derived = deriveEventName(lastUser) || `Yeni Etkinlik ${new Date().toISOString().slice(0, 10)}`;
       pushAssistantMessage(
-        lang === "tr"
-          ? `Uyarı: Etkinlik adı eksik olduğu için "${derived}" olarak kullanılacak. İsterseniz iptal edip yeni bir ad girin.`
-          : `Warning: event name missing, using "${derived}" as fallback. Cancel if you want to set a different name.`
+        translate(lang, "migrated_components_admin_aiassistant_warning_event_name_missing_using_value0_as_1a952b54", { value0: derived })
       );
       createDraft = { ...createDraft, name: derived };
     }
@@ -236,20 +235,20 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 
     const localValidate = (d: EventDraft): string[] => {
       const errs: string[] = [];
-      if (!d.name || !d.name.trim()) errs.push(lang === "tr" ? "Etkinlik adı gerekli" : "Event name is required");
-      if (!d.eventDate || !d.eventDate.trim()) errs.push(lang === "tr" ? "Etkinlik tarihi gerekli" : "Event date is required");
-      if (d.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(d.eventDate)) errs.push(lang === "tr" ? "Tarih YYYY-MM-DD formatında olmalı" : "Date must be YYYY-MM-DD");
-      if (d.registrationQuotaEnabled && d.registrationQuota && isNaN(Number(d.registrationQuota))) errs.push(lang === "tr" ? "Kontenjan sayısal olmalı" : "Quota must be numeric");
-      if (d.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.dataControllerContactEmail)) errs.push(lang === "tr" ? "Geçersiz e-posta adresi" : "Invalid data controller email");
+      if (!d.name || !d.name.trim()) errs.push(translate(lang, "migrated_components_admin_aiassistant_event_name_is_required_dfc0a4b2"));
+      if (!d.eventDate || !d.eventDate.trim()) errs.push(translate(lang, "migrated_components_admin_aiassistant_event_date_is_required_cae887ec"));
+      if (d.eventDate && !/^\d{4}-\d{2}-\d{2}$/.test(d.eventDate)) errs.push(translate(lang, "migrated_components_admin_aiassistant_date_must_be_yyyy_mm_dd_212831f3"));
+      if (d.registrationQuotaEnabled && d.registrationQuota && isNaN(Number(d.registrationQuota))) errs.push(translate(lang, "migrated_components_admin_aiassistant_quota_must_be_numeric_662cb394"));
+      if (d.dataControllerContactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.dataControllerContactEmail)) errs.push(translate(lang, "migrated_components_admin_aiassistant_invalid_data_controller_email_209c88f6"));
       return errs;
     };
 
     const validationErrors = localValidate(createDraft);
     if (validationErrors.length > 0) {
-      pushAssistantMessage((lang === "tr" ? "Doğrulama hataları: " : "Validation errors: ") + validationErrors.join("; "));
+      pushAssistantMessage((translate(lang, "migrated_components_admin_aiassistant_validation_errors_75af375c")) + validationErrors.join("; "));
       if (!createDraft.eventDate || !/^\d{4}-\d{2}-\d{2}$/.test(createDraft.eventDate)) {
         setEventWizardStep("date");
-        pushAssistantMessage(lang === "tr" ? "Etkinlik tarihini YYYY-MM-DD formatında yazar mısınız? Örnek: 2026-06-25" : "Please enter the event date in YYYY-MM-DD format. Example: 2026-06-25");
+        pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_please_enter_the_event_date_in_yyyy_mm_dd__36460417"));
       }
       return null;
     }
@@ -289,10 +288,10 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     if (!createResponse.ok) {
       const errDetail = createJson?.detail || createJson?.message || JSON.stringify(createJson);
       if (/body\.name|name.*required|name.*field required/i.test(String(errDetail))) {
-        pushAssistantMessage(lang === "tr" ? "Hata: Etkinlik adı zorunlu. Lütfen bir ad girin ve tekrar deneyin." : "Error: Event name is required. Please provide a name and try again.");
+        pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_error_event_name_is_required_please_provid_8761cba9"));
         return null;
       }
-      pushAssistantMessage(lang === "tr" ? `Etkinlik oluşturulamadı: ${String(errDetail)}` : `Failed to create event: ${String(errDetail)}`);
+      pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_failed_to_create_event_value0_cd2a97b7", { value0: String(errDetail) }));
       return null;
     }
     const created = createJson;
@@ -365,14 +364,14 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     if (eventWizardStep === "idle") return false;
 
     if (isNegative(value) && eventWizardStep === "confirm") {
-      pushAssistantMessage(lang === "tr" ? "Tamam, etkinlik oluşturmayı iptal ettim. İsterseniz yeniden başlayabiliriz." : "Okay, I canceled the event creation. We can start again anytime.");
+      pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_okay_i_canceled_the_event_creation_we_can__1fe92cbd"));
       resetEventWizard();
       return true;
     }
 
     if (eventWizardStep === "confirm") {
       if (!isAffirmative(value)) {
-        pushAssistantMessage(lang === "tr" ? "Onay için 'evet' yazın, iptal etmek için 'hayır' yazın." : "Type 'yes' to create it, or 'no' to cancel.");
+        pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_type_yes_to_create_it_or_no_to_cancel_7c86cb06"));
         return true;
       }
 
@@ -380,14 +379,14 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       try {
         const created = await submitEventDraft(eventDraft);
         if (!created) {
-          pushAssistantMessage(lang === "tr" ? "Etkinlik oluşturulamadı. Lütfen eksik alanları düzeltip tekrar deneyin." : "Event creation failed. Please fix the missing fields and try again.");
+          pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_event_creation_failed_please_fix_the_missi_ff1ddadf"));
           setLoading(false);
           return true;
         }
-        pushAssistantMessage(lang === "tr" ? `✅ Etkinlik oluşturuldu: ${created.name} (ID: ${created.id}).` : `✅ Event created: ${created.name} (ID: ${created.id}).`);
+        pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_event_created_value0_id_value1_c861ee2f", { value0: created.name, value1: created.id }));
         resetEventWizard();
       } catch (error: any) {
-        pushAssistantMessage(error?.message || (lang === "tr" ? "Etkinlik oluşturulamadı. Lütfen tekrar deneyin." : "I couldn't create the event. Please try again."));
+        pushAssistantMessage(error?.message || (translate(lang, "migrated_components_admin_aiassistant_i_couldn_t_create_the_event_please_try_aga_2cd35995")));
       } finally {
         setLoading(false);
       }
@@ -414,7 +413,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       const altDate = parseTurkishMonthDate(value);
       const finalDate = normalizedDate || altDate;
       if (finalDate && !/^\d{4}-\d{2}-\d{2}$/.test(finalDate)) {
-        pushAssistantMessage(lang === "tr" ? "Tarihi anlayamadım. Lütfen YYYY-MM-DD formatında yazın ya da 'atla' yazın." : "I couldn't parse the date. Please use YYYY-MM-DD or type 'skip'.");
+        pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_i_couldn_t_parse_the_date_please_use_yyyy__e7ab489f"));
         return true;
       }
       const nextDraft = { ...hintedDraft, eventDate: finalDate };
@@ -477,23 +476,23 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     const compliance = Array.isArray(suggestions.compliance) ? suggestions.compliance : [];
 
     if (Object.keys(eventUpdate).length > 0) {
-      parts.push((lang === "tr" ? "\n\nEtkinlik ayarı taslağı: " : "\n\nEvent settings draft: ") + Object.entries(eventUpdate).map(([key, value]) => `${key}: ${formatDisplayValue(value)}`).join(", "));
+      parts.push((translate(lang, "migrated_components_admin_aiassistant_event_settings_draft_ee6e0c93")) + Object.entries(eventUpdate).map(([key, value]) => `${key}: ${formatDisplayValue(value)}`).join(", "));
     }
     if (fields.length > 0) {
-      parts.push((lang === "tr" ? "\n\nKayıt formu önerisi: " : "\n\nRegistration fields: ") + fields.map((field: any) => formatDisplayValue(field.label || field.key || field)).join(", "));
+      parts.push((translate(lang, "migrated_components_admin_aiassistant_registration_fields_cdcc0599")) + fields.map((field: any) => formatDisplayValue(field.label || field.key || field)).join(", "));
     }
     if (sessions.length > 0) {
-      parts.push((lang === "tr" ? "\n\nOturum taslağı: " : "\n\nSession draft: ") + sessions.map((session: any) => formatDisplayValue(session.title || session.name || session)).join(", "));
+      parts.push((translate(lang, "migrated_components_admin_aiassistant_session_draft_14fc192e")) + sessions.map((session: any) => formatDisplayValue(session.title || session.name || session)).join(", "));
     }
     if (compliance.length > 0) {
-      parts.push((lang === "tr" ? "\n\nKVKK / uyumluluk önerileri: " : "\n\nCompliance suggestions: ") + compliance.map((item: any) => formatDisplayValue(item)).join(", "));
+      parts.push((translate(lang, "migrated_components_admin_aiassistant_compliance_suggestions_1d8feb8b")) + compliance.map((item: any) => formatDisplayValue(item)).join(", "));
     }
     return parts.join("");
   };
 
   const requestAiAnswer = async (currentInput: string) => {
     if (currentInput.trim().length < 2) {
-      pushAssistantMessage(lang === "tr" ? "Biraz daha ayrıntı yazar mısınız?" : "Could you add a little more detail?");
+      pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_could_you_add_a_little_more_detail_2b8e3873"));
       return;
     }
     setLoading(true);
@@ -509,10 +508,12 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       });
       const result = (await response.json()) as AssistantResponse;
       const answer = typeof result.answer === "string" ? result.answer.trim() : "";
-      if (!answer) throw new Error(lang === "tr" ? "Asistan boş yanıt döndürdü." : "The assistant returned an empty response.");
+      if (!answer) throw new Error(translate(lang, "migrated_components_admin_aiassistant_the_assistant_returned_an_empty_response_5493a1e6"));
       pushAssistantMessage(formatAiAnswer(answer, result.suggestions));
     } catch (error: any) {
-      pushAssistantMessage(lang === "tr" ? `Şu anda yanıtı hazırlayamadım: ${error?.message || "Bağlantı hatası"}.` : `I could not prepare a response right now: ${error?.message || "Connection error"}.`);
+      pushAssistantMessage(translate(lang, "admin_assistant_response_error", {
+        error: error?.message || translate(lang, "admin_assistant_connection_error"),
+      }));
     } finally {
       setLoading(false);
     }
@@ -527,7 +528,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     const intent = detectIntent(currentInput, eventWizardStep !== "idle");
     if (intent.intent === "support_ticket") {
       setShowSupportForm(true);
-      pushAssistantMessage(lang === "tr" ? "Destek talebi formunu açtım." : "I opened the support ticket form.");
+      pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_i_opened_the_support_ticket_form_a3916169"));
       return;
     }
     if (eventWizardStep !== "idle") {
@@ -552,7 +553,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
     const subject = supportSubject.trim();
     const message = supportMessage.trim();
     if (subject.length < 5 || message.length < 10) {
-      pushAssistantMessage(lang === "tr" ? "Konu en az 5, açıklama en az 10 karakter olmalıdır." : "Subject at least 5, message at least 10 chars.");
+      pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_subject_at_least_5_message_at_least_10_cha_944d186f"));
       return;
     }
     setLoading(true);
@@ -561,12 +562,12 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         method: "POST",
         body: JSON.stringify({ subject, message }),
       });
-      pushAssistantMessage(lang === "tr" ? "Destek talebiniz başarıyla oluşturuldu." : "Your support ticket was created successfully.");
+      pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_your_support_ticket_was_created_successful_2ed17c08"));
       setSupportSubject("");
       setSupportMessage("");
       setShowSupportForm(false);
     } catch (error: any) {
-      pushAssistantMessage(lang === "tr" ? `Hata: ${error?.message}` : `Error: ${error?.message}`);
+      pushAssistantMessage(translate(lang, "migrated_components_admin_aiassistant_error_value0_9fed0433", { value0: error?.message }));
     } finally {
       setLoading(false);
     }
@@ -601,7 +602,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         <div className="flex w-full justify-start">
           <div className="flex items-center gap-2.5 rounded-2xl border border-surface-100 bg-raised px-4 py-2.5 text-xs text-surface-500 shadow-sm">
             <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-outline-strong border-t-transparent" />
-            <span>{lang === "tr" ? "Hepta AI yanıt hazırlıyor..." : "Hepta AI is responding..."}</span>
+            <span>{translate(lang, "migrated_components_admin_aiassistant_hepta_ai_is_responding_0d68b070")}</span>
           </div>
         </div>
       )}
@@ -615,18 +616,18 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       <div className="flex items-start gap-2 rounded-xl border border-status-warning-border bg-status-warning-bg/40 p-3 text-xs text-status-warning-content">
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-status-warning-content" />
         <p className="leading-relaxed">
-          {lang === "tr" ? "Sorunu detaylandırıp gönderdiğinizde teknik ekibimiz anında inceleme başlatacaktır." : "Once submitted, our team will look into your request instantly."}
+          {translate(lang, "migrated_components_admin_aiassistant_once_submitted_our_team_will_look_into_you_b11ffd08")}
         </p>
       </div>
       <input
         type="text"
-        placeholder={lang === "tr" ? "Talep Konusu..." : "Ticket Subject..."}
+        placeholder={translate(lang, "migrated_components_admin_aiassistant_ticket_subject_43933a16")}
         value={supportSubject}
         onChange={(e) => setSupportSubject(e.target.value)}
         className="w-full rounded-xl border border-surface-200 px-3.5 py-2 text-xs outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900"
       />
       <textarea
-        placeholder={lang === "tr" ? "Açıklamanız veya hata kaydı detayları..." : "Your detailed explanation..."}
+        placeholder={translate(lang, "migrated_components_admin_aiassistant_your_detailed_explanation_a92ffb31")}
         value={supportMessage}
         onChange={(e) => setSupportMessage(e.target.value)}
         rows={isSmall ? 2 : 3}
@@ -634,14 +635,14 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       />
       <div className="flex justify-end gap-2">
         <button onClick={() => setShowSupportForm(false)} className="rounded-xl border border-surface-200 bg-raised px-3.5 py-2 text-xs font-medium text-surface-700 transition hover:bg-surface-50">
-          {lang === "tr" ? "Vazgeç" : "Cancel"}
+          {translate(lang, "migrated_components_admin_aiassistant_cancel_9b33d608")}
         </button>
         <button
           onClick={handleCreateSupport}
           disabled={!supportSubject.trim() || !supportMessage.trim() || loading}
           className="rounded-xl bg-surface-900 px-3.5 py-2 text-xs font-medium text-white transition hover:bg-surface-800 disabled:opacity-30"
         >
-          {lang === "tr" ? "Talebi Gönder" : "Send Ticket"}
+          {translate(lang, "migrated_components_admin_aiassistant_send_ticket_2101f53f")}
         </button>
       </div>
     </div>
@@ -654,7 +655,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         <input
           ref={inputRef}
           type="text"
-          placeholder={lang === "tr" ? "Sorunuzu sorun veya 'etkinlik oluştur' yazın..." : "Ask a question or type 'create event'..."}
+          placeholder={translate(lang, "migrated_components_admin_aiassistant_ask_a_question_or_type_create_event_23b3f1ef")}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
@@ -674,13 +675,13 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
           onClick={() => (eventWizardStep !== "idle" ? resetEventWizard() : void startEventWizard(input))}
           className="flex-1 rounded-xl border border-surface-200 bg-surface-50/50 py-2 text-11 font-medium text-surface-800 shadow-sm transition hover:bg-surface-100"
         >
-          {eventWizardStep !== "idle" ? (lang === "tr" ? "Taslağı İptal Et" : "Cancel Draft") : (lang === "tr" ? "✨ Etkinlik Sihirbazı" : "✨ Event Wizard")}
+          {eventWizardStep !== "idle" ? (translate(lang, "migrated_components_admin_aiassistant_cancel_draft_9156d411")) : (translate(lang, "migrated_components_admin_aiassistant_event_wizard_d7cc190e"))}
         </button>
         <button
           onClick={() => setShowSupportForm(true)}
           className="flex-1 rounded-xl border border-surface-200 bg-surface-50/50 py-2 text-11 font-medium text-surface-500 shadow-sm transition hover:bg-surface-100"
         >
-          {lang === "tr" ? "🛠️ Destek Talebi Aç" : "🛠️ Open Ticket"}
+          {translate(lang, "migrated_components_admin_aiassistant_open_ticket_dbf693ca")}
         </button>
       </div>
     </div>
@@ -814,7 +815,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   );
 }
 
-function getEventPromptForStep(step: EventWizardStep, draft: EventDraft, lang: string): string {
+function getEventPromptForStep(step: EventWizardStep, draft: EventDraft, lang: Lang): string {
   if (step === "confirm") return buildReviewMessage(draft, lang);
   return getWizardQuestion(step, draft, lang);
 }

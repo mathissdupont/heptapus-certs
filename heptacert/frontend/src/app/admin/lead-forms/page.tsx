@@ -8,62 +8,12 @@ import {
   ExternalLink, Copy, ToggleLeft, ToggleRight,
 } from "lucide-react";
 import { listLeadForms, createLeadForm, deleteLeadForm, updateLeadForm, type LeadFormOut } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 export default function LeadFormsPage() {
   const router = useRouter();
   const { lang } = useI18n();
-  const copy = lang === "tr"
-    ? {
-        pageTitle: "Lead Formları",
-        pageSubtitle: "Embed veya link ile lead yakalayın",
-        newForm: "Yeni Form",
-        embedCopied: "Embed kodu kopyalandı!",
-        createFailed: "Oluşturulamadı.",
-        updateFailed: "Güncellenemedi.",
-        deleteFailed: "Silinemedi.",
-        deleteConfirm: "Bu formu ve tüm gönderimlerini silmek istediğinizden emin misiniz?",
-        noForms: "Henüz lead formu yok.",
-        noFormsHint: "Web sitenize embed edebileceğiniz formlar oluşturun.",
-        newLeadForm: "Yeni lead formu",
-        formNamePlaceholder: "Form adı...",
-        create: "Oluştur",
-        cancel: "İptal",
-        active: "Aktif",
-        passive: "Pasif",
-        fieldCount: (n: number) => `${n} alan`,
-        submissionCount: (n: number) => `${n} gönderim`,
-        preview: "Formu önizle",
-        copyEmbed: "Embed kodu kopyala",
-        deactivate: "Pasife al",
-        activate: "Aktifleştir",
-        edit: "Düzenle",
-      }
-    : {
-        pageTitle: "Lead Forms",
-        pageSubtitle: "Capture leads via embed or link",
-        newForm: "New Form",
-        embedCopied: "Embed code copied!",
-        createFailed: "Could not create.",
-        updateFailed: "Could not update.",
-        deleteFailed: "Could not delete.",
-        deleteConfirm: "Are you sure you want to delete this form and all its submissions?",
-        noForms: "No lead forms yet.",
-        noFormsHint: "Create forms you can embed on your website.",
-        newLeadForm: "New lead form",
-        formNamePlaceholder: "Form name...",
-        create: "Create",
-        cancel: "Cancel",
-        active: "Active",
-        passive: "Inactive",
-        fieldCount: (n: number) => `${n} field${n === 1 ? "" : "s"}`,
-        submissionCount: (n: number) => `${n} submission${n === 1 ? "" : "s"}`,
-        preview: "Preview form",
-        copyEmbed: "Copy embed code",
-        deactivate: "Deactivate",
-        activate: "Activate",
-        edit: "Edit",
-      };
+  const copy = { pageTitle: translate(lang, "migrated_app_admin_lead_forms_lead_forms_0fc2cd3e"), pageSubtitle: translate(lang, "migrated_app_admin_lead_forms_capture_leads_via_embed_or_link_9c6dd0a6"), newForm: translate(lang, "migrated_app_admin_lead_forms_new_form_b71424e9"), embedCopied: translate(lang, "migrated_app_admin_lead_forms_embed_code_copied_41f5b323"), createFailed: translate(lang, "migrated_app_admin_lead_forms_could_not_create_354f574d"), updateFailed: translate(lang, "migrated_app_admin_lead_forms_could_not_update_2ac45249"), deleteFailed: translate(lang, "migrated_app_admin_lead_forms_could_not_delete_01481880"), deleteConfirm: translate(lang, "migrated_app_admin_lead_forms_are_you_sure_you_want_to_delete_this_form__38545f99"), noForms: translate(lang, "migrated_app_admin_lead_forms_no_lead_forms_yet_ac818d6f"), noFormsHint: translate(lang, "migrated_app_admin_lead_forms_create_forms_you_can_embed_on_your_website_04a251cb"), newLeadForm: translate(lang, "migrated_app_admin_lead_forms_new_lead_form_53a2d7e1"), formNamePlaceholder: translate(lang, "migrated_app_admin_lead_forms_form_name_9c3f82aa"), create: translate(lang, "migrated_app_admin_lead_forms_create_4dbbd83a"), cancel: translate(lang, "migrated_app_admin_lead_forms_cancel_6631842b"), active: translate(lang, "migrated_app_admin_lead_forms_active_5e5a2795"), passive: translate(lang, "migrated_app_admin_lead_forms_inactive_d6291aa3"), fieldCount: (n: number) => translate(lang, "migrated_app_admin_lead_forms_value0_field_s_711b7000", { value0: n }), submissionCount: (n: number) => translate(lang, "migrated_app_admin_lead_forms_value0_submission_s_61b9a3fa", { value0: n }), preview: translate(lang, "migrated_app_admin_lead_forms_preview_form_3bdb0238"), copyEmbed: translate(lang, "migrated_app_admin_lead_forms_copy_embed_code_0b779bc9"), deactivate: translate(lang, "migrated_app_admin_lead_forms_deactivate_e237caba"), activate: translate(lang, "migrated_app_admin_lead_forms_activate_dbbf4faf"), edit: translate(lang, "migrated_app_admin_lead_forms_edit_216955b6") };
 
   const [forms, setForms] = useState<LeadFormOut[]>([]);
   const [loading, setLoading] = useState(true);

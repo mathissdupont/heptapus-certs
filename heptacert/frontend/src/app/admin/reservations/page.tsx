@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -15,7 +14,7 @@ import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/Admin/PageHeader";
 import EmptyState from "@/components/Admin/EmptyState";
 import DateTimeField from "@/components/Admin/DateTimeField";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type OrganizationVenue = { id: number; name: string; location: string | null; is_active: boolean };
 type Reservation = {
@@ -51,76 +50,7 @@ export default function AdminReservations() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [calendarStatus, setCalendarStatus] = useState<GoogleCalendarReservationStatus | null>(null);
 
-  const copy = pickLang({
-    tr: {
-      title: "Rezervasyonlar",
-      subtitle: "Salon rezervasyon takvimini yönetin",
-      newReservation: "Yeni rezervasyon",
-      editReservation: "Rezervasyonu düzenle",
-      exportIcs: "Takvimi indir (.ics)",
-      venue: "Salon",
-      selectVenue: "Salon seç",
-      resTitle: "Başlık",
-      description: "Açıklama",
-      start: "Başlangıç",
-      end: "Bitiş",
-      save: "Kaydet",
-      saving: "Kaydediliyor...",
-      cancel: "Vazgeç",
-      saved: "Rezervasyon kaydedildi.",
-      saveFailed: "Rezervasyon kaydedilemedi.",
-      cancelled: "Rezervasyon iptal edildi.",
-      cancelFailed: "Rezervasyon iptal edilemedi.",
-      loadFailed: "Veriler yüklenemedi.",
-      confirmCancel: "Bu rezervasyonu iptal etmek istediğinize emin misiniz?",
-      emptyTitle: "Henüz rezervasyon yok",
-      emptyBody: "Sağ üstteki butonla ilk rezervasyonu oluşturun.",
-      noVenuesTitle: "Önce bir salon ekleyin",
-      noVenuesBody: "Rezervasyon oluşturmak için en az bir aktif salon gerekir.",
-      titlePh: "Yıllık genel kurul",
-      descPh: "Katılımcı sayısı, kurulum notları...",
-      unknownVenue: "Bilinmeyen salon",
-      connectGoogle: "Google Calendar bağla",
-      syncGoogle: "Google çift yönlü sync",
-      connectFailed: "Google Calendar bağlantısı başlatılamadı.",
-      syncDone: (p: number, n: number, u: number) => `Senkronlandı. Çekilen: ${p}, yeni: ${n}, güncellenen: ${u}.`,
-      syncFailed: "Google Calendar senkronu tamamlanamadı.",
-    },
-    en: {
-      title: "Reservations",
-      subtitle: "Manage the venue reservation calendar",
-      newReservation: "New reservation",
-      editReservation: "Edit reservation",
-      exportIcs: "Export calendar (.ics)",
-      venue: "Venue",
-      selectVenue: "Select venue",
-      resTitle: "Title",
-      description: "Description",
-      start: "Start",
-      end: "End",
-      save: "Save",
-      saving: "Saving...",
-      cancel: "Cancel",
-      saved: "Reservation saved.",
-      saveFailed: "Could not save reservation.",
-      cancelled: "Reservation cancelled.",
-      cancelFailed: "Could not cancel reservation.",
-      loadFailed: "Could not load data.",
-      confirmCancel: "Are you sure you want to cancel this reservation?",
-      emptyTitle: "No reservations yet",
-      emptyBody: "Create your first reservation with the button at the top right.",
-      noVenuesTitle: "Add a venue first",
-      noVenuesBody: "You need at least one active venue to create a reservation.",
-      titlePh: "Annual general meeting",
-      descPh: "Attendee count, setup notes...",
-      unknownVenue: "Unknown venue",
-      connectGoogle: "Connect Google Calendar",
-      syncGoogle: "Google two-way sync",
-      connectFailed: "Could not start Google Calendar connection.",
-      syncDone: (p: number, n: number, u: number) => `Synced. Pulled: ${p}, new: ${n}, updated: ${u}.`,
-      syncFailed: "Google Calendar sync could not complete.",
-    },
-  }, lang);
+  const copy = { title: translate(lang, "migrated_app_admin_reservations_reservations_3f91a87b"), subtitle: translate(lang, "migrated_app_admin_reservations_manage_the_venue_reservation_calendar_d74fd446"), newReservation: translate(lang, "migrated_app_admin_reservations_new_reservation_e1157b52"), editReservation: translate(lang, "migrated_app_admin_reservations_edit_reservation_f22276b1"), exportIcs: translate(lang, "migrated_app_admin_reservations_export_calendar_ics_a305b947"), venue: translate(lang, "migrated_app_admin_reservations_venue_8deaf354"), selectVenue: translate(lang, "migrated_app_admin_reservations_select_venue_ff0376d8"), resTitle: translate(lang, "migrated_app_admin_reservations_title_55a5a183"), description: translate(lang, "migrated_app_admin_reservations_description_4db8dff5"), start: translate(lang, "migrated_app_admin_reservations_start_18e9752e"), end: translate(lang, "migrated_app_admin_reservations_end_66956ac6"), save: translate(lang, "migrated_app_admin_reservations_save_13c2607c"), saving: translate(lang, "migrated_app_admin_reservations_saving_3e6b9824"), cancel: translate(lang, "migrated_app_admin_reservations_cancel_b077bf06"), saved: translate(lang, "migrated_app_admin_reservations_reservation_saved_4407d711"), saveFailed: translate(lang, "migrated_app_admin_reservations_could_not_save_reservation_30188251"), cancelled: translate(lang, "migrated_app_admin_reservations_reservation_cancelled_f46309c1"), cancelFailed: translate(lang, "migrated_app_admin_reservations_could_not_cancel_reservation_723021bf"), loadFailed: translate(lang, "migrated_app_admin_reservations_could_not_load_data_514340ef"), confirmCancel: translate(lang, "migrated_app_admin_reservations_are_you_sure_you_want_to_cancel_this_reser_c326aeb2"), emptyTitle: translate(lang, "migrated_app_admin_reservations_no_reservations_yet_bbead5f3"), emptyBody: translate(lang, "migrated_app_admin_reservations_create_your_first_reservation_with_the_but_7153d752"), noVenuesTitle: translate(lang, "migrated_app_admin_reservations_add_a_venue_first_ac7680c2"), noVenuesBody: translate(lang, "migrated_app_admin_reservations_you_need_at_least_one_active_venue_to_crea_b1666ec0"), titlePh: translate(lang, "migrated_app_admin_reservations_annual_general_meeting_f63c7a07"), descPh: translate(lang, "migrated_app_admin_reservations_attendee_count_setup_notes_c4ed99e6"), unknownVenue: translate(lang, "migrated_app_admin_reservations_unknown_venue_62abcac8"), connectGoogle: translate(lang, "migrated_app_admin_reservations_connect_google_calendar_72661027"), syncGoogle: translate(lang, "migrated_app_admin_reservations_google_two_way_sync_42a9880c"), connectFailed: translate(lang, "migrated_app_admin_reservations_could_not_start_google_calendar_connection_c4074a1a"), syncDone: (p: number, n: number, u: number) => translate(lang, "migrated_app_admin_reservations_synced_pulled_value0_new_value1_updated_va_948ee043", { value0: p, value1: n, value2: u }), syncFailed: translate(lang, "migrated_app_admin_reservations_google_calendar_sync_could_not_complete_3a2f7fee") };
 
   const venueName = useMemo(() => {
     const map = new Map<number, OrganizationVenue>();

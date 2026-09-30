@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 export default function BulkActionBar({
   selectedCount,
@@ -21,7 +21,7 @@ export default function BulkActionBar({
   loading?: ReactNode;
 }) {
   const { lang } = useI18n();
-  const clearLabel = lang === "tr" ? "Seçimi Temizle" : "Clear Selection";
+  const clearLabel = translate(lang, "migrated_components_admin_bulkactionbar_clear_selection_87ff6688");
 
   return (
     <AnimatePresence>

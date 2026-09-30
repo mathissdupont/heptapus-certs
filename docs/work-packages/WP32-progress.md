@@ -26,27 +26,30 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Hold legal/contract UI changes until their Turkish source and translations can be
+  1. Audit every frontend plan gate against the backend entitlement contract, starting
+     with `FeatureGate`, `PlanGateCard`, event navigation and settings. Record and fix
+     mismatched plan IDs, UI-only locks and API routes that do not enforce the same gate.
+  2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
      available. Draft the remaining routes under `docs/drafts/legal/` if useful, but
      do not wire unapproved terms into the app. The six routes are:
      `/kullanim-kosullari`, `/gizlilik`, `/kvkk`, `/mesafeli-satis`, `/iade` and
      `/acik-riza`. They currently serve English to the seven non-TR/EN locales and must
      not be called complete merely because machine-readable catalog parity passes.
-  2. Continue through auth, admin shell + dashboard, then high-traffic event,
-     attendee/certificate and email surfaces, lowering both UI debt ratchets after each
-     independently verifiable wave.
-  3. Define the non-hook translator contract needed by `lib/assistant/eventDraft.ts` and
-     `lib/assistant/wizard.ts` before migrating either plain module.
+  3. Continue the remaining **178** legacy language branches on public/secondary routes.
+     Admin, `components/Admin` and `lib/assistant` now have zero direct TR/EN branches
+     and zero `pickLang()` calls, but remaining user-facing literals still need a separate
+     review before nine-language coverage is called globally complete.
   4. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **496 legacy TR/EN binary branches**;
+  hiding the real gap. The current ratchet records **178 legacy TR/EN binary branches**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
-  nine-language coverage can be called complete. The largest starting files are event
-  settings (56), `lib/assistant/eventDraft.ts` (48), and `AIAssistant.tsx` (45).
+  nine-language coverage can be called complete. The authenticated admin scopes have
+  reached zero; the remaining queue is in public/secondary routes. Catalogs contain
+  **2,614 keys × 9**.
 
 ## Phase status
 
@@ -132,6 +135,26 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-30 — authenticated admin language debt removed
+
+- Replaced every direct TR/EN branch and every `pickLang()` use under `src/app/admin`,
+  `src/components/Admin` and `src/lib/assistant` with the shared catalog translator.
+  This covers event navigation/settings, CRM, e-mail, certificates, team permissions,
+  superadmin, reports, venues/reservations, assistant flows and shared admin modals.
+- Added a pure `translate(lang, key, vars)` contract for non-React modules and typed
+  translation keys for dynamic option/navigation tables. Stable API values and CSS class
+  names remain untranslated; only their user-facing labels enter the catalogs.
+- All nine catalogs now contain **2,614 matching keys** with placeholder parity. The
+  locally generated translations are static application assets (no runtime translation
+  dependency). Native-speaker copy review remains advisable before marketing/legal signoff;
+  legal pages were deliberately excluded under the existing review hold.
+- Ratchet: legacy TR/EN branches **482 → 178** globally; the three authenticated admin
+  scopes are zero. Light-only colors remain **0** and raw color debt remains **57**.
+- Evidence: `npm run check:ui` passes at the new baseline; `npx tsc --noEmit` is clean;
+  **92/92** frontend tests pass; the production build generates **132/132** static pages.
+- Next: audit plan gates end-to-end, then resume the remaining public/secondary language
+  queue without publishing unreviewed legal copy.
 
 ### 2026-09-30 — dark mode shipped; fixed-light color debt reaches zero
 

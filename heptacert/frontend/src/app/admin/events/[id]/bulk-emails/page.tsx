@@ -16,7 +16,7 @@ import EventAdminNav from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
 import EmailTemplateSelect from "@/components/Admin/EmailTemplateSelect";
 import AdminEmptyState from "@/components/Admin/EmptyState";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type BulkEmailJob = {
   id: number;
@@ -62,81 +62,7 @@ export default function BulkEmailsPage() {
   const [creating, setCreating] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
 
-  const copy = lang === "tr"
-    ? {
-        pageTitle: "Toplu E-posta Kampanyaları",
-        pageSubtitle: "Kampanya başlatma, ilerleme takibi ve hedef seçimi artık daha net bir akışta.",
-        newCampaign: "Yeni kampanya",
-        loadError: "Veri yükleme başarısız.",
-        selectTemplate: "Lütfen bir e-posta şablonu seçin.",
-        createError: "Kampanya oluşturma başarısız.",
-        totalCampaigns: "Toplam kampanya",
-        completed: "Tamamlanan",
-        sending: "Gönderiliyor",
-        failed: "Sorunlu",
-        emptyTitle: "Henüz kampanya yok",
-        emptyBody: "Hazır şablonlardan birini seçip katılımcılara toplu iletişim akışlarını başlatabilirsiniz.",
-        firstCampaign: "İlk kampanyayı oluştur",
-        templateLabel: "Şablon",
-        subjectLabel: "Konu",
-        recipientLabel: "Hedef grup",
-        successLabel: "Başarılı",
-        failedLabel: "Başarısız",
-        targetLabel: "Hedef",
-        createdAt: "Oluşturulma",
-        startCampaign: "Kampanyayı başlat",
-        creating: "Oluşturuluyor...",
-        infoTitle: "Bilgi",
-        infoBody: "Kampanya oluşturulduktan sonra arka planda işlenir. Gönderim durumu otomatik olarak güncellenir.",
-        attendeesTitle: "Tüm katılımcılar",
-        attendeesBody: "Etkinliğe kayıtlı ve uygun tüm kişiler",
-        certifiedTitle: "Sertifikalandırılanlar",
-        certifiedBody: "Yalnızca sertifikası hazır olan kişiler",
-        chooseTemplate: "Şablon seçin",
-        preview: "Detay Raporu",
-        progressSent: "gönderildi",
-        pending: "Sırada",
-        statusSending: "Gönderiliyor",
-        statusCompleted: "Tamamlandı",
-        statusFailed: "Başarısız",
-      }
-    : {
-        pageTitle: "Bulk Email Campaigns",
-        pageSubtitle: "Campaign creation, progress tracking and recipient targeting in a cleaner operational flow.",
-        newCampaign: "New campaign",
-        loadError: "Failed to load data.",
-        selectTemplate: "Please choose an email template.",
-        createError: "Failed to create campaign.",
-        totalCampaigns: "Total campaigns",
-        completed: "Completed",
-        sending: "Sending",
-        failed: "Failed",
-        emptyTitle: "No campaigns yet",
-        emptyBody: "Pick one of your templates and start a bulk communication flow for attendees.",
-        firstCampaign: "Create first campaign",
-        templateLabel: "Template",
-        subjectLabel: "Subject",
-        recipientLabel: "Recipient group",
-        successLabel: "Successful",
-        failedLabel: "Failed",
-        targetLabel: "Target",
-        createdAt: "Created",
-        startCampaign: "Launch campaign",
-        creating: "Creating...",
-        infoTitle: "Info",
-        infoBody: "Once created, the campaign is processed in the background and its progress updates automatically.",
-        attendeesTitle: "All attendees",
-        attendeesBody: "Everyone registered and eligible for this event",
-        certifiedTitle: "Certified only",
-        certifiedBody: "Only people whose certificates are ready",
-        chooseTemplate: "Choose a template",
-        preview: "Details Report",
-        progressSent: "sent",
-        pending: "Queued",
-        statusSending: "Sending",
-        statusCompleted: "Completed",
-        statusFailed: "Failed",
-      };
+  const copy = { pageTitle: translate(lang, "migrated_app_admin_events_id_bulk_emails_bulk_email_campaigns_0126eb68"), pageSubtitle: translate(lang, "migrated_app_admin_events_id_bulk_emails_campaign_creation_progress_tracking_and_re_199a7fbd"), newCampaign: translate(lang, "migrated_app_admin_events_id_bulk_emails_new_campaign_c6e8a989"), loadError: translate(lang, "migrated_app_admin_events_id_bulk_emails_failed_to_load_data_85835ff9"), selectTemplate: translate(lang, "migrated_app_admin_events_id_bulk_emails_please_choose_an_email_template_bd0c182a"), createError: translate(lang, "migrated_app_admin_events_id_bulk_emails_failed_to_create_campaign_79cf22bb"), totalCampaigns: translate(lang, "migrated_app_admin_events_id_bulk_emails_total_campaigns_5028027d"), completed: translate(lang, "migrated_app_admin_events_id_bulk_emails_completed_915c1b6c"), sending: translate(lang, "migrated_app_admin_events_id_bulk_emails_sending_dd9eb5ab"), failed: translate(lang, "migrated_app_admin_events_id_bulk_emails_failed_e38f3102"), emptyTitle: translate(lang, "migrated_app_admin_events_id_bulk_emails_no_campaigns_yet_8786e8d5"), emptyBody: translate(lang, "migrated_app_admin_events_id_bulk_emails_pick_one_of_your_templates_and_start_a_bul_60c8ac93"), firstCampaign: translate(lang, "migrated_app_admin_events_id_bulk_emails_create_first_campaign_922092fe"), templateLabel: translate(lang, "migrated_app_admin_events_id_bulk_emails_template_f05f29cc"), subjectLabel: translate(lang, "migrated_app_admin_events_id_bulk_emails_subject_28efac4c"), recipientLabel: translate(lang, "migrated_app_admin_events_id_bulk_emails_recipient_group_2cc6c9b7"), successLabel: translate(lang, "migrated_app_admin_events_id_bulk_emails_successful_b0fe5008"), failedLabel: translate(lang, "migrated_app_admin_events_id_bulk_emails_failed_f1cdbef8"), targetLabel: translate(lang, "migrated_app_admin_events_id_bulk_emails_target_7032336f"), createdAt: translate(lang, "migrated_app_admin_events_id_bulk_emails_created_d665d4e7"), startCampaign: translate(lang, "migrated_app_admin_events_id_bulk_emails_launch_campaign_2d097615"), creating: translate(lang, "migrated_app_admin_events_id_bulk_emails_creating_450f5d71"), infoTitle: translate(lang, "migrated_app_admin_events_id_bulk_emails_info_95a963bc"), infoBody: translate(lang, "migrated_app_admin_events_id_bulk_emails_once_created_the_campaign_is_processed_in__4b5b7161"), attendeesTitle: translate(lang, "migrated_app_admin_events_id_bulk_emails_all_attendees_1015f264"), attendeesBody: translate(lang, "migrated_app_admin_events_id_bulk_emails_everyone_registered_and_eligible_for_this__5df795fc"), certifiedTitle: translate(lang, "migrated_app_admin_events_id_bulk_emails_certified_only_444599d2"), certifiedBody: translate(lang, "migrated_app_admin_events_id_bulk_emails_only_people_whose_certificates_are_ready_64ad7a40"), chooseTemplate: translate(lang, "migrated_app_admin_events_id_bulk_emails_choose_a_template_4fa2122e"), preview: translate(lang, "migrated_app_admin_events_id_bulk_emails_details_report_e836d146"), progressSent: translate(lang, "migrated_app_admin_events_id_bulk_emails_sent_bafc51ac"), pending: translate(lang, "migrated_app_admin_events_id_bulk_emails_queued_7b46ff2c"), statusSending: translate(lang, "migrated_app_admin_events_id_bulk_emails_sending_b35a5195"), statusCompleted: translate(lang, "migrated_app_admin_events_id_bulk_emails_completed_e1ef69e0"), statusFailed: translate(lang, "migrated_app_admin_events_id_bulk_emails_failed_51efca8d") };
 
   useEffect(() => {
     loadData();

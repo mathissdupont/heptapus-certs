@@ -13,7 +13,8 @@ import {
   deleteOrgAccreditation,
   getOrgCpdSummary,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
+import type { Lang } from "@/lib/i18n";
 import DateField from "@/components/Admin/DateField";
 
 type Tab = "accreditations" | "cpd";
@@ -54,11 +55,9 @@ function formatDateTime(iso: string, lang: string) {
   });
 }
 
-function ValidityBadge({ isValid, validUntil, lang }: { isValid: boolean; validUntil: string | null; lang: string }) {
+function ValidityBadge({ isValid, validUntil, lang }: { isValid: boolean; validUntil: string | null; lang: Lang }) {
   const labels =
-    lang === "tr"
-      ? { indefinite: "Süresiz", valid: "Geçerli", expired: "Süresi doldu" }
-      : { indefinite: "Indefinite", valid: "Valid", expired: "Expired" };
+    { indefinite: translate(lang, "migrated_app_admin_accreditation_indefinite_61369961"), valid: translate(lang, "migrated_app_admin_accreditation_valid_83d7ec8e"), expired: translate(lang, "migrated_app_admin_accreditation_expired_6cfc7bbe") };
 
   if (!validUntil) return <span className="badge-neutral">{labels.indefinite}</span>;
   return <span className={isValid ? "badge-active" : "badge-expired"}>{isValid ? labels.valid : labels.expired}</span>;

@@ -1,13 +1,12 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { Building2, Plus, RefreshCcw, Pencil, Trash2, MapPin, Users, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import PageHeader from "@/components/Admin/PageHeader";
 import EmptyState from "@/components/Admin/EmptyState";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type OrganizationVenue = {
   id: number;
@@ -30,70 +29,7 @@ export default function AdminVenues() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const copy = pickLang({
-    tr: {
-      title: "Salonlar",
-      subtitle: "Kurumunuzun etkinlik alanlarını ve kapasitelerini yönetin",
-      newVenue: "Yeni salon",
-      editVenue: "Salonu düzenle",
-      areaInfo: "Etkinlik alanı ve kapasite bilgisi",
-      name: "Salon adı",
-      capacity: "Kapasite",
-      location: "Konum",
-      note: "Not",
-      active: "Kullanıma açık",
-      add: "Salon ekle",
-      update: "Güncelle",
-      cancel: "Vazgeç",
-      saving: "Kaydediliyor...",
-      saved: "Salon kaydedildi.",
-      saveFailed: "Salon kaydedilemedi.",
-      deleted: "Salon silindi.",
-      deleteFailed: "Salon silinemedi.",
-      loadFailed: "Salonlar yüklenemedi.",
-      registered: "Kayıtlı salonlar",
-      areas: "Kurumunuzun etkinlik alanları",
-      emptyTitle: "Henüz salon yok",
-      emptyBody: "Soldaki formdan ilk salonunuzu ekleyin.",
-      confirmDelete: (name: string) => `${name} salonunu silmek istediğinize emin misiniz?`,
-      namePh: "Konferans Salonu A",
-      locationPh: "2. kat",
-      notePh: "Sahne, erişilebilirlik, teknik ekipman...",
-      people: "kişi",
-      inactive: "Pasif",
-    },
-    en: {
-      title: "Venues",
-      subtitle: "Manage your organization's event spaces and capacities",
-      newVenue: "New venue",
-      editVenue: "Edit venue",
-      areaInfo: "Event space and capacity details",
-      name: "Venue name",
-      capacity: "Capacity",
-      location: "Location",
-      note: "Note",
-      active: "Available",
-      add: "Add venue",
-      update: "Update",
-      cancel: "Cancel",
-      saving: "Saving...",
-      saved: "Venue saved.",
-      saveFailed: "Could not save venue.",
-      deleted: "Venue deleted.",
-      deleteFailed: "Could not delete venue.",
-      loadFailed: "Could not load venues.",
-      registered: "Registered venues",
-      areas: "Your organization's event spaces",
-      emptyTitle: "No venues yet",
-      emptyBody: "Add your first venue using the form on the left.",
-      confirmDelete: (name: string) => `Are you sure you want to delete "${name}"?`,
-      namePh: "Conference Hall A",
-      locationPh: "2nd floor",
-      notePh: "Stage, accessibility, technical equipment...",
-      people: "people",
-      inactive: "Inactive",
-    },
-  }, lang);
+  const copy = { title: translate(lang, "migrated_app_admin_venues_venues_f4d6651b"), subtitle: translate(lang, "migrated_app_admin_venues_manage_your_organization_s_event_spaces_an_4ba0a1d1"), newVenue: translate(lang, "migrated_app_admin_venues_new_venue_0ddd41d0"), editVenue: translate(lang, "migrated_app_admin_venues_edit_venue_5a4dc93c"), areaInfo: translate(lang, "migrated_app_admin_venues_event_space_and_capacity_details_477fff79"), name: translate(lang, "migrated_app_admin_venues_venue_name_13d4b206"), capacity: translate(lang, "migrated_app_admin_venues_capacity_f6f0c467"), location: translate(lang, "migrated_app_admin_venues_location_5307b6df"), note: translate(lang, "migrated_app_admin_venues_note_edaf5609"), active: translate(lang, "migrated_app_admin_venues_available_0ec82a45"), add: translate(lang, "migrated_app_admin_venues_add_venue_8fe8626e"), update: translate(lang, "migrated_app_admin_venues_update_373520d1"), cancel: translate(lang, "migrated_app_admin_venues_cancel_e9bfabd3"), saving: translate(lang, "migrated_app_admin_venues_saving_c5c8dbbf"), saved: translate(lang, "migrated_app_admin_venues_venue_saved_72a8caff"), saveFailed: translate(lang, "migrated_app_admin_venues_could_not_save_venue_f38d18bc"), deleted: translate(lang, "migrated_app_admin_venues_venue_deleted_9899f948"), deleteFailed: translate(lang, "migrated_app_admin_venues_could_not_delete_venue_fe4ef279"), loadFailed: translate(lang, "migrated_app_admin_venues_could_not_load_venues_86e4ebfd"), registered: translate(lang, "migrated_app_admin_venues_registered_venues_8af6fb9a"), areas: translate(lang, "migrated_app_admin_venues_your_organization_s_event_spaces_231d974d"), emptyTitle: translate(lang, "migrated_app_admin_venues_no_venues_yet_e2293bfe"), emptyBody: translate(lang, "migrated_app_admin_venues_add_your_first_venue_using_the_form_on_the_549cbb0a"), confirmDelete: (name: string) => translate(lang, "migrated_app_admin_venues_are_you_sure_you_want_to_delete_value0_7debb710", { value0: name }), namePh: translate(lang, "migrated_app_admin_venues_conference_hall_a_1673c220"), locationPh: translate(lang, "migrated_app_admin_venues_2nd_floor_01a1e409"), notePh: translate(lang, "migrated_app_admin_venues_stage_accessibility_technical_equipment_2b3d0226"), people: translate(lang, "migrated_app_admin_venues_people_a71d34bb"), inactive: translate(lang, "migrated_app_admin_venues_inactive_92d2c462") };
 
   async function loadVenues() {
     setLoading(true);

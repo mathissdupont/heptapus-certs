@@ -19,7 +19,7 @@ import { downloadAuditLogExport, getSecurityEvents, listAuditLogs, AuditLogOut, 
 import PageHeader from "@/components/Admin/PageHeader";
 import EmptyState from "@/components/Admin/EmptyState";
 import { useToast } from "@/hooks/useToast";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 function actionIcon(action: string) {
   if (action.includes("login")) return LogIn;
@@ -49,63 +49,7 @@ export default function AuditLogsPage() {
   const [category, setCategory] = useState<"all" | "legal" | "security">("all");
   const [security, setSecurity] = useState<SecurityEventsOut | null>(null);
 
-  const copy = lang === "tr"
-    ? {
-        title: "Denetim Kayıtları",
-        subtitle: "Platformdaki kritik değişiklikleri, erişim hareketlerini ve sistem olaylarını izleyin",
-        loadFailed: "Denetim kayıtları yüklenemedi",
-        refresh: "Yenile",
-        exportCsv: "CSV indir",
-        exportPdf: "PDF indir",
-        allLogs: "Tümü",
-        legalLogs: "KVKK / Rıza",
-        securityLogs: "Güvenlik olayları",
-        suspiciousIps: "Şüpheli IP",
-        totalLogs: "Toplam kayıt",
-        uniqueUsers: "Etkilenen kullanıcı",
-        recentChanges: "Son 24 saat",
-        actionTypes: "Aksiyon türü",
-        search: "Kullanıcı, aksiyon veya kaynak ara...",
-        allActions: "Tüm aksiyonlar",
-        actor: "Aktör",
-        target: "Hedef",
-        details: "Detay",
-        emptyTitle: "Gösterilecek kayıt yok",
-        emptyBody: "Arama ya da filtreyi temizleyerek daha fazla kayıt görüntüleyin.",
-        system: "Sistem",
-        noDetails: "Ek detay yok",
-        justNow: "Az önce",
-        last24Hours: "24 saatte",
-        records: "kayıt",
-      }
-    : {
-        title: "Audit Log",
-        subtitle: "Track critical platform changes, access activity, and system events in one place",
-        loadFailed: "Failed to load audit logs",
-        refresh: "Refresh",
-        exportCsv: "Export CSV",
-        exportPdf: "Export PDF",
-        allLogs: "All",
-        legalLogs: "KVKK / Consent",
-        securityLogs: "Security events",
-        suspiciousIps: "Suspicious IPs",
-        totalLogs: "Total logs",
-        uniqueUsers: "Affected users",
-        recentChanges: "Last 24 hours",
-        actionTypes: "Action types",
-        search: "Search by user, action, or resource...",
-        allActions: "All actions",
-        actor: "Actor",
-        target: "Target",
-        details: "Details",
-        emptyTitle: "No matching logs",
-        emptyBody: "Clear the search or filters to reveal more activity.",
-        system: "System",
-        noDetails: "No extra details",
-        justNow: "Just now",
-        last24Hours: "in the last 24h",
-        records: "records",
-      };
+  const copy = { title: translate(lang, "migrated_app_admin_superadmin_audit_logs_audit_log_d7d2e5d9"), subtitle: translate(lang, "migrated_app_admin_superadmin_audit_logs_track_critical_platform_changes_access_act_22fcaca3"), loadFailed: translate(lang, "migrated_app_admin_superadmin_audit_logs_failed_to_load_audit_logs_1c872b8b"), refresh: translate(lang, "migrated_app_admin_superadmin_audit_logs_refresh_6bfe6d82"), exportCsv: translate(lang, "migrated_app_admin_superadmin_audit_logs_export_csv_9cbadee7"), exportPdf: translate(lang, "migrated_app_admin_superadmin_audit_logs_export_pdf_eaa7c6aa"), allLogs: translate(lang, "migrated_app_admin_superadmin_audit_logs_all_1d7b4bcc"), legalLogs: translate(lang, "migrated_app_admin_superadmin_audit_logs_kvkk_consent_856125bc"), securityLogs: translate(lang, "migrated_app_admin_superadmin_audit_logs_security_events_bf023bb1"), suspiciousIps: translate(lang, "migrated_app_admin_superadmin_audit_logs_suspicious_ips_0dab29d1"), totalLogs: translate(lang, "migrated_app_admin_superadmin_audit_logs_total_logs_53980728"), uniqueUsers: translate(lang, "migrated_app_admin_superadmin_audit_logs_affected_users_94728987"), recentChanges: translate(lang, "migrated_app_admin_superadmin_audit_logs_last_24_hours_80415a04"), actionTypes: translate(lang, "migrated_app_admin_superadmin_audit_logs_action_types_0fe3021e"), search: translate(lang, "migrated_app_admin_superadmin_audit_logs_search_by_user_action_or_resource_20c3945d"), allActions: translate(lang, "migrated_app_admin_superadmin_audit_logs_all_actions_c78130d1"), actor: translate(lang, "migrated_app_admin_superadmin_audit_logs_actor_477ce3a8"), target: translate(lang, "migrated_app_admin_superadmin_audit_logs_target_f0a8a82d"), details: translate(lang, "migrated_app_admin_superadmin_audit_logs_details_dd9e1d24"), emptyTitle: translate(lang, "migrated_app_admin_superadmin_audit_logs_no_matching_logs_e4481c13"), emptyBody: translate(lang, "migrated_app_admin_superadmin_audit_logs_clear_the_search_or_filters_to_reveal_more_3044203e"), system: translate(lang, "migrated_app_admin_superadmin_audit_logs_system_057847e4"), noDetails: translate(lang, "migrated_app_admin_superadmin_audit_logs_no_extra_details_282c382a"), justNow: translate(lang, "migrated_app_admin_superadmin_audit_logs_just_now_b200888d"), last24Hours: translate(lang, "migrated_app_admin_superadmin_audit_logs_in_the_last_24h_908fb0c1"), records: translate(lang, "migrated_app_admin_superadmin_audit_logs_records_7e11b440") };
 
   const fetchLogs = async (mode: "load" | "refresh" = "load") => {
     try {
@@ -155,7 +99,7 @@ export default function AuditLogsPage() {
   );
 
   const timeFormatter = useMemo(
-    () => new Intl.RelativeTimeFormat(lang === "tr" ? "tr" : "en", { numeric: "auto" }),
+    () => new Intl.RelativeTimeFormat(translate(lang, "migrated_app_admin_superadmin_audit_logs_en_411ab378"), { numeric: "auto" }),
     [lang]
   );
 

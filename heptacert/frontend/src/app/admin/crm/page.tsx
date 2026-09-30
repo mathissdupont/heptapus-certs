@@ -47,7 +47,7 @@ import {
 import EmailTemplateSelect from "@/components/Admin/EmailTemplateSelect";
 import DateTimeField from "@/components/Admin/DateTimeField";
 import { FeatureGate } from "@/lib/useSubscription";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 // Lifecycle labels are rendered via copy.lifecycleOptions below (bilingual)
 const LIFECYCLE_VALUES = ["lead", "active", "vip", "renewal", "inactive"] as const;
@@ -122,169 +122,7 @@ export default function AdminCrmPage() {
     { value: "renewal",  label: isTr ? "Yenileme"  : "Renewal" },
     { value: "inactive", label: isTr ? "Pasif"     : "Inactive" },
   ];
-  const copy = lang === "tr" ? {
-    eyebrow: "Event CRM",
-    title: "Katılımcı CRM",
-    subtitle: "Kurum genelindeki katılımcı geçmişini, notları, etiketleri, biletleri, anketleri ve sertifika zaman çizelgesini tek yerden yönetin.",
-    searchPlaceholder: "İsim veya e-posta ara...",
-    allStatuses: "Tüm durumlar",
-    tagPlaceholder: "Etiket filtresi...",
-    search: "Ara",
-    people: "Kişiler",
-    noMatches: "Eşleşen katılımcı bulunamadı.",
-    attendee: "katılımcı",
-    selectPerson: "Bir katılımcı seçin",
-    detailHint: "Katılımcı detayları, geçmişi ve zaman akışı burada listelenir.",
-    save: "Değişiklikleri Kaydet",
-    attendance: "Katılım",
-    events: "Etkinlik",
-    info: "CRM Profil Bilgileri",
-    status: "Yaşam Döngüsü Durumu",
-    tags: "Etiketler (Virgülle ayırın)",
-    priority: "Müşteri Önceliği",
-    leadScore: "Lead Skoru (0-100)",
-    followUp: "Bir Sonraki Takip Tarihi",
-    customFields: "Özel Alan Verileri (JSON)",
-    duplicates: "Olası Mükerrer Kayıtlar",
-    merge: "Kayıtları Birleştir",
-    selected: "seçili",
-    selectAll: "Tümünü Seç",
-    clearSelection: "Seçimi Temizle",
-    exportCsv: "CSV Dışa Aktar",
-    templateId: "E-posta Şablonu",
-    sendEmail: "E-posta Gönder",
-    bulkEmailResult: "Gönderim Durumu",
-    notes: "Dahili Operasyon Notları",
-    notesPlaceholder: "Katılımcıyla ilgili satış, destek veya özel etkinlik notları...",
-    updated: "Son güncelleme",
-    timeline: "Sertifika & Etkinlik Zaman Tüneli",
-    emptyTimeline: "Henüz bir zaman çizelgesi hareketi kaydedilmedi.",
-    history: "Katıldığı Etkinliklerin Geçmişi",
-    registered: "Kayıt Tarihi",
-    emailVerified: "E-posta Onaylı",
-    surveyDone: "Anket Tamamlandı",
-    checkinExists: "Check-in Yapıldı",
-    tickets: "bilet",
-    certificates: "sertifika",
-    loadError: "CRM listesi yüklenemedi.",
-    detailError: "Katılımcı detayı yüklenemedi.",
-    saveError: "CRM notları kaydedilemedi.",
-    listView: "Liste",
-    kanbanView: "Kanban",
-    tagNoShows: "No-Show Etiketle",
-    csvImport: "CSV İçe Aktar",
-    hubSpotSave: "Kaydet",
-    hubSpotTest: "Test",
-    hubSpotPush: "Seçilileri Gönder",
-    hubSpotConnected: "bağlandı",
-    hubSpotNotConfigured: "yapılandırılmadı",
-    scoreLabel: "Skor",
-    certShort: "sert.",
-    surveyShort: "anket",
-    noShowSuccess: (tagged: number, skipped: number) => `No-show taglama: ${tagged} etiketlendi, ${skipped} atlandı.`,
-    noShowError: "No-show taglama başarısız.",
-    csvSuccess: (created: number, updated: number, skipped: number, err?: string) =>
- `CSV import: ${created} yeni, ${updated} güncellendi, ${skipped} atlandı.${err ? ` Hata: ${err}` : ""}`,
-    csvError: "CSV import başarısız.",
-    hubSpotSaved: "HubSpot bağlantısı kaydedildi.",
-    hubSpotSaveError: "HubSpot kaydedilemedi.",
-    hubSpotTestSuccess: "HubSpot token testi başarılı.",
-    hubSpotTestError: "HubSpot token testi başarısız.",
-    hubSpotPushSuccess: (pushed: number, created: number, updated: number, failed: number) =>
- `HubSpot: ${pushed} gönderildi, ${created} yeni, ${updated} güncellendi, ${failed} hata.`,
-    hubSpotPushError: "HubSpot aktarımı başarısız.",
-    customFieldsError: "Özel alanlar geçerli JSON olmalı.",
-    priorityLow: "Düşük",
-    priorityNormal: "Normal",
-    priorityHigh: "Yüksek",
-    priorityUrgent: "Acil",
-    exportError: "CRM dışa aktarma başarısız.",
-    bulkEmailError: "Toplu e-posta gönderilemedi.",
-    bulkEmailSummary: (sent: number, skipped: number, failed: number) => `Gönderim: ${sent} gönderildi, ${skipped} atlandı, ${failed} başarısız.`,
-    mergeError: "CRM kaydı birleştirme başarısız.",
-    hubSpotTokenPlaceholder: "HubSpot özel uygulama tokeni",
-  } : {
-    eyebrow: "Event CRM",
-    title: "Participant CRM",
-    subtitle: "Manage organization-wide participant history, notes, tags, tickets, surveys, and credential timelines in one place.",
-    searchPlaceholder: "Search name or email...",
-    allStatuses: "All statuses",
-    tagPlaceholder: "Tag filter...",
-    search: "Search",
-    people: "People",
-    noMatches: "No matching participants found.",
-    attendee: "attendee",
-    selectPerson: "Select a participant",
-    detailHint: "Participant details, history, and metrics will appear here.",
-    save: "Save Changes",
-    attendance: "Attendance",
-    events: "Events",
-    info: "CRM Profile Details",
-    status: "Lifecycle Status",
-    tags: "Tags (Comma separated)",
-    priority: "Priority Level",
-    leadScore: "Lead Score (0-100)",
-    followUp: "Next Follow-up Date",
-    customFields: "Custom Fields (JSON)",
-    duplicates: "Possible Duplicates",
-    merge: "Merge Records",
-    selected: "selected",
-    selectAll: "Select All",
-    clearSelection: "Clear",
-    exportCsv: "Export CSV",
-    templateId: "Email Template",
-    sendEmail: "Send Email",
-    bulkEmailResult: "Result",
-    notes: "Internal Operation Notes",
-    notesPlaceholder: "Sales, support, or event notes for this participant...",
-    updated: "Last updated",
-    timeline: "Credential & Event Timeline",
-    emptyTimeline: "No timeline records yet.",
-    history: "Attended Events History",
-    registered: "Registered",
-    emailVerified: "Email Verified",
-    surveyDone: "Survey Complete",
-    checkinExists: "Checked In",
-    tickets: "tickets",
-    certificates: "certificates",
-    loadError: "Could not load CRM list.",
-    detailError: "Could not load participant details.",
-    saveError: "Could not save CRM notes.",
-    listView: "List",
-    kanbanView: "Kanban",
-    tagNoShows: "Tag No-Shows",
-    csvImport: "Import CSV",
-    hubSpotSave: "Save",
-    hubSpotTest: "Test",
-    hubSpotPush: "Push selected",
-    hubSpotConnected: "connected",
-    hubSpotNotConfigured: "not configured",
-    scoreLabel: "Score",
-    certShort: "certs",
-    surveyShort: "surveys",
-    noShowSuccess: (tagged: number, skipped: number) => `No-show tagging: ${tagged} tagged, ${skipped} skipped.`,
-    noShowError: "No-show tagging failed.",
-    csvSuccess: (created: number, updated: number, skipped: number, err?: string) =>
- `CSV import: ${created} new, ${updated} updated, ${skipped} skipped.${err ? ` Error: ${err}` : ""}`,
-    csvError: "CSV import failed.",
-    hubSpotSaved: "HubSpot connection saved.",
-    hubSpotSaveError: "Could not save HubSpot token.",
-    hubSpotTestSuccess: "HubSpot token test successful.",
-    hubSpotTestError: "HubSpot token test failed.",
-    hubSpotPushSuccess: (pushed: number, created: number, updated: number, failed: number) =>
- `HubSpot: ${pushed} pushed, ${created} created, ${updated} updated, ${failed} failed.`,
-    hubSpotPushError: "HubSpot push failed.",
-    customFieldsError: "Custom fields must be valid JSON.",
-    priorityLow: "Low",
-    priorityNormal: "Normal",
-    priorityHigh: "High",
-    priorityUrgent: "Urgent",
-    exportError: "CRM export failed.",
-    bulkEmailError: "CRM bulk email failed.",
-    bulkEmailSummary: (sent: number, skipped: number, failed: number) => `Result: ${sent} sent, ${skipped} skipped, ${failed} failed.`,
-    mergeError: "CRM merge failed.",
-    hubSpotTokenPlaceholder: "HubSpot private app token",
-  };
+  const copy = { eyebrow: translate(lang, "migrated_app_admin_crm_event_crm_6d1b119a"), title: translate(lang, "migrated_app_admin_crm_participant_crm_fdcf6122"), subtitle: translate(lang, "migrated_app_admin_crm_manage_organization_wide_participant_histo_84b1627b"), searchPlaceholder: translate(lang, "migrated_app_admin_crm_search_name_or_email_44b7bbe1"), allStatuses: translate(lang, "migrated_app_admin_crm_all_statuses_e4d384bd"), tagPlaceholder: translate(lang, "migrated_app_admin_crm_tag_filter_1338c399"), search: translate(lang, "migrated_app_admin_crm_search_e1242dc9"), people: translate(lang, "migrated_app_admin_crm_people_53a36ab3"), noMatches: translate(lang, "migrated_app_admin_crm_no_matching_participants_found_7304afdc"), attendee: translate(lang, "migrated_app_admin_crm_attendee_fd00bdfa"), selectPerson: translate(lang, "migrated_app_admin_crm_select_a_participant_45fa36fc"), detailHint: translate(lang, "migrated_app_admin_crm_participant_details_history_and_metrics_wi_a291edd4"), save: translate(lang, "migrated_app_admin_crm_save_changes_d4989288"), attendance: translate(lang, "migrated_app_admin_crm_attendance_c1d13e4e"), events: translate(lang, "migrated_app_admin_crm_events_e9303360"), info: translate(lang, "migrated_app_admin_crm_crm_profile_details_4ac7759a"), status: translate(lang, "migrated_app_admin_crm_lifecycle_status_31497e2c"), tags: translate(lang, "migrated_app_admin_crm_tags_comma_separated_414cb6e3"), priority: translate(lang, "migrated_app_admin_crm_priority_level_b989e81b"), leadScore: translate(lang, "migrated_app_admin_crm_lead_score_0_100_f9a69354"), followUp: translate(lang, "migrated_app_admin_crm_next_follow_up_date_eeba10d4"), customFields: translate(lang, "migrated_app_admin_crm_custom_fields_json_05589b7b"), duplicates: translate(lang, "migrated_app_admin_crm_possible_duplicates_e0139656"), merge: translate(lang, "migrated_app_admin_crm_merge_records_87ba5868"), selected: translate(lang, "migrated_app_admin_crm_selected_432ef4fe"), selectAll: translate(lang, "migrated_app_admin_crm_select_all_23c35fdd"), clearSelection: translate(lang, "migrated_app_admin_crm_clear_63c35abc"), exportCsv: translate(lang, "migrated_app_admin_crm_export_csv_7b42358d"), templateId: translate(lang, "migrated_app_admin_crm_email_template_ad7304e2"), sendEmail: translate(lang, "migrated_app_admin_crm_send_email_6ee2a99b"), bulkEmailResult: translate(lang, "migrated_app_admin_crm_result_014b6406"), notes: translate(lang, "migrated_app_admin_crm_internal_operation_notes_db105d61"), notesPlaceholder: translate(lang, "migrated_app_admin_crm_sales_support_or_event_notes_for_this_part_f57a8bd3"), updated: translate(lang, "migrated_app_admin_crm_last_updated_ab986d17"), timeline: translate(lang, "migrated_app_admin_crm_credential_event_timeline_1ca09367"), emptyTimeline: translate(lang, "migrated_app_admin_crm_no_timeline_records_yet_b2b739a7"), history: translate(lang, "migrated_app_admin_crm_attended_events_history_5086a60f"), registered: translate(lang, "migrated_app_admin_crm_registered_15480763"), emailVerified: translate(lang, "migrated_app_admin_crm_email_verified_3ae34649"), surveyDone: translate(lang, "migrated_app_admin_crm_survey_complete_735898a4"), checkinExists: translate(lang, "migrated_app_admin_crm_checked_in_f9e79b7b"), tickets: translate(lang, "migrated_app_admin_crm_tickets_1d6309fa"), certificates: translate(lang, "migrated_app_admin_crm_certificates_5e99a6df"), loadError: translate(lang, "migrated_app_admin_crm_could_not_load_crm_list_2db02e5d"), detailError: translate(lang, "migrated_app_admin_crm_could_not_load_participant_details_12b45c57"), saveError: translate(lang, "migrated_app_admin_crm_could_not_save_crm_notes_50904395"), listView: translate(lang, "migrated_app_admin_crm_list_83eb37d5"), kanbanView: translate(lang, "migrated_app_admin_crm_kanban_fb8326cd"), tagNoShows: translate(lang, "migrated_app_admin_crm_tag_no_shows_60df523f"), csvImport: translate(lang, "migrated_app_admin_crm_import_csv_d8e5832f"), hubSpotSave: translate(lang, "migrated_app_admin_crm_save_2811cc13"), hubSpotTest: translate(lang, "migrated_app_admin_crm_test_5c716500"), hubSpotPush: translate(lang, "migrated_app_admin_crm_push_selected_fd324462"), hubSpotConnected: translate(lang, "migrated_app_admin_crm_connected_d5f13020"), hubSpotNotConfigured: translate(lang, "migrated_app_admin_crm_not_configured_616b867c"), scoreLabel: translate(lang, "migrated_app_admin_crm_score_d2c4ec14"), certShort: translate(lang, "migrated_app_admin_crm_certs_fab3ecbd"), surveyShort: translate(lang, "migrated_app_admin_crm_surveys_ce24726c"), noShowSuccess: (tagged: number, skipped: number) => translate(lang, "migrated_app_admin_crm_no_show_tagging_value0_tagged_value1_skipp_8edc7b44", { value0: tagged, value1: skipped }), noShowError: translate(lang, "migrated_app_admin_crm_no_show_tagging_failed_9ecc443b"), csvSuccess: (created: number, updated: number, skipped: number, err?: string) => translate(lang, "migrated_app_admin_crm_csv_import_value0_new_value1_updated_value_3d68d651", { value0: created, value1: updated, value2: skipped, value3: err ? ` (${err})` : "" }), csvError: translate(lang, "migrated_app_admin_crm_csv_import_failed_f4ae16f8"), hubSpotSaved: translate(lang, "migrated_app_admin_crm_hubspot_connection_saved_29f072a4"), hubSpotSaveError: translate(lang, "migrated_app_admin_crm_could_not_save_hubspot_token_26d1fe36"), hubSpotTestSuccess: translate(lang, "migrated_app_admin_crm_hubspot_token_test_successful_84328590"), hubSpotTestError: translate(lang, "migrated_app_admin_crm_hubspot_token_test_failed_ad421cb0"), hubSpotPushSuccess: (pushed: number, created: number, updated: number, failed: number) => translate(lang, "migrated_app_admin_crm_hubspot_value0_pushed_value1_created_value_5b85d374", { value0: pushed, value1: created, value2: updated, value3: failed }), hubSpotPushError: translate(lang, "migrated_app_admin_crm_hubspot_push_failed_5170034a"), customFieldsError: translate(lang, "migrated_app_admin_crm_custom_fields_must_be_valid_json_65af5898"), priorityLow: translate(lang, "migrated_app_admin_crm_low_a0efe2f4"), priorityNormal: translate(lang, "migrated_app_admin_crm_normal_ec8305fc"), priorityHigh: translate(lang, "migrated_app_admin_crm_high_87429e7d"), priorityUrgent: translate(lang, "migrated_app_admin_crm_urgent_3b47e095"), exportError: translate(lang, "migrated_app_admin_crm_crm_export_failed_2f639a56"), bulkEmailError: translate(lang, "migrated_app_admin_crm_crm_bulk_email_failed_208d1e5c"), bulkEmailSummary: (sent: number, skipped: number, failed: number) => translate(lang, "migrated_app_admin_crm_result_value0_sent_value1_skipped_value2_f_a5622031", { value0: sent, value1: skipped, value2: failed }), mergeError: translate(lang, "migrated_app_admin_crm_crm_merge_failed_3928e1b3"), hubSpotTokenPlaceholder: translate(lang, "migrated_app_admin_crm_hubspot_private_app_token_69a68ccf") };
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
@@ -524,7 +362,7 @@ export default function AdminCrmPage() {
       try {
         customFields = customFieldsText.trim() ? JSON.parse(customFieldsText) : {};
       } catch {
-        setError(lang === "tr" ? "Özel alanlar geçerli JSON olmalı." : "Custom fields must be valid JSON.");
+        setError(translate(lang, "migrated_app_admin_crm_custom_fields_must_be_valid_json_9e63a0a9"));
         setSaving(false);
         return;
       }
@@ -566,7 +404,7 @@ export default function AdminCrmPage() {
   }, [query, status, tag]);
 
   return (
-    <FeatureGate requiredPlans={["enterprise"]} message={lang === "tr" ? "Event CRM Enterprise planına özeldir." : "Event CRM is available on the Enterprise plan."}>
+    <FeatureGate requiredPlans={["enterprise"]} message={translate(lang, "migrated_app_admin_crm_event_crm_is_available_on_the_enterprise_p_d06fd65c")}>
     <div className="w-full space-y-5 antialiased text-surface-900">
 
       {/* BAŞLIK GRUBU */}
@@ -783,8 +621,8 @@ export default function AdminCrmPage() {
                 value={bulkTemplateId ? Number(bulkTemplateId) : null}
                 onChange={(templateId) => setBulkTemplateId(templateId ? String(templateId) : "")}
                 label={copy.templateId}
-                placeholder={lang === "tr" ? "Şablon seçin..." : "Choose template..."}
-                emptyText={lang === "tr" ? "E-posta şablonu arayın." : "Search template."}
+                placeholder={translate(lang, "migrated_app_admin_crm_choose_template_fe58877f")}
+                emptyText={translate(lang, "migrated_app_admin_crm_search_template_46ccbdd9")}
               />
               <button
                 type="button"

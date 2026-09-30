@@ -7,20 +7,25 @@ import ImportAttendeeModal from "@/components/Admin/ImportAttendeeModal";
 import IssueCertificateModal from "@/components/Admin/IssueCertificateModal";
 import { StatCard } from "@/components/Admin/StatCard";
 import { apiFetch, getEventAccess } from "@/lib/api";
+import { translate } from "@/lib/i18n";
 import { pickLang } from "@/lib/pickLang";
 
 // "de" is a language the admin's legacy { tr, en } copy maps do not list. Before WP32
 // Phase 2 these components indexed those maps directly and crashed on `undefined`.
-vi.mock("@/lib/i18n", () => ({
-  useI18n: () => ({
-    lang: "de",
-    setLang: () => {},
-    t: (key: string) => key,
-    supportedLangs: ["tr", "en", "de"],
-    langLabels: {},
-  }),
-  useT: () => (key: string) => key,
-}));
+vi.mock("@/lib/i18n", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/i18n")>();
+  return {
+    ...actual,
+    useI18n: () => ({
+      lang: "de",
+      setLang: () => {},
+      t: (key: Parameters<typeof actual.translate>[1]) => actual.translate("de", key),
+      supportedLangs: ["tr", "en", "de"],
+      langLabels: {},
+    }),
+    useT: () => (key: Parameters<typeof actual.translate>[1]) => actual.translate("de", key),
+  };
+});
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/admin/events/7/attendees",
@@ -58,22 +63,22 @@ describe("pickLang", () => {
 });
 
 describe("admin components rendered in a third language", () => {
-  it("AddAttendeeModal shows its English copy instead of crashing", () => {
+  it("AddAttendeeModal shows its German catalog copy", () => {
     render(<AddAttendeeModal open onClose={() => {}} onAdded={() => {}} eventId={7} />);
-    expect(screen.getAllByText("Add Attendee").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(translate("de", "migrated_components_admin_addattendeemodal_add_attendee_9eb0c8fb")).length).toBeGreaterThan(0);
   });
 
-  it("ImportAttendeeModal shows its English copy instead of crashing", () => {
+  it("ImportAttendeeModal shows its German catalog copy", () => {
     render(<ImportAttendeeModal open onClose={() => {}} onImported={() => {}} eventId={7} />);
-    expect(screen.getByText("Import Excel / CSV")).toBeInTheDocument();
+    expect(screen.getByText(translate("de", "migrated_components_admin_importattendeemodal_import_excel_csv_34b914bf"))).toBeInTheDocument();
   });
 
-  it("IssueCertificateModal shows its English copy instead of crashing", () => {
+  it("IssueCertificateModal shows its German catalog copy", () => {
     render(<IssueCertificateModal open onClose={() => {}} onIssued={() => {}} eventId={7} templateReady />);
-    expect(screen.getAllByText("Issue Certificate").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(translate("de", "migrated_components_admin_issuecertificatemodal_issue_certificate_83c248f8")).length).toBeGreaterThan(0);
   });
 
-  it("EventAdminNav falls back to English tab labels instead of crashing", async () => {
+  it("EventAdminNav shows German tab labels", async () => {
     // Tabs only render once the event and the user's permissions have loaded.
     vi.mocked(apiFetch).mockResolvedValueOnce({
       json: async () => ({ id: 7, name: "Demo", certificate_enabled: true, checkin_enabled: true }),
@@ -83,8 +88,8 @@ describe("admin components rendered in a third language", () => {
     } as unknown as Awaited<ReturnType<typeof getEventAccess>>);
 
     render(<EventAdminNav eventId={7} forceVisible />);
-    expect((await screen.findAllByText("Attendees")).length).toBeGreaterThan(0);
-    expect(screen.queryByText("Katılımcılar")).not.toBeInTheDocument();
+    expect((await screen.findAllByText(translate("de", "admin_event_nav_attendees"))).length).toBeGreaterThan(0);
+    expect(screen.queryByText(translate("tr", "admin_event_nav_attendees"))).not.toBeInTheDocument();
   });
 
   it("StatCard formats numbers in the active language", () => {

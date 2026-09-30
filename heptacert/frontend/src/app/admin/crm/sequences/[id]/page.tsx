@@ -15,7 +15,7 @@ import {
   type SequenceOut, type SequenceEnrollmentOut,
 } from "@/lib/api";
 import EmailTemplateSelect from "@/components/Admin/EmailTemplateSelect";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 type StepForm = {
   step_order: number;
@@ -32,95 +32,7 @@ export default function SequenceDetailPage() {
   const router = useRouter();
   const seqId = Number(params.id);
   const { lang } = useI18n();
-  const copy = lang === "tr"
-    ? {
-        active: "Aktif",
-        inactive: "Pasif",
-        tabBuilder: "Yapılandır",
-        tabEnrollments: "Kayıtlar",
-        generalInfo: "Genel Bilgiler",
-        labelName: "İsim",
-        labelDescription: "Açıklama",
-        activeToggleLabel: "Aktif (e-postalar planlanmış zamanda gönderilsin)",
-        emailSteps: "E-posta Adımları",
-        noStepsYet: "Henüz adım yok. Aşağıdan ekleyin.",
-        stepLabel: "Adım",
-        delayAfterEnroll: "Kayıt sonrası",
-        delayAfterPrev: "Önceki adımdan",
-        delayWait: "bekle:",
-        delayDays: "gün",
-        emailTemplate: "E-posta Şablonu",
-        templatePlaceholder: "Şablon seçin...",
-        templateEmptyText: "Sistem şablonları listeleniyor",
-        subjectOverrideLabel: "Konu Geçersiz Kıl (opsiyonel)",
-        subjectOverridePlaceholder: "Boş bırakırsanız şablonun konusu kullanılır",
-        addStep: "Adım Ekle",
-        save: "Kaydet",
-        enrollSectionTitle: "E-posta Ekle",
-        enrollHint: "Virgül, noktalı virgül veya yeni satır ile birden fazla e-posta girebilirsiniz.",
-        enrollPlaceholder: "ornek@sirket.com, diger@sirket.com",
-        enrollButton: "Kayıt Et",
-        enrollInactiveWarning: "Kayıt eklemek için sequence aktif olmalı.",
-        filterActive: "Aktif",
-        filterCompleted: "Tamamlandı",
-        filterUnenrolled: "Çıktı",
-        emptyEnrollments: "Bu durumda kayıt yok.",
-        colEmail: "E-posta",
-        colStep: "Adım",
-        colNextSend: "Sonraki Gönderim",
-        unenrollButton: "Çıkar",
-        toastSaved: "Kaydedildi.",
-        toastSaveError: "Kayıt başarısız.",
-        toastUnenrolled: "Kayıt çıkarıldı.",
-        toastUnenrollError: "İşlem başarısız.",
-        toastEnrollError: "Kayıt başarısız.",
-        enrolledMsg: (enrolled: number, skipped: number) =>
- `${enrolled} kayıt eklendi, ${skipped} atlandı.`,
-      }
-    : {
-        active: "Active",
-        inactive: "Inactive",
-        tabBuilder: "Configure",
-        tabEnrollments: "Enrollments",
-        generalInfo: "General Info",
-        labelName: "Name",
-        labelDescription: "Description",
-        activeToggleLabel: "Active (emails will be sent at scheduled time)",
-        emailSteps: "Email Steps",
-        noStepsYet: "No steps yet. Add one below.",
-        stepLabel: "Step",
-        delayAfterEnroll: "After enrollment",
-        delayAfterPrev: "After previous step",
-        delayWait: "wait:",
-        delayDays: "days",
-        emailTemplate: "Email Template",
-        templatePlaceholder: "Select template...",
-        templateEmptyText: "Loading system templates",
-        subjectOverrideLabel: "Subject Override (optional)",
-        subjectOverridePlaceholder: "If left blank, the template subject is used",
-        addStep: "Add Step",
-        save: "Save",
-        enrollSectionTitle: "Add Emails",
-        enrollHint: "You can enter multiple emails separated by comma, semicolon, or newline.",
-        enrollPlaceholder: "example@company.com, other@company.com",
-        enrollButton: "Enroll",
-        enrollInactiveWarning: "Sequence must be active to add enrollments.",
-        filterActive: "Active",
-        filterCompleted: "Completed",
-        filterUnenrolled: "Unenrolled",
-        emptyEnrollments: "No enrollments in this state.",
-        colEmail: "Email",
-        colStep: "Step",
-        colNextSend: "Next Send",
-        unenrollButton: "Remove",
-        toastSaved: "Saved.",
-        toastSaveError: "Save failed.",
-        toastUnenrolled: "Enrollment removed.",
-        toastUnenrollError: "Operation failed.",
-        toastEnrollError: "Enrollment failed.",
-        enrolledMsg: (enrolled: number, skipped: number) =>
- `${enrolled} enrolled, ${skipped} skipped.`,
-      };
+  const copy = { active: translate(lang, "migrated_app_admin_crm_sequences_id_active_0db4d177"), inactive: translate(lang, "migrated_app_admin_crm_sequences_id_inactive_c0146bf4"), tabBuilder: translate(lang, "migrated_app_admin_crm_sequences_id_configure_3793c4e1"), tabEnrollments: translate(lang, "migrated_app_admin_crm_sequences_id_enrollments_af00e612"), generalInfo: translate(lang, "migrated_app_admin_crm_sequences_id_general_info_8960e3dc"), labelName: translate(lang, "migrated_app_admin_crm_sequences_id_name_9ce2107a"), labelDescription: translate(lang, "migrated_app_admin_crm_sequences_id_description_8779f54b"), activeToggleLabel: translate(lang, "migrated_app_admin_crm_sequences_id_active_emails_will_be_sent_at_scheduled_ti_4912b37c"), emailSteps: translate(lang, "migrated_app_admin_crm_sequences_id_email_steps_ac3a3e4a"), noStepsYet: translate(lang, "migrated_app_admin_crm_sequences_id_no_steps_yet_add_one_below_6dff66cd"), stepLabel: translate(lang, "migrated_app_admin_crm_sequences_id_step_1b9f0423"), delayAfterEnroll: translate(lang, "migrated_app_admin_crm_sequences_id_after_enrollment_072d7e61"), delayAfterPrev: translate(lang, "migrated_app_admin_crm_sequences_id_after_previous_step_4fd10b4f"), delayWait: translate(lang, "migrated_app_admin_crm_sequences_id_wait_ceb12019"), delayDays: translate(lang, "migrated_app_admin_crm_sequences_id_days_f62c0954"), emailTemplate: translate(lang, "migrated_app_admin_crm_sequences_id_email_template_5b95d607"), templatePlaceholder: translate(lang, "migrated_app_admin_crm_sequences_id_select_template_629eb338"), templateEmptyText: translate(lang, "migrated_app_admin_crm_sequences_id_loading_system_templates_3bcaf30f"), subjectOverrideLabel: translate(lang, "migrated_app_admin_crm_sequences_id_subject_override_optional_89ba4197"), subjectOverridePlaceholder: translate(lang, "migrated_app_admin_crm_sequences_id_if_left_blank_the_template_subject_is_used_0ecb2ac2"), addStep: translate(lang, "migrated_app_admin_crm_sequences_id_add_step_8ca78c65"), save: translate(lang, "migrated_app_admin_crm_sequences_id_save_ef914ee8"), enrollSectionTitle: translate(lang, "migrated_app_admin_crm_sequences_id_add_emails_6138023d"), enrollHint: translate(lang, "migrated_app_admin_crm_sequences_id_you_can_enter_multiple_emails_separated_by_a039a02e"), enrollPlaceholder: translate(lang, "migrated_app_admin_crm_sequences_id_example_company_com_other_company_com_b4ec6aa2"), enrollButton: translate(lang, "migrated_app_admin_crm_sequences_id_enroll_0de25d2c"), enrollInactiveWarning: translate(lang, "migrated_app_admin_crm_sequences_id_sequence_must_be_active_to_add_enrollments_c385e814"), filterActive: translate(lang, "migrated_app_admin_crm_sequences_id_active_81e27539"), filterCompleted: translate(lang, "migrated_app_admin_crm_sequences_id_completed_9f870e31"), filterUnenrolled: translate(lang, "migrated_app_admin_crm_sequences_id_unenrolled_ccca6a79"), emptyEnrollments: translate(lang, "migrated_app_admin_crm_sequences_id_no_enrollments_in_this_state_8dc0a079"), colEmail: translate(lang, "migrated_app_admin_crm_sequences_id_email_f789dc50"), colStep: translate(lang, "migrated_app_admin_crm_sequences_id_step_2191c94b"), colNextSend: translate(lang, "migrated_app_admin_crm_sequences_id_next_send_8b78c083"), unenrollButton: translate(lang, "migrated_app_admin_crm_sequences_id_remove_5b25e0fd"), toastSaved: translate(lang, "migrated_app_admin_crm_sequences_id_saved_cfed9029"), toastSaveError: translate(lang, "migrated_app_admin_crm_sequences_id_save_failed_9c268416"), toastUnenrolled: translate(lang, "migrated_app_admin_crm_sequences_id_enrollment_removed_72b00a18"), toastUnenrollError: translate(lang, "migrated_app_admin_crm_sequences_id_operation_failed_0aeceda7"), toastEnrollError: translate(lang, "migrated_app_admin_crm_sequences_id_enrollment_failed_5406fc1e"), enrolledMsg: (enrolled: number, skipped: number) => translate(lang, "migrated_app_admin_crm_sequences_id_value0_enrolled_value1_skipped_fba779b9", { value0: enrolled, value1: skipped }) };
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

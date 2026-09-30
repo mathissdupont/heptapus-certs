@@ -4,21 +4,13 @@ import PageHeader from "@/components/Admin/PageHeader";
 import { Wand2, MessageCircle, Sparkles } from "lucide-react";
 import AIAssistant from "@/components/Admin/AIAssistant";
 import Link from "next/link";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 import { useToast } from "@/hooks/useToast";
 
 export default function NewEventPage() {
   const { lang } = useI18n();
   const toast = useToast();
-  const copy = lang === "tr" ? {
-    title: "Yeni Etkinlik Oluştur",
-    subtitle: "AI destekli sihirbazla hızlıca bir etkinlik hazırlayın.",
-    back: "Etkinliklere Dön"
-  } : {
-    title: "Create New Event",
-    subtitle: "Use the AI-assisted wizard to scaffold an event quickly.",
-    back: "Back to Events"
-  };
+  const copy = { title: translate(lang, "migrated_app_admin_events_new_create_new_event_5d9abf09"), subtitle: translate(lang, "migrated_app_admin_events_new_use_the_ai_assisted_wizard_to_scaffold_an__d25a0980"), back: translate(lang, "migrated_app_admin_events_new_back_to_events_3fcd8606") };
 
   return (
     <div data-theme="light" className="flex flex-col gap-6 pb-20">
@@ -53,7 +45,7 @@ export default function NewEventPage() {
                 <button
                   className="btn-ghost"
                   onClick={() => {
-                    if (confirm(lang === "tr" ? "Konuşmayı temizlemek istediğine emin misin?" : "Clear the conversation?")) {
+                    if (confirm(translate(lang, "migrated_app_admin_events_new_clear_the_conversation_bfd0656a"))) {
                       try {
                         window.dispatchEvent(new CustomEvent("ai-assistant-clear"));
                       } catch {
@@ -100,7 +92,7 @@ export default function NewEventPage() {
                     try {
                       try { window.dispatchEvent(new CustomEvent("ai-assistant-insert", { detail: p })); } catch {}
                       await navigator.clipboard.writeText(p);
-                      toast.success(lang === "tr" ? "Komut eklendi ve kopyalandı — sohbet girişine yapıştırıldı." : "Prompt inserted and copied — paste into the chat input.");
+                      toast.success(translate(lang, "migrated_app_admin_events_new_prompt_inserted_and_copied_paste_into_the__3529d8e7"));
                     } catch {
                       alert(p);
                     }

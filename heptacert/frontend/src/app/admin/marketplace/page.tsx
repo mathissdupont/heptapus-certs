@@ -9,7 +9,7 @@ import {
   listMarketplaceCategories,
   updateMarketplaceSettings,
 } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 
 const CATEGORIES_TR = [
  "Bilgi Teknolojileri",
@@ -51,71 +51,9 @@ type EditState = {
 export default function AdminMarketplacePage() {
   const { lang } = useI18n();
   const copy =
-    lang === "tr"
-      ? {
-          pageTitle: "Marketplace Yönetimi",
-          pageSubtitle: "Etkinliklerinizi public marketplace kataloğunda listeleyin.",
-          viewMarketplace: "Marketplace'i Gör ↗",
-          closeError: "kapat",
-          modalTitle: "Marketplace Ayarları",
-          labelCategory: "Kategori",
-          selectPlaceholder: "Seçiniz…",
-          labelDescription: "Açıklama",
-          descriptionPlaceholder: "Program hakkında kısa açıklama…",
-          labelPrice: "Ücret (₺) — boş bırakın: Ücretsiz",
-          cancel: "İptal",
-          save: "Kaydet",
-          saving: "Kaydediliyor…",
-          emptyStateMain: "Marketplace'te listelenmiş program yok.",
-          emptyStateHint: "Etkinlik detay sayfasından \"Marketplace'te Listele\" seçeneğini aktif edin.",
-          colEvent: "Etkinlik",
-          colCategory: "Kategori",
-          colPrice: "Ücret",
-          colDate: "Tarih",
-          free: "Ücretsiz",
-          preview: "Önizle",
-          edit: "Düzenle",
-          unlist: "Listeden Kaldır",
-          tipTitle: "İpucu:",
-          tipBody: "Etkinliklerinizi marketplace'e eklemek için etkinlik düzenleme sayfasındaki \"Marketplace\" sekmesini kullanın.",
-          loading: "Yükleniyor…",
-          errorLoad: "Yüklenemedi",
-          errorSave: "Kaydedilemedi",
-          errorUnlist: "Güncelleme başarısız",
-        }
-      : {
-          pageTitle: "Marketplace Management",
-          pageSubtitle: "List your events in the public marketplace catalog.",
-          viewMarketplace: "View Marketplace ↗",
-          closeError: "close",
-          modalTitle: "Marketplace Settings",
-          labelCategory: "Category",
-          selectPlaceholder: "Select…",
-          labelDescription: "Description",
-          descriptionPlaceholder: "Brief description about the program…",
-          labelPrice: "Price (₺) — leave blank for: Free",
-          cancel: "Cancel",
-          save: "Save",
-          saving: "Saving…",
-          emptyStateMain: "No programs listed in the marketplace.",
-          emptyStateHint: "Enable the \"List in Marketplace\" option from the event detail page.",
-          colEvent: "Event",
-          colCategory: "Category",
-          colPrice: "Price",
-          colDate: "Date",
-          free: "Free",
-          preview: "Preview",
-          edit: "Edit",
-          unlist: "Remove from List",
-          tipTitle: "Tip:",
-          tipBody: "To add your events to the marketplace, use the \"Marketplace\" tab on the event editing page.",
-          loading: "Loading…",
-          errorLoad: "Could not load",
-          errorSave: "Could not save",
-          errorUnlist: "Update failed",
-        };
+    { pageTitle: translate(lang, "migrated_app_admin_marketplace_marketplace_management_9c6c8a17"), pageSubtitle: translate(lang, "migrated_app_admin_marketplace_list_your_events_in_the_public_marketplace_47172080"), viewMarketplace: translate(lang, "migrated_app_admin_marketplace_view_marketplace_eb7e8ed8"), closeError: translate(lang, "migrated_app_admin_marketplace_close_72014111"), modalTitle: translate(lang, "migrated_app_admin_marketplace_marketplace_settings_28f6d514"), labelCategory: translate(lang, "migrated_app_admin_marketplace_category_c36371b5"), selectPlaceholder: translate(lang, "migrated_app_admin_marketplace_select_76dcd196"), labelDescription: translate(lang, "migrated_app_admin_marketplace_description_a5d6599c"), descriptionPlaceholder: translate(lang, "migrated_app_admin_marketplace_brief_description_about_the_program_49dec452"), labelPrice: translate(lang, "migrated_app_admin_marketplace_price_leave_blank_for_free_37b0c508"), cancel: translate(lang, "migrated_app_admin_marketplace_cancel_8f8ee946"), save: translate(lang, "migrated_app_admin_marketplace_save_77c769e1"), saving: translate(lang, "migrated_app_admin_marketplace_saving_3b6cff28"), emptyStateMain: translate(lang, "migrated_app_admin_marketplace_no_programs_listed_in_the_marketplace_080f37bf"), emptyStateHint: translate(lang, "migrated_app_admin_marketplace_enable_the_list_in_marketplace_option_from_a49ac64d"), colEvent: translate(lang, "migrated_app_admin_marketplace_event_077e5872"), colCategory: translate(lang, "migrated_app_admin_marketplace_category_d7bae814"), colPrice: translate(lang, "migrated_app_admin_marketplace_price_b55bd4ea"), colDate: translate(lang, "migrated_app_admin_marketplace_date_c300dc6d"), free: translate(lang, "migrated_app_admin_marketplace_free_c65b9bb3"), preview: translate(lang, "migrated_app_admin_marketplace_preview_96809a67"), edit: translate(lang, "migrated_app_admin_marketplace_edit_c184931e"), unlist: translate(lang, "migrated_app_admin_marketplace_remove_from_list_2af3ce15"), tipTitle: translate(lang, "migrated_app_admin_marketplace_tip_c857ecdc"), tipBody: translate(lang, "migrated_app_admin_marketplace_to_add_your_events_to_the_marketplace_use__b7d1fb28"), loading: translate(lang, "migrated_app_admin_marketplace_loading_a45fe888"), errorLoad: translate(lang, "migrated_app_admin_marketplace_could_not_load_ca67db9a"), errorSave: translate(lang, "migrated_app_admin_marketplace_could_not_save_243f2993"), errorUnlist: translate(lang, "migrated_app_admin_marketplace_update_failed_8ca7146a") };
 
-  const categories = lang === "tr" ? CATEGORIES_TR : CATEGORIES_EN;
+  const categories = [translate(lang, "migrated_app_admin_marketplace_information_technology_fff94527"), translate(lang, "migrated_app_admin_marketplace_project_management_ed572d00"), translate(lang, "migrated_app_admin_marketplace_human_resources_161c479f"), translate(lang, "migrated_app_admin_marketplace_finance_accounting_30ac3456"), translate(lang, "migrated_app_admin_marketplace_marketing_6b40f571"), translate(lang, "migrated_app_admin_marketplace_sales_ed5e6ac9"), translate(lang, "migrated_app_admin_marketplace_production_quality_68d9bd77"), translate(lang, "migrated_app_admin_marketplace_health_safety_97910209"), translate(lang, "migrated_app_admin_marketplace_legal_compliance_ebe4a494"), translate(lang, "migrated_app_admin_marketplace_personal_development_7fbfb3a0"), translate(lang, "migrated_app_admin_marketplace_leadership_management_675a99f9"), translate(lang, "migrated_app_admin_marketplace_other_07e4eb7c")];
 
   const [listed, setListed] = useState<MarketplaceEventOut[]>([]);
   const [loading, setLoading] = useState(true);

@@ -20,7 +20,7 @@ import { apiFetch } from "@/lib/api";
 import PageHeader from "@/components/Admin/PageHeader";
 import ConfirmModal from "@/components/Admin/ConfirmModal";
 import EmptyState from "@/components/Admin/EmptyState";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, translate } from "@/lib/i18n";
 import { useToast } from "@/hooks/useToast";
 
 type OrgRow = {
@@ -60,87 +60,7 @@ export default function SuperadminOrgsPage() {
   const [domainActionId, setDomainActionId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
-  const copy = lang === "tr"
-    ? {
-        title: "Kurumlar",
-        subtitle: "White-label kurum yapılarını, özel domainleri ve marka görünümünü yönetin",
-        add: "Yeni kurum",
-        edit: "Kurumu düzenle",
-        create: "Kurum oluştur",
-        createSuccess: "Kurum oluşturuldu",
-        updateSuccess: "Kurum güncellendi",
-        deleteSuccess: "Kurum silindi",
-        loadFailed: "Kurumlar yüklenemedi",
-        saveFailed: "Kurum kaydedilemedi",
-        deleteFailed: "Kurum silinemedi",
-        domainApproveSuccess: "Domain onaylandı ve Caddy için aktif edildi",
-        domainRevokeSuccess: "Domain yayından kaldırıldı",
-        domainActionFailed: "Domain işlemi tamamlanamadı",
-        total: "Toplam kurum",
-        domains: "Özel domain",
-        branded: "Logo tanımlı",
-        latest: "Son eklenen",
-        orgName: "Kurum adı",
-        adminUserId: "Admin kullanıcı ID",
-        customDomain: "Özel domain",
-        logoUrl: "Logo URL",
-        brandColor: "Marka rengi",
-        cancel: "İptal",
-        save: "Kaydet",
-        emptyTitle: "Henüz kurum tanımlanmamış",
-        emptyBody: "Yeni bir kurum ekleyerek özel domain ve marka ayarlarını merkezi olarak yönetebilirsiniz.",
-        deleteTitle: "Kurumu sil",
-        deleteDescription: "Bu işlem geri alınamaz. Kurum kaydını kalıcı olarak silmek istediğinizden emin misiniz?",
-        noDomain: "Domain yok",
-        noLogo: "Logo yok",
-        domainStatus: "Domain durumu",
-        approveDomain: "Domaini onayla",
-        revokeDomain: "Yayından kaldır",
-        caddyReady: "Caddy hazır",
-        caddyWaiting: "Caddy bekliyor",
-        dnsTarget: "DNS hedefi",
-        verificationRecord: "Doğrulama kaydı",
-      }
-    : {
-        title: "Organizations",
-        subtitle: "Manage white-label organizations, custom domains, and brand appearance",
-        add: "New organization",
-        edit: "Edit organization",
-        create: "Create organization",
-        createSuccess: "Organization created",
-        updateSuccess: "Organization updated",
-        deleteSuccess: "Organization deleted",
-        loadFailed: "Failed to load organizations",
-        saveFailed: "Failed to save organization",
-        deleteFailed: "Failed to delete organization",
-        domainApproveSuccess: "Domain approved and enabled for Caddy",
-        domainRevokeSuccess: "Domain unpublished",
-        domainActionFailed: "Domain action failed",
-        total: "Organizations",
-        domains: "Custom domains",
-        branded: "With logo",
-        latest: "Latest added",
-        orgName: "Organization name",
-        adminUserId: "Admin user ID",
-        customDomain: "Custom domain",
-        logoUrl: "Logo URL",
-        brandColor: "Brand color",
-        cancel: "Cancel",
-        save: "Save",
-        emptyTitle: "No organizations yet",
-        emptyBody: "Create an organization to centrally manage custom domains and brand settings.",
-        deleteTitle: "Delete organization",
-        deleteDescription: "This action cannot be undone. Are you sure you want to permanently delete this organization?",
-        noDomain: "No domain",
-        noLogo: "No logo",
-        domainStatus: "Domain status",
-        approveDomain: "Approve domain",
-        revokeDomain: "Unpublish",
-        caddyReady: "Caddy ready",
-        caddyWaiting: "Waiting for Caddy",
-        dnsTarget: "DNS target",
-        verificationRecord: "Verification record",
-      };
+  const copy = { title: translate(lang, "migrated_app_admin_superadmin_orgs_organizations_77e91321"), subtitle: translate(lang, "migrated_app_admin_superadmin_orgs_manage_white_label_organizations_custom_do_8f464383"), add: translate(lang, "migrated_app_admin_superadmin_orgs_new_organization_3078082a"), edit: translate(lang, "migrated_app_admin_superadmin_orgs_edit_organization_00946dd2"), create: translate(lang, "migrated_app_admin_superadmin_orgs_create_organization_41be2641"), createSuccess: translate(lang, "migrated_app_admin_superadmin_orgs_organization_created_11f8dc7f"), updateSuccess: translate(lang, "migrated_app_admin_superadmin_orgs_organization_updated_489a5911"), deleteSuccess: translate(lang, "migrated_app_admin_superadmin_orgs_organization_deleted_775a459a"), loadFailed: translate(lang, "migrated_app_admin_superadmin_orgs_failed_to_load_organizations_e62cf1f2"), saveFailed: translate(lang, "migrated_app_admin_superadmin_orgs_failed_to_save_organization_e9d265da"), deleteFailed: translate(lang, "migrated_app_admin_superadmin_orgs_failed_to_delete_organization_60adb51d"), domainApproveSuccess: translate(lang, "migrated_app_admin_superadmin_orgs_domain_approved_and_enabled_for_caddy_8aeb8ecc"), domainRevokeSuccess: translate(lang, "migrated_app_admin_superadmin_orgs_domain_unpublished_3ee2ab42"), domainActionFailed: translate(lang, "migrated_app_admin_superadmin_orgs_domain_action_failed_c41324c7"), total: translate(lang, "migrated_app_admin_superadmin_orgs_organizations_6fecf032"), domains: translate(lang, "migrated_app_admin_superadmin_orgs_custom_domains_a386fc0f"), branded: translate(lang, "migrated_app_admin_superadmin_orgs_with_logo_f1f442e9"), latest: translate(lang, "migrated_app_admin_superadmin_orgs_latest_added_88fed689"), orgName: translate(lang, "migrated_app_admin_superadmin_orgs_organization_name_8939c3ac"), adminUserId: translate(lang, "migrated_app_admin_superadmin_orgs_admin_user_id_8473b4d2"), customDomain: translate(lang, "migrated_app_admin_superadmin_orgs_custom_domain_f04cc8b7"), logoUrl: translate(lang, "migrated_app_admin_superadmin_orgs_logo_url_d2cdb4a8"), brandColor: translate(lang, "migrated_app_admin_superadmin_orgs_brand_color_70aa4a11"), cancel: translate(lang, "migrated_app_admin_superadmin_orgs_cancel_57ff9be2"), save: translate(lang, "migrated_app_admin_superadmin_orgs_save_12b6843f"), emptyTitle: translate(lang, "migrated_app_admin_superadmin_orgs_no_organizations_yet_0411c59b"), emptyBody: translate(lang, "migrated_app_admin_superadmin_orgs_create_an_organization_to_centrally_manage_8f8ab06b"), deleteTitle: translate(lang, "migrated_app_admin_superadmin_orgs_delete_organization_18a80ed2"), deleteDescription: translate(lang, "migrated_app_admin_superadmin_orgs_this_action_cannot_be_undone_are_you_sure__a612c8a3"), noDomain: translate(lang, "migrated_app_admin_superadmin_orgs_no_domain_e27d56de"), noLogo: translate(lang, "migrated_app_admin_superadmin_orgs_no_logo_257b77e9"), domainStatus: translate(lang, "migrated_app_admin_superadmin_orgs_domain_status_54192b55"), approveDomain: translate(lang, "migrated_app_admin_superadmin_orgs_approve_domain_0fbfee0f"), revokeDomain: translate(lang, "migrated_app_admin_superadmin_orgs_unpublish_270edf28"), caddyReady: translate(lang, "migrated_app_admin_superadmin_orgs_caddy_ready_80ec4e18"), caddyWaiting: translate(lang, "migrated_app_admin_superadmin_orgs_waiting_for_caddy_daf68293"), dnsTarget: translate(lang, "migrated_app_admin_superadmin_orgs_dns_target_35d72403"), verificationRecord: translate(lang, "migrated_app_admin_superadmin_orgs_verification_record_61fa77e8") };
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -172,9 +92,9 @@ export default function SuperadminOrgsPage() {
     const withLogo = orgs.filter((org) => !!org.brand_logo).length;
     const latest = orgs[0];
     return [
-      { label: copy.total, value: orgs.length, detail: lang === "tr" ? "aktif yapı" : "active records" },
-      { label: copy.domains, value: withDomain, detail: lang === "tr" ? "bağlı domain" : "connected domains" },
-      { label: copy.branded, value: withLogo, detail: lang === "tr" ? "logo tanımlı" : "with uploaded logo" },
+      { label: copy.total, value: orgs.length, detail: translate(lang, "migrated_app_admin_superadmin_orgs_active_records_89f77d48") },
+      { label: copy.domains, value: withDomain, detail: translate(lang, "migrated_app_admin_superadmin_orgs_connected_domains_c362df31") },
+      { label: copy.branded, value: withLogo, detail: translate(lang, "migrated_app_admin_superadmin_orgs_with_uploaded_logo_487b9064") },
       { label: copy.latest, value: latest ? latest.org_name : "-", detail: latest ? new Date(latest.created_at).toLocaleDateString(localeTag(lang)) : "-" },
     ];
   }, [copy.branded, copy.domains, copy.latest, copy.total, lang, orgs]);
