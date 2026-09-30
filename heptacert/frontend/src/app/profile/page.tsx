@@ -9,7 +9,7 @@ import { normalizeExternalUrl } from "@/lib/url";
 import { useI18n } from "@/lib/i18n";
 
 export default function ProfilePage() {
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const copy = useMemo(
     () =>
       lang === "tr"
@@ -620,34 +620,34 @@ export default function ProfilePage() {
             {/* WALLET PREVIEW & ANALYTICS */}
             <section className="bg-raised  rounded-2xl border border-outline-subtle  shadow-sm overflow-hidden">
               <div className="px-6 py-5 border-b border-outline-subtle ">
-                <h2 className="text-lg font-bold text-content-primary ">{lang === "tr" ? "Cüzdan Önizleme ve Analitik" : "Wallet Preview & Analytics"}</h2>
+                <h2 className="text-lg font-bold text-content-primary ">{t("profile_wallet_title")}</h2>
                 <p className="text-sm text-content-muted  mt-1">
-                  {lang === "tr" ? "Sertifika cüzdanınızın public görünümünü ve paylaşım hareketlerini takip edin." : "Preview your public certificate wallet and track sharing actions."}
+                  {t("profile_wallet_description")}
                 </p>
               </div>
               <div className="p-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-content-primary ">{lang === "tr" ? "Public profil görünümü" : "Public profile preview"}</p>
+                    <p className="text-sm font-semibold text-content-primary ">{t("profile_public_preview")}</p>
                     <p className="mt-1 text-xs text-content-muted ">
                       {certificateVisibility === "private"
-                        ? (lang === "tr" ? "Sertifika cüzdanı şu an gizli." : "Your certificate wallet is currently private.")
-                        : (lang === "tr" ? "Başkalarının göreceği profil sayfasını kontrol edin." : "Check the profile page other people will see.")}
+                        ? t("profile_wallet_private")
+                        : t("profile_wallet_public_hint")}
                     </p>
                   </div>
                   {publicId && (
                     <Link href={`/member/${publicId}`} target="_blank" className="inline-flex items-center justify-center gap-2 rounded-lg border border-outline-subtle  px-4 py-2 text-sm font-semibold text-content-secondary  hover:bg-canvas ">
                       <Eye className="h-4 w-4" />
-                      {lang === "tr" ? "Önizle" : "Preview"}
+                      {t("profile_preview_action")}
                     </Link>
                   )}
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {[
-                    [lang === "tr" ? "Profil görüntüleme" : "Profile views", walletAnalytics?.profile_views ?? 0],
-                    [lang === "tr" ? "Sertifika görüntüleme" : "Certificate views", walletAnalytics?.certificate_views ?? 0],
+                    [t("profile_views"), walletAnalytics?.profile_views ?? 0],
+                    [t("profile_certificate_views"), walletAnalytics?.certificate_views ?? 0],
                     ["LinkedIn", walletAnalytics?.linkedin_clicks ?? 0],
-                    [lang === "tr" ? "CV dışa aktarım" : "CV exports", walletAnalytics?.cv_export_clicks ?? 0],
+                    [t("profile_cv_exports"), walletAnalytics?.cv_export_clicks ?? 0],
                   ].map(([label, value]) => (
                     <div key={String(label)} className="rounded-xl border border-outline-subtle  bg-canvas  p-3">
                       <p className="text-11 font-bold uppercase tracking-wider text-content-muted">{label}</p>
@@ -657,7 +657,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="mt-4 flex items-center gap-2 rounded-xl border border-status-info-border bg-status-info-bg px-4 py-3 text-xs font-semibold text-status-info-content ">
                   <BarChart3 className="h-4 w-4" />
-                  {lang === "tr" ? `${privacyAuditCount} gizlilik değişikliği audit kaydına işlendi.` : `${privacyAuditCount} privacy changes recorded in the audit log.`}
+                  {t("profile_privacy_audit_count", { count: privacyAuditCount })}
                 </div>
               </div>
             </section>

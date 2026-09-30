@@ -13,7 +13,7 @@ const CHARACTER_LIMIT = 4000;
 const WARNING_THRESHOLD = 0.9;
 
 export default function CreatePostPage() {
-  const { lang } = useI18n();
+  const { t } = useI18n();
   const router = useRouter();
 
   const [body, setBody] = useState("");
@@ -22,26 +22,26 @@ export default function CreatePostPage() {
   const [success, setSuccess] = useState(false);
 
   const copy = useMemo(() => ({
-    heading: lang === "tr" ? "Topluluk Gönderisi Oluştur" : "Create Community Post",
-    subtitle: lang === "tr" ? "Toplulukla ilginç içerikler, deneyimler ve fikirlerinizi paylaşın." : "Share interesting content, experiences, and ideas with the community.",
-    placeholder: lang === "tr" ? "Toplulukla neler paylaşmak istersin?" : "What would you like to share with the community?",
-    charCount: lang === "tr" ? "Karakter Sayısı" : "Character Count",
-    publish: lang === "tr" ? "Gönder" : "Publish",
-    publishing: lang === "tr" ? "Gönderiliyor..." : "Publishing...",
-    preview: lang === "tr" ? "Ön İzleme" : "Preview",
-    tips: lang === "tr" ? "İpuçları" : "Tips",
-    tip1: lang === "tr" ? "Açık ve samimi olun." : "Be clear and genuine.",
-    tip2: lang === "tr" ? "Topluluğa değer katın." : "Add value to the community.",
-    tip3: lang === "tr" ? "Profesyonel bir dil kullanın." : "Keep it professional.",
-    tip4: lang === "tr" ? "Faydalı bağlantılar paylaşın." : "Share useful links.",
-    postRequired: lang === "tr" ? "Lütfen bir gönderi yazın." : "Please write a post.",
-    postTooLong: lang === "tr" ? `Gönderi ${CHARACTER_LIMIT} karakteri geçemez.` : `Post must be under ${CHARACTER_LIMIT} characters.`,
-    successMessage: lang === "tr" ? "Gönderi başarıyla yayınlandı!" : "Post published successfully!",
-    errorMessage: lang === "tr" ? "Gönderi yayınlanırken hata oluştu." : "Failed to publish post.",
-    redirecting: lang === "tr" ? "Keşfet sayfasına yönlendiriliyorsunuz..." : "Redirecting to discover page...",
-    emptyMessage: lang === "tr" ? "İçeriğinizin ön izlemesi burada görünecek..." : "Your post preview will appear here...",
-    cancel: lang === "tr" ? "İptal" : "Cancel",
-  }), [lang]);
+    heading: t("post_create_heading"),
+    subtitle: t("post_create_subtitle"),
+    placeholder: t("post_create_placeholder"),
+    charCount: t("post_create_character_count"),
+    publish: t("post_create_publish"),
+    publishing: t("post_create_publishing"),
+    preview: t("post_create_preview"),
+    tips: t("post_create_tips"),
+    tip1: t("post_create_tip_clear"),
+    tip2: t("post_create_tip_value"),
+    tip3: t("post_create_tip_professional"),
+    tip4: t("post_create_tip_links"),
+    postRequired: t("post_create_required"),
+    postTooLong: t("post_create_too_long", { limit: CHARACTER_LIMIT }),
+    successMessage: t("post_create_success"),
+    errorMessage: t("post_create_error"),
+    redirecting: t("post_create_redirecting"),
+    emptyMessage: t("post_create_empty_preview"),
+    cancel: t("post_create_cancel"),
+  }), [t]);
 
   const charCount = body.length;
   const charPercentage = charCount / CHARACTER_LIMIT;

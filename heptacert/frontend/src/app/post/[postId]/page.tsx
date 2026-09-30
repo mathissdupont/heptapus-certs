@@ -30,7 +30,7 @@ import {
   type CommunityPostEditHistoryItem,
   type PublicMemberMe,
 } from "@/lib/api";
-import { useI18n, type Lang } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 
 function formatNumber(num: number): string {
   if (num >= 1000) {
@@ -39,22 +39,8 @@ function formatNumber(num: number): string {
   return num.toString();
 }
 
-function formatTimeAgo(dateString: string, lang: Lang) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return lang === "tr" ? "Az önce" : "Just now";
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return lang === "tr" ? `${diffInMinutes}d` : `${diffInMinutes}m`;
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return lang === "tr" ? `${diffInHours}s` : `${diffInHours}h`;
-  const diffInDays = Math.floor(diffInHours / 24);
-  return lang === "tr" ? `${diffInDays}g` : `${diffInDays}d`;
-}
-
 export default function PostDetailPage() {
-  const { lang } = useI18n();
+  const { t } = useI18n();
   const params = useParams();
   const postId = params.postId as string;
 
@@ -75,21 +61,31 @@ export default function PostDetailPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [editHistory, setEditHistory] = useState<CommunityPostEditHistoryItem[]>([]);
 
+  const formatTimeAgo = (dateString: string) => {
+    const diffInSeconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
+    if (diffInSeconds < 60) return t("public_hub_just_now");
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return t("public_hub_minutes_ago", { count: diffInMinutes });
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return t("public_hub_hours_ago", { count: diffInHours });
+    return t("public_hub_days_ago", { count: Math.floor(diffInHours / 24) });
+  };
+
   const copy = {
-    back: lang === "tr" ? "Geri" : "Back",
-    loading: lang === "tr" ? "Yükleniyor..." : "Loading...",
-    error: lang === "tr" ? "Gönderi yüklenemedi" : "Failed to load post",
-    noComments: lang === "tr" ? "Henüz yorum yok. İlk yorum yapan ol!" : "No comments yet. Be the first to comment!",
-    commentPlaceholder: lang === "tr" ? "Yorumunu yaz..." : "Write a comment...",
-    send: lang === "tr" ? "Gönder" : "Send",
-    loginRequired: lang === "tr" ? "Yorum yapmak için giriş yapın" : "Sign in to comment",
-    edit: lang === "tr" ? "Düzenle" : "Edit",
-    delete: lang === "tr" ? "Sil" : "Delete",
-    save: lang === "tr" ? "Kaydet" : "Save",
-    cancel: lang === "tr" ? "İptal" : "Cancel",
-    editHistory: lang === "tr" ? "Düzenleme Geçmişi" : "Edit History",
-    deleting: lang === "tr" ? "Siliniyor..." : "Deleting...",
-    confirmDelete: lang === "tr" ? "Bu gönderiyi silmek istediğine emin misin?" : "Are you sure you want to delete this post?",
+    back: t("onboarding_back"),
+    loading: t("migrated_components_admin_adminstate_loading_1cc7f473"),
+    error: t("public_hub_error"),
+    noComments: t("event_detail_no_comments"),
+    commentPlaceholder: t("feed_comment_placeholder"),
+    send: t("feed_comment_submit"),
+    loginRequired: t("feed_login_prompt"),
+    edit: t("cfp_edit"),
+    delete: t("events_delete"),
+    save: t("cfp_save"),
+    cancel: t("cfp_cancel"),
+    editHistory: t("post_detail_edit_history"),
+    deleting: t("post_detail_deleting"),
+    confirmDelete: t("post_detail_confirm_delete"),
   };
 
   const isOwner = !!(viewer && post && post.author_type === "member" && post.author_public_id === viewer.public_id);
@@ -132,7 +128,7 @@ export default function PostDetailPage() {
         } else if (err?.message && typeof err.message === 'string') {
           msg = err.message;
         } else if (err?.status === 404) {
-          msg = lang === "tr" ? "Gönderi bulunamadı" : "Post not found";
+          msg = t("post_detail_not_found");
         }
         setError(msg);
         setPost(null);
@@ -141,7 +137,7 @@ export default function PostDetailPage() {
         setLoading(false);
         setLoadingComments(false);
       });
-  }, [postId, lang, copy.error]);
+  }, [postId, copy.error, t]);
 
   const handleToggleLike = async () => {
     if (!post || !viewer) {
@@ -196,7 +192,7 @@ export default function PostDetailPage() {
       }
     } catch (err: any) {
       console.error("Error adding comment:", err);
-      alert(err?.message || "Yorum güncellenirken hata oluştu");
+      alert(err?.message || t("post_detail_comment_error"));
     } finally {
       setSubmitting(false);
     }
@@ -216,7 +212,7 @@ export default function PostDetailPage() {
       setPost(updated);
       setEditing(false);
     } catch (err: any) {
-      alert(err?.message || (lang === "tr" ? "Gönderi güncellenemedi" : "Failed to update post"));
+      alert(err?.message || t("post_detail_update_error"));
     } finally {
       setSavingEdit(false);
     }
@@ -230,7 +226,7 @@ export default function PostDetailPage() {
       await deleteCommunityPost(post.public_id);
       window.location.href = "/discover";
     } catch (err: any) {
-      alert(err?.message || (lang === "tr" ? "Gönderi silinemedi" : "Failed to delete post"));
+      alert(err?.message || t("post_detail_delete_error"));
       setDeletingPost(false);
     }
   };
@@ -325,7 +321,7 @@ export default function PostDetailPage() {
               <div className="flex items-center gap-1.5 text-sm text-content-muted mt-0.5">
                 <span>{post.organization_name || "Üye"}</span>
                 <span>•</span>
-                <span>{formatTimeAgo(post.created_at, lang)}</span>
+                <span>{formatTimeAgo(post.created_at)}</span>
               </div>
             </div>
             {isOwner && (
@@ -403,19 +399,19 @@ export default function PostDetailPage() {
               {historyLoading ? (
                 <div className="text-sm text-content-muted">{copy.loading}</div>
               ) : editHistory.length === 0 ? (
-                <div className="text-sm text-content-muted">{lang === "tr" ? "Henüz düzenleme yok" : "No edits yet"}</div>
+                <div className="text-sm text-content-muted">{t("post_detail_no_edits")}</div>
               ) : (
                 <div className="space-y-3">
                   {editHistory.map((item, idx) => (
                     <div key={`${item.edited_at}-${idx}`} className="rounded-md border border-outline-subtle bg-raised p-3">
-                      <div className="mb-2 text-xs text-content-muted">{formatTimeAgo(item.edited_at, lang)}</div>
+                      <div className="mb-2 text-xs text-content-muted">{formatTimeAgo(item.edited_at)}</div>
                       <div className="grid gap-2 md:grid-cols-2">
                         <div>
-                          <div className="mb-1 text-xs font-semibold text-content-secondary">{lang === "tr" ? "Eski" : "Old"}</div>
+                          <div className="mb-1 text-xs font-semibold text-content-secondary">{t("post_detail_old")}</div>
                           <p className="text-sm text-content-secondary whitespace-pre-wrap">{item.old_body}</p>
                         </div>
                         <div>
-                          <div className="mb-1 text-xs font-semibold text-content-secondary">{lang === "tr" ? "Yeni" : "New"}</div>
+                          <div className="mb-1 text-xs font-semibold text-content-secondary">{t("post_detail_new")}</div>
                           <p className="text-sm text-content-primary whitespace-pre-wrap">{item.new_body}</p>
                         </div>
                       </div>
@@ -453,7 +449,7 @@ export default function PostDetailPage() {
       <div className="bg-raised rounded-xl shadow-sm border border-outline-subtle overflow-hidden">
         <div className="border-b border-outline-subtle p-6">
           <h2 className="text-lg font-semibold text-content-primary mb-4">
-            {lang === "tr" ? "Yorumlar" : "Comments"}
+            {t("event_detail_comments_title")}
           </h2>
 
           {/* Comment Form */}
@@ -545,7 +541,7 @@ export default function PostDetailPage() {
                         {comment.member_name}
                       </p>
                       <span className="text-xs text-content-muted">
-                        {formatTimeAgo(comment.created_at, lang)}
+                        {formatTimeAgo(comment.created_at)}
                       </span>
                     </div>
                     <p className="mt-1 text-sm text-content-secondary leading-relaxed whitespace-pre-wrap">
