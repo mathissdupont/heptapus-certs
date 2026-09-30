@@ -64,6 +64,8 @@ interface I18nContextValue {
   langLabels: Record<Lang, string>;
 }
 
+export type Translator = I18nContextValue["t"];
+
 const I18nContext = createContext<I18nContextValue>({
   lang: DEFAULT_LANG,
   setLang: () => {},

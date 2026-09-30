@@ -1,10 +1,8 @@
-import { pickLang } from "@/lib/pickLang";
-import type { Lang } from "@/lib/i18n";
+import type { Translator } from "@/lib/i18n";
+import type { TranslationKey } from "@/locales/tr";
 // Organizasyon üyelik rolleri için okunabilir etiketler ve yetki yardımcıları.
 // Backend ham rol anahtarlarını (`venue_manager` vb.) döndürür; arayüzde bunları
 // olduğu gibi göstermek yerine bu modül üzerinden insancıl etikete çeviririz.
-
-export type OrgLang = Lang;
 
 export type OrgRoleContext = {
   id?: number;
@@ -13,21 +11,21 @@ export type OrgRoleContext = {
   permissions?: string[];
 };
 
-const ORG_ROLE_LABELS: Record<string, { tr: string; en: string }> = {
-  owner: { tr: "Sahibi", en: "Owner" },
-  manager: { tr: "Yönetici", en: "Manager" },
-  venue_manager: { tr: "Salon & Rezervasyon", en: "Venue & Reservations" },
-  event_manager: { tr: "Etkinlik Yöneticisi", en: "Event Manager" },
-  profile_manager: { tr: "Kurum Profili", en: "Org Profile" },
-  viewer: { tr: "Görüntüleyici", en: "Viewer" },
+const ORG_ROLE_LABELS: Record<string, TranslationKey> = {
+  owner: "org_role_owner",
+  manager: "org_role_manager",
+  venue_manager: "org_role_venue_manager",
+  event_manager: "org_role_event_manager",
+  profile_manager: "org_role_profile_manager",
+  viewer: "org_role_viewer",
 };
 
 /** Ham rol anahtarını okunabilir etikete çevirir. Bilinmeyen roller için
  *  snake_case → "Title Case" güvenli geri dönüşü uygular. */
-export function orgRoleLabel(role: string | undefined | null, lang: OrgLang): string {
-  if (!role) return lang === "tr" ? "Üye" : "Member";
-  const entry = ORG_ROLE_LABELS[role];
-  if (entry) return pickLang(entry, lang);
+export function orgRoleLabel(role: string | undefined | null, t: Translator): string {
+  if (!role) return t("org_role_member");
+  const key = ORG_ROLE_LABELS[role];
+  if (key) return t(key);
   return role
     .split(/[_\s]+/)
     .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))

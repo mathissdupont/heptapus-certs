@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import { apiFetch } from "@/lib/api";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -51,73 +50,40 @@ type DashboardStats = {
 };
 
 export default function DashboardPage() {
-  const { lang } = useI18n();
+  const { t } = useI18n();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [setupState, setSetupState] = useState<OrganizerOnboardingState | null>(null);
   const toast = useToast();
 
-  const copy = pickLang({
-    tr: {
-      title: "Dashboard",
-      subtitle: "Genel bakış ve hızlı erişim",
-      loadError: "İstatistikler yüklenemedi.",
-      totalEvents: "Toplam Etkinlik",
-      totalCertificates: "Toplam Sertifika",
-      activeCerts: "Aktif Sertifika",
-      activeRate: "Aktif Oran",
-      active: "Aktif",
-      revoked: "İptal",
-      expired: "Süresi Dolmuş",
-      expiredTitle: "Süresi Dolmuş Sertifikalar",
-      expiredBody: (count: number) =>
-        `${count} sertifikanın süresi dolmuş. Lütfen gözden geçirin.`,
-      reviewCertificates: "Sertifikaları İncele →",
-      certHealthTitle: "Sertifika Sağlığı",
-      recentEvents: "Son Etkinlikler",
-      noEvents: "Henüz etkinlik yok",
-      noEventsDesc:
-        "İlk etkinliğini oluşturun; sertifika ve katılımcı istatistikleri burada görünecek.",
-      eventFallback: (id: number) => `Etkinlik #${id}`,
-      eventsViewAll: "Tüm Etkinlikler",
-      newEvent: "Yeni Etkinlik",
-      emailCampaigns: "E-posta Kampanyaları",
-      quickActions: "Hızlı Erişim",
-      eventDetails: "Etkinlik Detayları",
-      certCount: "sertifika",
-      allHealthy: "Sertifika sağlığı temiz.",
-    },
-    en: {
-      title: "Dashboard",
-      subtitle: "Overview and quick access",
-      loadError: "Failed to load statistics.",
-      totalEvents: "Total Events",
-      totalCertificates: "Total Certificates",
-      activeCerts: "Active Certificates",
-      activeRate: "Active Rate",
-      active: "Active",
-      revoked: "Revoked",
-      expired: "Expired",
-      expiredTitle: "Expired Certificates",
-      expiredBody: (count: number) =>
-        `${count} certificates have expired. Please review them.`,
-      reviewCertificates: "Review Certificates →",
-      certHealthTitle: "Certificate Health",
-      recentEvents: "Recent Events",
-      noEvents: "No events yet",
-      noEventsDesc:
-        "Create your first event — certificate and attendee stats will appear here.",
-      eventFallback: (id: number) => `Event #${id}`,
-      eventsViewAll: "All Events",
-      newEvent: "New Event",
-      emailCampaigns: "Email Campaigns",
-      quickActions: "Quick Access",
-      eventDetails: "Event Details",
-      certCount: "certificates",
-      allHealthy: "Certificate health looks clean.",
-    },
-  }, lang);
+  const copy = {
+    title: t("admin_dashboard_title"),
+    subtitle: t("admin_dashboard_subtitle"),
+    loadError: t("admin_dashboard_load_error"),
+    totalEvents: t("admin_dashboard_total_events"),
+    totalCertificates: t("admin_dashboard_total_certificates"),
+    activeCerts: t("admin_dashboard_active_certificates"),
+    activeRate: t("admin_dashboard_active_rate"),
+    active: t("admin_dashboard_active"),
+    revoked: t("admin_dashboard_revoked"),
+    expired: t("admin_dashboard_expired"),
+    expiredTitle: t("admin_dashboard_expired_title"),
+    expiredBody: (count: number) => t("admin_dashboard_expired_body", { count }),
+    reviewCertificates: t("admin_dashboard_review_certificates"),
+    certHealthTitle: t("admin_dashboard_certificate_health"),
+    recentEvents: t("admin_dashboard_recent_events"),
+    noEvents: t("admin_dashboard_no_events"),
+    noEventsDesc: t("admin_dashboard_no_events_desc"),
+    eventFallback: (id: number) => t("admin_dashboard_event_fallback", { id }),
+    eventsViewAll: t("admin_dashboard_all_events"),
+    newEvent: t("admin_dashboard_new_event"),
+    emailCampaigns: t("admin_dashboard_email_campaigns"),
+    quickActions: t("admin_dashboard_quick_access"),
+    eventDetails: t("admin_dashboard_event_details"),
+    certCount: t("admin_dashboard_certificate_count"),
+    allHealthy: t("admin_dashboard_healthy"),
+  };
 
   useEffect(() => {
     (async () => {
@@ -150,7 +116,7 @@ export default function DashboardPage() {
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="w-full rounded-xl border border-surface-100 bg-white p-5 shadow-card animate-pulse"
+              className="w-full animate-pulse rounded-xl border border-surface-100 bg-raised p-5 shadow-card"
             >
               <div className="space-y-2.5">
                 <div className="h-2.5 w-16 rounded bg-surface-100" />
@@ -160,8 +126,8 @@ export default function DashboardPage() {
           ))}
         </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_300px]">
-          <div className="rounded-xl border border-surface-100 bg-white h-64 animate-pulse shadow-card" />
-          <div className="rounded-xl border border-surface-100 bg-white h-64 animate-pulse shadow-card" />
+          <div className="h-64 animate-pulse rounded-xl border border-surface-100 bg-raised shadow-card" />
+          <div className="h-64 animate-pulse rounded-xl border border-surface-100 bg-raised shadow-card" />
         </div>
       </div>
     );
@@ -246,7 +212,7 @@ export default function DashboardPage() {
           label={copy.activeCerts}
           value={stats.active_certs}
           icon={<CheckCircle2 className="h-4 w-4 stroke-[2]" />}
-          iconBg="bg-emerald-50 border border-emerald-100 text-emerald-600"
+          iconBg="border border-status-success-border bg-status-success-bg text-status-success-content"
           delay={0.08}
         />
         <StatCard
@@ -255,10 +221,10 @@ export default function DashboardPage() {
           icon={<TrendingUp className="h-4 w-4 stroke-[1.8]" />}
           iconBg={
             activePercent >= 90
-              ? "bg-emerald-50 border border-emerald-100 text-emerald-600"
+              ? "border border-status-success-border bg-status-success-bg text-status-success-content"
               : activePercent >= 70
-              ? "bg-amber-50 border border-amber-100 text-amber-600"
-              : "bg-red-50 border border-red-100 text-red-600"
+              ? "border border-status-warning-border bg-status-warning-bg text-status-warning-content"
+              : "border border-status-danger-border bg-status-danger-bg text-status-danger-content"
           }
           delay={0.12}
         />
@@ -301,7 +267,7 @@ export default function DashboardPage() {
               }
             />
           ) : (
-            <div className="flex flex-col divide-y divide-surface-100 overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
+            <div className="flex flex-col divide-y divide-surface-100 overflow-hidden rounded-xl border border-surface-200 bg-raised shadow-card">
               {normalizedEvents.slice(0, 6).map((ev, i) => (
                 <motion.div
                   key={ev.event_id}
@@ -317,12 +283,12 @@ export default function DashboardPage() {
                     <p className="mt-0.5 text-xs text-surface-400">
                       {ev.total} {copy.certCount}
                       {ev.active > 0 && (
-                        <span className="ml-2 text-emerald-600">
+                        <span className="ml-2 text-status-success-content">
                           · {ev.active} {copy.active.toLowerCase()}
                         </span>
                       )}
                       {ev.expired > 0 && (
-                        <span className="ml-2 text-amber-600">
+                        <span className="ml-2 text-status-warning-content">
                           · {ev.expired} {copy.expired.toLowerCase()}
                         </span>
                       )}
@@ -349,7 +315,7 @@ export default function DashboardPage() {
           className="flex flex-col gap-4"
         >
           {/* Quick Actions */}
-          <div className="rounded-xl border border-surface-200 bg-white shadow-card">
+          <div className="rounded-xl border border-surface-200 bg-raised shadow-card">
             <div className="border-b border-surface-100 px-4 py-3">
               <p className="text-11 font-semibold uppercase tracking-wider text-surface-400">
                 {copy.quickActions}
@@ -373,7 +339,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Certificate Health */}
-          <div className="rounded-xl border border-surface-200 bg-white shadow-card">
+          <div className="rounded-xl border border-surface-200 bg-raised shadow-card">
             <div className="border-b border-surface-100 px-4 py-3">
               <p className="text-11 font-semibold uppercase tracking-wider text-surface-400">
                 {copy.certHealthTitle}
@@ -402,21 +368,21 @@ export default function DashboardPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5 text-surface-500">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-status-success-content" />
                     {copy.active}
                   </span>
                   <span className="font-medium text-surface-700">{stats.active_certs}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5 text-surface-500">
-                    <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-status-danger-content" />
                     {copy.revoked}
                   </span>
                   <span className="font-medium text-surface-700">{stats.revoked_certs}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5 text-surface-500">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-status-warning-content" />
                     {copy.expired}
                   </span>
                   <span className="font-medium text-surface-700">{stats.expired_certs}</span>
@@ -455,9 +421,7 @@ export default function DashboardPage() {
               <div className="flex items-start gap-2.5">
                 <Clock className="h-4 w-4 shrink-0 text-surface-400 mt-0.5" />
                 <p className="text-xs leading-relaxed text-surface-500">
-                  {lang === "tr"
-                    ? "Sertifika süresi takibi için periyodik kontrol yapmanızı öneririz."
-                    : "We recommend periodic reviews to keep certificate statuses current."}
+                  {t("admin_dashboard_periodic_review")}
                 </p>
               </div>
             </div>

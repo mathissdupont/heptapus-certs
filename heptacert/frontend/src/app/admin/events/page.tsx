@@ -65,7 +65,7 @@ const EVENT_TYPE_OPTIONS: Array<{ value: EventType; label: { tr: string; en: str
 ];
 
 export default function AdminEvents() {
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const toast = useToast();
   const router = useRouter();
 
@@ -362,7 +362,7 @@ export default function AdminEvents() {
           >
             {organizationContexts.map((ctx) => {
               const manageable = canManageEvents(ctx);
-              const roleText = ctx.owned ? copy.ownOrg : orgRoleLabel(ctx.role, lang);
+              const roleText = ctx.owned ? copy.ownOrg : orgRoleLabel(ctx.role, t);
               return (
                 <option key={ctx.id} value={ctx.id} disabled={!manageable}>
                   {ctx.org_name} · {roleText}{manageable ? "" : ` — ${copy.noEventAccess}`}

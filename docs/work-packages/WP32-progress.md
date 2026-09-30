@@ -131,6 +131,25 @@ unauthenticated `/mcp` request → 401.
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
 
+### 2026-09-30 — admin shell and dashboard speak all nine languages
+
+- Replaced the admin shell/navigation and dashboard's legacy Turkish/English copy maps
+  with catalog keys translated in all nine languages. Navigation groups, role labels,
+  organization controls, running-job status, mobile navigation and every dashboard state
+  now follow the selected application language instead of silently falling back to
+  English.
+- Moved organization-role labels onto the same translator contract, so shared role names
+  no longer depend on a binary language helper. The German authenticated-language test
+  now also verifies admin navigation copy.
+- Completed the shell/dashboard dark-theme pass: raised surfaces and status roles replace
+  fixed white/light status colors, and the shell gradient/shadow now use semantic tokens.
+  The global theme toggle remains gated until the remaining surfaces are migrated.
+- Ratchets improved: legacy TR/EN branches **496 → 483** and light-only colors
+  **3333 → 3324**. Catalogs now contain **886 keys × 9**.
+- Next: migrate the remaining high-traffic admin event, attendee/certificate and e-mail
+  surfaces; then finish remaining admin/superadmin and public secondary surfaces before
+  removing the theme rollout gate.
+
 ### 2026-09-28 — styled language menu replaces native selects
 
 - The public `LanguageSwitcher` and the app/admin `LanguageToggle` both rendered a native

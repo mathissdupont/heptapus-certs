@@ -11,6 +11,7 @@ function LanguageProbe() {
       <LanguageToggle />
       <span data-testid="active-language">{lang}</span>
       <span data-testid="translated-copy">{t("nav_pricing")}</span>
+      <span data-testid="translated-admin-copy">{t("admin_nav_settings")}</span>
     </>
   );
 }
@@ -35,6 +36,7 @@ describe("authenticated language selection", () => {
     expect(within(listbox).getByRole("option", { selected: true })).toHaveTextContent("Deutsch");
     expect(screen.getByTestId("active-language")).toHaveTextContent("de");
     expect(screen.getByTestId("translated-copy")).toHaveTextContent("Preise");
+    expect(screen.getByTestId("translated-admin-copy")).toHaveTextContent("Einstellungen");
   });
 
   it("supports keyboard selection and closes on Escape", async () => {

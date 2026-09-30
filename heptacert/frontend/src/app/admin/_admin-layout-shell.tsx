@@ -1,6 +1,5 @@
 "use client";
 
-import { pickLang } from "@/lib/pickLang";
 import type { ReactNode } from "react";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -13,6 +12,7 @@ import AIAssistant from "@/components/Admin/AIAssistant";
 import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
 import CommandPalette from "@/components/Admin/CommandPalette";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import type { TranslationKey } from "@/locales/tr";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarCheck2,
@@ -43,7 +43,7 @@ import {
 type NavItem = {
   superadminOnly?: boolean;
   href: string;
-  label: { tr: string; en: string };
+  labelKey: TranslationKey;
   icon: React.ElementType;
   exact?: boolean;
   /** Sınırlı organizasyon rolleri (owner/manager dışı üyeler) yalnızca bu izne
@@ -55,7 +55,7 @@ type NavItem = {
 };
 
 type NavGroup = {
-  label: { tr: string; en: string };
+  labelKey: TranslationKey;
   items: NavItem[];
   /** If set, this group is hidden when the corresponding module is disabled */
   module?: keyof OrgModules;
@@ -84,24 +84,24 @@ const DEFAULT_MODULES: OrgModules = { events: true, lms: false, accreditation: t
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: { tr: "Genel", en: "General" },
+    labelKey: "admin_nav_general",
     items: [
-      { href: "/admin/dashboard", label: { tr: "Dashboard", en: "Dashboard" }, icon: Gauge, exact: true, alwaysVisible: true },
-      { href: "/admin/jobs", label: { tr: "İşler", en: "Jobs" }, icon: Loader2, exact: true },
+      { href: "/admin/dashboard", labelKey: "admin_mobile_dashboard", icon: Gauge, exact: true, alwaysVisible: true },
+      { href: "/admin/jobs", labelKey: "admin_nav_jobs", icon: Loader2, exact: true },
     ],
   },
   {
-    label: { tr: "Etkinlikler", en: "Events" },
+    labelKey: "nav_events",
     module: "events",
     items: [
-      { href: "/admin/events", label: { tr: "Etkinlikler", en: "Events" }, icon: CalendarCheck2, permission: "events:manage" },
+      { href: "/admin/events", labelKey: "nav_events", icon: CalendarCheck2, permission: "events:manage" },
     ],
   },
   {
-    label: { tr: "Salon & Rezervasyon", en: "Venues & Reservations" },
+    labelKey: "admin_nav_venues_reservations",
     items: [
-      { href: "/admin/venues", label: { tr: "Salonlar", en: "Venues" }, icon: Building2, permission: "venues:read" },
-      { href: "/admin/reservations", label: { tr: "Rezervasyonlar", en: "Reservations" }, icon: CalendarClock, permission: "reservations:read" },
+      { href: "/admin/venues", labelKey: "admin_nav_venues", icon: Building2, permission: "venues:read" },
+      { href: "/admin/reservations", labelKey: "admin_nav_reservations", icon: CalendarClock, permission: "reservations:read" },
     ],
   },
   // LMS sistemi devre disi birakildi — arsivlendi
@@ -122,50 +122,50 @@ const NAV_GROUPS: NavGroup[] = [
   //   ],
   // },
   {
-    label: { tr: "Akreditasyon", en: "Accreditation" },
+    labelKey: "admin_nav_accreditation",
     module: "accreditation",
     items: [
-      { href: "/admin/accreditation", label: { tr: "CPD / Akreditasyon", en: "CPD / Accreditation" }, icon: ChartNoAxesCombined },
+      { href: "/admin/accreditation", labelKey: "admin_nav_cpd_accreditation", icon: ChartNoAxesCombined },
     ],
   },
   {
-    label: { tr: "CRM & Satış", en: "CRM & Sales" },
+    labelKey: "admin_nav_crm_sales",
     module: "crm",
     enterpriseOnly: true,
     items: [
-      { href: "/admin/crm", label: { tr: "Katılımcı CRM", en: "Participant CRM" }, icon: UsersRound, exact: true },
-      { href: "/admin/crm/accounts", label: { tr: "Şirket Hesapları", en: "Accounts" }, icon: Building2 },
-      { href: "/admin/crm/sequences", label: { tr: "Sequence'lar", en: "Sequences" }, icon: Zap },
-      { href: "/admin/crm/pipeline", label: { tr: "Satış Pipeline", en: "Pipeline" }, icon: Briefcase },
-      { href: "/admin/lead-forms", label: { tr: "Lead Formları", en: "Lead Forms" }, icon: ClipboardList },
+      { href: "/admin/crm", labelKey: "admin_nav_participant_crm", icon: UsersRound, exact: true },
+      { href: "/admin/crm/accounts", labelKey: "admin_nav_accounts", icon: Building2 },
+      { href: "/admin/crm/sequences", labelKey: "admin_nav_sequences", icon: Zap },
+      { href: "/admin/crm/pipeline", labelKey: "admin_nav_pipeline", icon: Briefcase },
+      { href: "/admin/lead-forms", labelKey: "admin_nav_lead_forms", icon: ClipboardList },
     ],
   },
   {
-    label: { tr: "İletişim", en: "Communication" },
+    labelKey: "admin_nav_communication",
     items: [
-      { href: "/admin/email-dashboard", label: { tr: "Email Merkezi", en: "Email Center" }, icon: Mail },
-      { href: "/admin/email-analytics", label: { tr: "Email Analitik", en: "Email Analytics" }, icon: ChartNoAxesCombined },
-      { href: "/admin/assistant", label: { tr: "Asistan", en: "Assistant" }, icon: MessageCircle },
+      { href: "/admin/email-dashboard", labelKey: "admin_nav_email_center", icon: Mail },
+      { href: "/admin/email-analytics", labelKey: "admin_nav_email_analytics", icon: ChartNoAxesCombined },
+      { href: "/admin/assistant", labelKey: "admin_nav_assistant", icon: MessageCircle },
     ],
   },
   // "İçerik / Sunumlar" removed from the general nav: presentations now live under
   // each event (EventAdminNav → Sunumlar tab), so the top-level entry was redundant.
   {
-    label: { tr: "Analitik & Raporlar", en: "Analytics & Reports" },
+    labelKey: "admin_nav_analytics_reports",
     items: [
-      { href: "/admin/analytics", label: { tr: "Analitik", en: "Analytics" }, icon: BarChart3 },
-      { href: "/admin/reports", label: { tr: "Raporlar", en: "Reports" }, icon: FileText },
+      { href: "/admin/analytics", labelKey: "admin_nav_analytics", icon: BarChart3 },
+      { href: "/admin/reports", labelKey: "admin_nav_reports", icon: FileText },
     ],
   },
   {
-    label: { tr: "Platform", en: "Platform" },
+    labelKey: "admin_nav_platform",
     items: [
-      { href: "/admin/integrations", label: { tr: "Entegrasyonlar", en: "Integrations" }, icon: Plug, exact: true },
-      { href: "/admin/payments/transactions", label: { tr: "Ödemeler", en: "Payments" }, icon: CreditCard },
-      { href: "/admin/settings/api", label: { tr: "API Anahtarları", en: "API Keys" }, icon: KeyRound },
-      { href: "/admin/settings/sso", label: { tr: "SSO / OAuth2", en: "SSO / OAuth2" }, icon: Shield },
-      { href: "/admin/settings", label: { tr: "Ayarlar", en: "Settings" }, icon: Settings },
-      { href: "/admin/superadmin", label: { tr: "Super Admin", en: "Super Admin" }, icon: Shield, superadminOnly: true },
+      { href: "/admin/integrations", labelKey: "admin_nav_integrations", icon: Plug, exact: true },
+      { href: "/admin/payments/transactions", labelKey: "admin_nav_payments", icon: CreditCard },
+      { href: "/admin/settings/api", labelKey: "admin_nav_api_keys", icon: KeyRound },
+      { href: "/admin/settings/sso", labelKey: "admin_nav_sso", icon: Shield },
+      { href: "/admin/settings", labelKey: "admin_nav_settings", icon: Settings },
+      { href: "/admin/superadmin", labelKey: "admin_nav_superadmin", icon: Shield, superadminOnly: true },
     ],
   },
 ];
@@ -233,7 +233,7 @@ function SidebarContent({
 }) {
   const router = useRouter();
   const role = getRoleFromToken();
-  const { lang } = useI18n();
+  const { t } = useI18n();
 
   function handleLogout() {
     clearToken();
@@ -267,10 +267,10 @@ function SidebarContent({
 
       <nav className={`flex-1 space-y-5 overflow-y-auto py-4 ${collapsed ? "px-2" : "px-3"}`}>
         {visibleGroups.map((group) => (
-          <div key={group.label.en}>
+          <div key={group.labelKey}>
             {!collapsed && (
               <p className="mb-1.5 px-2 text-11 font-semibold uppercase tracking-wider text-surface-400">
-                {pickLang(group.label, lang)}
+                {t(group.labelKey)}
               </p>
             )}
             {collapsed && <div className="mb-1.5 border-t border-sidebar-border" />}
@@ -279,7 +279,7 @@ function SidebarContent({
                 .map((item) => {
                   const active = isActive(pathname, item);
                   const Icon = item.icon;
-                  const label = pickLang(item.label, lang);
+                  const label = t(item.labelKey);
                   if (collapsed) {
                     return (
                       <Link
@@ -290,7 +290,7 @@ function SidebarContent({
                         title={label}
                         className={`flex items-center justify-center rounded-lg p-2.5 transition-all ${
                           active
-                            ? "border border-surface-300 bg-white text-surface-900 shadow-soft"
+                            ? "border border-surface-300 bg-raised text-surface-900 shadow-soft"
                             : "text-surface-500 hover:bg-sidebar-hover hover:text-surface-900"
                         }`}
                       >
@@ -319,13 +319,13 @@ function SidebarContent({
       <div className={`border-t border-sidebar-border py-3 ${collapsed ? "px-2" : "px-3"}`}>
         <button
           onClick={handleLogout}
-          title={lang === "tr" ? "Çıkış Yap" : "Sign Out"}
-          className={`rounded-lg text-red-500 transition-all hover:bg-red-50 hover:text-red-700 ${
+          title={t("nav_sign_out")}
+          className={`rounded-lg text-status-danger-content transition-all hover:bg-status-danger-bg ${
             collapsed ? "flex w-full items-center justify-center p-2.5" : "sidebar-item w-full text-left"
           }`}
         >
           <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && (lang === "tr" ? "Çıkış Yap" : "Sign Out")}
+          {!collapsed && t("nav_sign_out")}
         </button>
       </div>
     </div>
@@ -361,7 +361,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   const [activeJobCount, setActiveJobCount] = useState(0);
   const [enterpriseEnabled, setEnterpriseEnabled] = useState(false);
   const currentSection = getCurrentSection(pathname);
-  const { lang } = useI18n();
+  const { t } = useI18n();
   const role = getRoleFromToken();
 
   // Aktif kurumdaki üyelik rolüne göre menü izinleri.
@@ -415,18 +415,15 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
     return base;
   }, [enterpriseEnabled, modules, role, navPermissions]);
 
-  const topbarText = useMemo(
-    () => ({
-      workspace: lang === "tr" ? "Admin Çalışma Alanı" : "Admin Workspace",
-      live: lang === "tr" ? "Canlı" : "Live",
-      openMenu: lang === "tr" ? "Menüyü Aç" : "Open menu",
-      expandMenu: lang === "tr" ? "Menüyü Genişlet" : "Expand menu",
-      collapseMenu: lang === "tr" ? "Menüyü Daralt" : "Collapse menu",
-      organization: lang === "tr" ? "Organizasyon" : "Organization",
-      ownOrg: lang === "tr" ? "kendi kurumum" : "own org",
-    }),
-    [lang]
-  );
+  const topbarText = {
+    workspace: t("admin_shell_workspace"),
+    live: t("admin_shell_live"),
+    openMenu: t("nav_menu_open"),
+    expandMenu: t("admin_shell_expand_menu"),
+    collapseMenu: t("admin_shell_collapse_menu"),
+    organization: t("admin_shell_organization"),
+    ownOrg: t("admin_shell_own_org"),
+  };
 
   useEffect(() => {
     setMobileOpen(false);
@@ -489,7 +486,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden bg-surface-50 text-surface-900">
       <aside
-        className={`hidden border-r border-sidebar-border bg-sidebar/95 shadow-[1px_0_0_rgba(231,229,224,0.55)] backdrop-blur transition-all duration-200 lg:flex lg:shrink-0 lg:flex-col ${
+        className={`hidden border-r border-sidebar-border bg-sidebar/95 shadow-soft backdrop-blur transition-all duration-200 lg:flex lg:shrink-0 lg:flex-col ${
           collapsed ? "lg:w-[64px]" : "lg:w-[240px]"
         }`}
       >
@@ -506,8 +503,8 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
       )}
 
       <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.74),rgba(250,250,249,0.42))]" />
-        <header className="relative z-20 flex shrink-0 items-center gap-3 border-b border-surface-200 bg-white/90 px-4 py-3 shadow-soft backdrop-blur lg:px-6">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-raised/70 to-canvas/40" />
+        <header className="relative z-20 flex shrink-0 items-center gap-3 border-b border-surface-200 bg-raised/90 px-4 py-3 shadow-soft backdrop-blur lg:px-6">
           <button
             onClick={() => setMobileOpen(true)}
             className="rounded-lg p-1.5 text-surface-600 hover:bg-surface-100 lg:hidden"
@@ -537,14 +534,14 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
             {activeJobCount > 0 && (
               <Link
                 href="/admin/jobs"
-                className="relative hidden sm:flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition hover:bg-blue-100"
+                className="relative hidden items-center gap-1.5 rounded-lg border border-status-info-border bg-status-info-bg px-2.5 py-1.5 text-xs font-semibold text-status-info-content shadow-sm transition hover:brightness-95 sm:flex"
               >
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>{activeJobCount} {lang === "tr" ? "iş devam ediyor" : "jobs running"}</span>
+                <span>{t("admin_shell_jobs_running", { count: activeJobCount })}</span>
               </Link>
             )}
             {organizationContexts.length > 1 && (
-              <label className="hidden min-w-[220px] max-w-[300px] items-center gap-2 rounded-lg border border-surface-200 bg-white px-2.5 py-1.5 shadow-sm md:flex">
+              <label className="hidden min-w-[220px] max-w-[300px] items-center gap-2 rounded-lg border border-surface-200 bg-raised px-2.5 py-1.5 shadow-sm md:flex">
                 <Building2 className="h-4 w-4 shrink-0 text-surface-400" />
                 <span className="sr-only">{topbarText.organization}</span>
                 <select
@@ -563,7 +560,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
                 >
                   {organizationContexts.map((ctx) => (
                     <option key={ctx.id} value={ctx.id}>
-                      {ctx.org_name} {ctx.owned ? `(${topbarText.ownOrg})` : `(${orgRoleLabel(ctx.role, lang)})`}
+                      {ctx.org_name} {ctx.owned ? `(${topbarText.ownOrg})` : `(${orgRoleLabel(ctx.role, t)})`}
                     </option>
                   ))}
                 </select>
@@ -599,7 +596,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
 
         <InAppTourGuide />
         <AIAssistant />
-        <nav className="mobile-bottom-nav" aria-label={lang === "tr" ? "Hızlı gezinti" : "Quick navigation"}>
+        <nav className="mobile-bottom-nav" aria-label={t("admin_mobile_nav_label")}>
           <div className="flex items-stretch gap-1">
             {mobileNavItems.map((item) => {
               const Icon = item.icon;
@@ -612,7 +609,7 @@ export function AdminLayoutShell({ children }: { children: ReactNode }) {
                   className={active ? "mobile-bottom-nav-item-active" : "mobile-bottom-nav-item"}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{pickLang(item.label, lang)}</span>
+                  <span className="truncate">{t(item.labelKey)}</span>
                 </Link>
               );
             })}
