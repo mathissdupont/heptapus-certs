@@ -132,13 +132,13 @@ export default function ProfilePage() {
   const [authError, setAuthError] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  
+
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [savingPrivacy, setSavingPrivacy] = useState(false);
-  
+
   const [hideFollowers, setHideFollowers] = useState(false);
   const [hideFollowing, setHideFollowing] = useState(false);
   const [certificateVisibility, setCertificateVisibility] = useState<"public" | "connections_only" | "private">("public");
@@ -359,25 +359,25 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] dark:bg-gray-950 flex flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
-        <p className="text-sm text-gray-500 font-medium">Yükleniyor...</p>
+      <div className="min-h-screen bg-canvas  flex flex-col items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-status-info-content mb-4" />
+        <p className="text-sm text-content-muted font-medium">Yükleniyor...</p>
       </div>
     );
   }
 
   if (authError) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] dark:bg-gray-950 flex items-center justify-center px-4">
-        <div className="w-full max-w-md rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 text-center shadow-sm">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 mb-6">
-            <Lock className="h-8 w-8 text-gray-400" />
+      <div className="min-h-screen bg-canvas  flex items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-2xl border border-outline-subtle  bg-raised  p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-canvas  border border-outline-subtle  mb-6">
+            <Lock className="h-8 w-8 text-content-muted" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{copy.loginRequiredTitle}</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">{copy.loginRequiredBody}</p>
-          <Link 
-            href="/login?mode=member" 
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-white px-4 py-3 text-sm font-semibold text-white dark:text-slate-900 transition-colors hover:bg-slate-800 dark:hover:bg-gray-100 shadow-sm"
+          <h1 className="text-xl font-bold text-content-primary  mb-2">{copy.loginRequiredTitle}</h1>
+          <p className="text-sm text-content-muted  mb-8">{copy.loginRequiredBody}</p>
+          <Link
+            href="/login?mode=member"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-inverse-surface  px-4 py-3 text-sm font-semibold text-white  transition-colors hover:bg-inverse-surface  shadow-sm"
           >
             {copy.loginCta}
             <ArrowRight className="h-4 w-4" />
@@ -388,23 +388,23 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] dark:bg-gray-950 pb-20">
-      
+    <div className="min-h-screen bg-canvas  pb-20">
+
       {/* Sticky Header */}
-      <div className="sticky top-0 z-30 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-6 py-4">
-        <div className="max-w-3xl mx-auto flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400">
+      <div className="sticky top-0 z-30 bg-raised/80  backdrop-blur-md border-b border-outline-subtle  px-6 py-4">
+        <div className="max-w-3xl mx-auto flex items-center gap-2 text-sm font-semibold text-content-muted ">
           <UserCircle2 className="h-4 w-4" />
           {copy.eyebrow}
         </div>
       </div>
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 pt-10">
-        
+
         <div className="mb-10">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-3">
+          <h1 className="text-3xl font-bold tracking-tight text-content-primary  mb-3">
             {copy.title}
           </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-content-secondary ">
             {copy.subtitle}
           </p>
         </div>
@@ -412,13 +412,13 @@ export default function ProfilePage() {
         {/* Global Notifications */}
         <div className="mb-8 space-y-3 empty:hidden">
           {error && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 dark:border-red-900/30 dark:bg-red-900/10 p-4 text-sm text-red-700 dark:text-red-400">
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 rounded-xl border border-status-danger-border bg-status-danger-bg   p-4 text-sm text-status-danger-content ">
               <ShieldAlert className="h-5 w-5 flex-shrink-0" />
               <p className="font-medium">{error}</p>
             </motion.div>
           )}
           {successMsg && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900/30 dark:bg-emerald-900/10 p-4 text-sm text-emerald-700 dark:text-emerald-400">
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 rounded-xl border border-status-success-border bg-status-success-bg   p-4 text-sm text-status-success-content ">
               <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
               <p className="font-medium">{successMsg}</p>
             </motion.div>
@@ -426,29 +426,29 @@ export default function ProfilePage() {
         </div>
 
         <div className="space-y-8">
-            
+
             {/* PROFILE SECTION */}
-            <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/20">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{copy.profileCard}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{copy.profileDesc}</p>
+            <section className="bg-raised  rounded-2xl border border-outline-subtle  shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-outline-subtle  bg-canvas/50 ">
+                <h2 className="text-lg font-bold text-content-primary ">{copy.profileCard}</h2>
+                <p className="text-sm text-content-muted  mt-1">{copy.profileDesc}</p>
               </div>
-              
+
               <form onSubmit={handleProfileSubmit} className="p-6">
                 {/* Avatar Row */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 mb-8 pb-8 border-b border-gray-100 dark:border-gray-800">
-                  <div className="h-20 w-20 flex-shrink-0 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 mb-8 pb-8 border-b border-outline-subtle ">
+                  <div className="h-20 w-20 flex-shrink-0 rounded-full bg-sunken  border border-outline-subtle  flex items-center justify-center overflow-hidden">
                     {avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
                     ) : (
-                      <UserCircle2 className="h-10 w-10 text-gray-400" />
+                      <UserCircle2 className="h-10 w-10 text-content-muted" />
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{copy.avatar}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-3">{copy.avatarHint}</p>
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                    <p className="text-sm font-semibold text-content-primary ">{copy.avatar}</p>
+                    <p className="text-xs text-content-muted  mt-1 mb-3">{copy.avatarHint}</p>
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-outline-subtle  bg-raised  px-4 py-2 text-sm font-medium text-content-secondary  hover:bg-canvas  transition-colors shadow-sm">
                       {uploadingAvatar ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                       Fotoğraf Değiştir
                       <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => void handleAvatarChange(e.target.files?.[0] || null)} disabled={uploadingAvatar} />
@@ -459,100 +459,100 @@ export default function ProfilePage() {
                 <div className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-gray-900 dark:text-white">{copy.displayName}</label>
-                      <input 
-                        type="text" 
-                        value={displayName} 
-                        onChange={(e) => setDisplayName(e.target.value)} 
-                        required 
-                        maxLength={120} 
-                        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                      <label className="block text-sm font-semibold text-content-primary ">{copy.displayName}</label>
+                      <input
+                        type="text"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        required
+                        maxLength={120}
+                        className="w-full rounded-lg border border-outline-strong  bg-raised  px-3 py-2 text-sm text-content-primary  focus:border-status-info-border focus:ring-1 focus:ring-status-info-border outline-none transition-colors"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-gray-900 dark:text-white">{copy.headline}</label>
-                      <input 
-                        type="text" 
-                        value={headline} 
-                        onChange={(e) => setHeadline(e.target.value)} 
-                        placeholder={copy.headlinePlaceholder} 
-                        maxLength={160} 
-                        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                      <label className="block text-sm font-semibold text-content-primary ">{copy.headline}</label>
+                      <input
+                        type="text"
+                        value={headline}
+                        onChange={(e) => setHeadline(e.target.value)}
+                        placeholder={copy.headlinePlaceholder}
+                        maxLength={160}
+                        className="w-full rounded-lg border border-outline-strong  bg-raised  px-3 py-2 text-sm text-content-primary  placeholder:text-content-muted focus:border-status-info-border focus:ring-1 focus:ring-status-info-border outline-none transition-colors"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">{copy.email}</label>
-                    <input 
-                      type="email" 
-                      value={email} 
-                      disabled 
-                      className="w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 px-3 py-2 text-sm text-gray-500 cursor-not-allowed"
+                    <label className="block text-sm font-semibold text-content-secondary ">{copy.email}</label>
+                    <input
+                      type="email"
+                      value={email}
+                      disabled
+                      className="w-full rounded-lg border border-outline-subtle  bg-canvas  px-3 py-2 text-sm text-content-muted cursor-not-allowed"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-900 dark:text-white">{copy.contactEmail}</label>
+                    <label className="block text-sm font-semibold text-content-primary ">{copy.contactEmail}</label>
                     <input
                       type="email"
                       value={contactEmail}
                       onChange={(e) => setContactEmail(e.target.value)}
                       placeholder={copy.contactEmailPlaceholder}
                       maxLength={320}
-                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                      className="w-full rounded-lg border border-outline-strong  bg-raised  px-3 py-2 text-sm text-content-primary  placeholder:text-content-muted focus:border-status-info-border focus:ring-1 focus:ring-status-info-border outline-none transition-colors"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-gray-900 dark:text-white">{copy.location}</label>
+                      <label className="block text-sm font-semibold text-content-primary ">{copy.location}</label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input 
-                          type="text" 
-                          value={location} 
-                          onChange={(e) => setLocation(e.target.value)} 
-                          placeholder={copy.locationPlaceholder} 
-                          maxLength={160} 
-                          className="w-full pl-9 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-content-muted" />
+                        <input
+                          type="text"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          placeholder={copy.locationPlaceholder}
+                          maxLength={160}
+                          className="w-full pl-9 rounded-lg border border-outline-strong  bg-raised  px-3 py-2 text-sm text-content-primary  placeholder:text-content-muted focus:border-status-info-border focus:ring-1 focus:ring-status-info-border outline-none transition-colors"
                         />
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <label className="block text-sm font-semibold text-gray-900 dark:text-white">{copy.website}</label>
+                      <label className="block text-sm font-semibold text-content-primary ">{copy.website}</label>
                       <div className="relative">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input 
-                          type="url" 
-                          value={websiteUrl} 
-                          onChange={(e) => setWebsiteUrl(e.target.value)} 
-                          placeholder={copy.websitePlaceholder} 
-                          maxLength={2000} 
-                          className="w-full pl-9 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-content-muted" />
+                        <input
+                          type="url"
+                          value={websiteUrl}
+                          onChange={(e) => setWebsiteUrl(e.target.value)}
+                          placeholder={copy.websitePlaceholder}
+                          maxLength={2000}
+                          className="w-full pl-9 rounded-lg border border-outline-strong  bg-raised  px-3 py-2 text-sm text-content-primary  placeholder:text-content-muted focus:border-status-info-border focus:ring-1 focus:ring-status-info-border outline-none transition-colors"
                         />
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-900 dark:text-white">{copy.bio}</label>
-                    <textarea 
-                      value={bio} 
-                      onChange={(e) => setBio(e.target.value)} 
-                      placeholder={copy.bioPlaceholder} 
-                      maxLength={1000} 
+                    <label className="block text-sm font-semibold text-content-primary ">{copy.bio}</label>
+                    <textarea
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder={copy.bioPlaceholder}
+                      maxLength={1000}
                       rows={4}
-                      className="w-full resize-y rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                      className="w-full resize-y rounded-lg border border-outline-strong  bg-raised  px-3 py-2 text-sm text-content-primary  placeholder:text-content-muted focus:border-status-info-border focus:ring-1 focus:ring-status-info-border outline-none transition-colors"
                     />
                   </div>
                 </div>
 
                 <div className="mt-8 flex justify-end">
-                  <button 
-                    type="submit" 
-                    disabled={savingProfile} 
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-white px-5 py-2.5 text-sm font-semibold text-white dark:text-slate-900 transition-colors hover:bg-slate-800 dark:hover:bg-gray-100 disabled:opacity-50 w-full sm:w-auto shadow-sm"
+                  <button
+                    type="submit"
+                    disabled={savingProfile}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-inverse-surface  px-5 py-2.5 text-sm font-semibold text-white  transition-colors hover:bg-inverse-surface  disabled:opacity-50 w-full sm:w-auto shadow-sm"
                   >
                     {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     {savingProfile ? copy.savingProfile : copy.saveProfile}
@@ -562,40 +562,40 @@ export default function ProfilePage() {
             </section>
 
             {/* PRIVACY SETTINGS */}
-            <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{copy.privacyCard}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{copy.privacyDesc}</p>
+            <section className="bg-raised  rounded-2xl border border-outline-subtle  shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-outline-subtle ">
+                <h2 className="text-lg font-bold text-content-primary ">{copy.privacyCard}</h2>
+                <p className="text-sm text-content-muted  mt-1">{copy.privacyDesc}</p>
               </div>
               <form onSubmit={handlePrivacySubmit} className="p-6">
                 <div className="space-y-3">
-                  <label className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{copy.hideFollowers}</span>
-                    <input 
-                      type="checkbox" 
-                      checked={hideFollowers} 
-                      onChange={(e) => setHideFollowers(e.target.checked)} 
-                      className="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900" 
+                  <label className="flex items-center justify-between rounded-xl border border-outline-subtle  p-4 cursor-pointer hover:bg-canvas  transition-colors">
+                    <span className="text-sm font-medium text-content-primary ">{copy.hideFollowers}</span>
+                    <input
+                      type="checkbox"
+                      checked={hideFollowers}
+                      onChange={(e) => setHideFollowers(e.target.checked)}
+                      className="h-4 w-4 rounded border-outline-strong text-content-primary focus:ring-outline-strong"
                     />
                   </label>
-                  <label className="flex items-center justify-between rounded-xl border border-gray-200 dark:border-gray-700 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{copy.hideFollowing}</span>
-                    <input 
-                      type="checkbox" 
-                      checked={hideFollowing} 
-                      onChange={(e) => setHideFollowing(e.target.checked)} 
-                      className="h-4 w-4 rounded border-gray-300 text-slate-900 focus:ring-slate-900" 
+                  <label className="flex items-center justify-between rounded-xl border border-outline-subtle  p-4 cursor-pointer hover:bg-canvas  transition-colors">
+                    <span className="text-sm font-medium text-content-primary ">{copy.hideFollowing}</span>
+                    <input
+                      type="checkbox"
+                      checked={hideFollowing}
+                      onChange={(e) => setHideFollowing(e.target.checked)}
+                      className="h-4 w-4 rounded border-outline-strong text-content-primary focus:ring-outline-strong"
                     />
                   </label>
-                  <label className="block rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{copy.certificateVisibility}</span>
+                  <label className="block rounded-xl border border-outline-subtle  p-4">
+                    <span className="text-sm font-medium text-content-primary ">{copy.certificateVisibility}</span>
                     <select
                       value={certificateVisibility}
                       onChange={(e) => {
                         const value = e.target.value as "public" | "connections_only" | "private";
                         setCertificateVisibility(value);
                       }}
-                      className="mt-3 w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      className="mt-3 w-full rounded-lg border border-outline-strong  bg-raised  px-3 py-2 text-sm text-content-primary  outline-none focus:border-status-info-border focus:ring-1 focus:ring-status-info-border"
                     >
                       <option value="public">{copy.certificatePublic}</option>
                       <option value="connections_only">{copy.certificateConnections}</option>
@@ -603,12 +603,12 @@ export default function ProfilePage() {
                     </select>
                   </label>
                 </div>
-                <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">{copy.privacyHint}</p>
+                <p className="mt-4 text-xs text-content-muted ">{copy.privacyHint}</p>
                 <div className="mt-6 flex justify-end">
-                  <button 
-                    type="submit" 
-                    disabled={savingPrivacy} 
-                    className="inline-flex items-center justify-center rounded-lg bg-slate-900 dark:bg-white px-5 py-2.5 text-sm font-semibold text-white dark:text-slate-900 transition-colors hover:bg-slate-800 dark:hover:bg-gray-100 disabled:opacity-50 w-full sm:w-auto shadow-sm"
+                  <button
+                    type="submit"
+                    disabled={savingPrivacy}
+                    className="inline-flex items-center justify-center rounded-lg bg-inverse-surface  px-5 py-2.5 text-sm font-semibold text-white  transition-colors hover:bg-inverse-surface  disabled:opacity-50 w-full sm:w-auto shadow-sm"
                   >
                     {savingPrivacy ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                     {savingPrivacy ? copy.savingPrivacy : copy.savePrivacy}
@@ -618,25 +618,25 @@ export default function ProfilePage() {
             </section>
 
             {/* WALLET PREVIEW & ANALYTICS */}
-            <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{lang === "tr" ? "Cüzdan Önizleme ve Analitik" : "Wallet Preview & Analytics"}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <section className="bg-raised  rounded-2xl border border-outline-subtle  shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-outline-subtle ">
+                <h2 className="text-lg font-bold text-content-primary ">{lang === "tr" ? "Cüzdan Önizleme ve Analitik" : "Wallet Preview & Analytics"}</h2>
+                <p className="text-sm text-content-muted  mt-1">
                   {lang === "tr" ? "Sertifika cüzdanınızın public görünümünü ve paylaşım hareketlerini takip edin." : "Preview your public certificate wallet and track sharing actions."}
                 </p>
               </div>
               <div className="p-6">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{lang === "tr" ? "Public profil görünümü" : "Public profile preview"}</p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-semibold text-content-primary ">{lang === "tr" ? "Public profil görünümü" : "Public profile preview"}</p>
+                    <p className="mt-1 text-xs text-content-muted ">
                       {certificateVisibility === "private"
                         ? (lang === "tr" ? "Sertifika cüzdanı şu an gizli." : "Your certificate wallet is currently private.")
                         : (lang === "tr" ? "Başkalarının göreceği profil sayfasını kontrol edin." : "Check the profile page other people will see.")}
                     </p>
                   </div>
                   {publicId && (
-                    <Link href={`/member/${publicId}`} target="_blank" className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <Link href={`/member/${publicId}`} target="_blank" className="inline-flex items-center justify-center gap-2 rounded-lg border border-outline-subtle  px-4 py-2 text-sm font-semibold text-content-secondary  hover:bg-canvas ">
                       <Eye className="h-4 w-4" />
                       {lang === "tr" ? "Önizle" : "Preview"}
                     </Link>
@@ -649,13 +649,13 @@ export default function ProfilePage() {
                     ["LinkedIn", walletAnalytics?.linkedin_clicks ?? 0],
                     [lang === "tr" ? "CV dışa aktarım" : "CV exports", walletAnalytics?.cv_export_clicks ?? 0],
                   ].map(([label, value]) => (
-                    <div key={String(label)} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-3">
-                      <p className="text-11 font-bold uppercase tracking-wider text-gray-500">{label}</p>
-                      <p className="mt-1 text-lg font-black text-gray-900 dark:text-white">{value}</p>
+                    <div key={String(label)} className="rounded-xl border border-outline-subtle  bg-canvas  p-3">
+                      <p className="text-11 font-bold uppercase tracking-wider text-content-muted">{label}</p>
+                      <p className="mt-1 text-lg font-black text-content-primary ">{value}</p>
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-800 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-200">
+                <div className="mt-4 flex items-center gap-2 rounded-xl border border-status-info-border bg-status-info-bg px-4 py-3 text-xs font-semibold text-status-info-content ">
                   <BarChart3 className="h-4 w-4" />
                   {lang === "tr" ? `${privacyAuditCount} gizlilik değişikliği audit kaydına işlendi.` : `${privacyAuditCount} privacy changes recorded in the audit log.`}
                 </div>
@@ -663,26 +663,26 @@ export default function ProfilePage() {
             </section>
 
             {/* PASSWORD & SECURITY */}
-            <section className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{copy.passwordCard}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{copy.passwordDesc}</p>
+            <section className="bg-raised  rounded-2xl border border-outline-subtle  shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-outline-subtle ">
+                <h2 className="text-lg font-bold text-content-primary ">{copy.passwordCard}</h2>
+                <p className="text-sm text-content-muted  mt-1">{copy.passwordDesc}</p>
               </div>
               <form onSubmit={handlePasswordSubmit} className="p-6 space-y-5">
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold text-gray-900 dark:text-white">{copy.currentPassword}</label>
+                  <label className="block text-sm font-semibold text-content-primary ">{copy.currentPassword}</label>
                   <input
                     type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     required
                     autoComplete="current-password"
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                    className="w-full rounded-lg border border-outline-strong  bg-raised  px-3 py-2 text-sm text-content-primary  focus:border-status-info-border focus:ring-1 focus:ring-status-info-border outline-none transition-colors"
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-900 dark:text-white">{copy.newPassword}</label>
+                    <label className="block text-sm font-semibold text-content-primary ">{copy.newPassword}</label>
                     <input
                       type="password"
                       value={newPassword}
@@ -691,11 +691,11 @@ export default function ProfilePage() {
                       minLength={8}
                       autoComplete="new-password"
                       placeholder={copy.passwordPlaceholder}
-                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                      className="w-full rounded-lg border border-outline-strong  bg-raised  px-3 py-2 text-sm text-content-primary  placeholder:text-content-muted focus:border-status-info-border focus:ring-1 focus:ring-status-info-border outline-none transition-colors"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-900 dark:text-white">{copy.confirmPassword}</label>
+                    <label className="block text-sm font-semibold text-content-primary ">{copy.confirmPassword}</label>
                     <input
                       type="password"
                       value={confirmPassword}
@@ -704,15 +704,15 @@ export default function ProfilePage() {
                       minLength={8}
                       autoComplete="new-password"
                       placeholder={copy.passwordPlaceholder}
-                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors"
+                      className="w-full rounded-lg border border-outline-strong  bg-raised  px-3 py-2 text-sm text-content-primary  placeholder:text-content-muted focus:border-status-info-border focus:ring-1 focus:ring-status-info-border outline-none transition-colors"
                     />
                   </div>
                 </div>
                 <div className="mt-8 flex justify-end">
-                  <button 
-                    type="submit" 
-                    disabled={savingPassword} 
-                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 dark:bg-white px-5 py-2.5 text-sm font-semibold text-white dark:text-slate-900 transition-colors hover:bg-slate-800 dark:hover:bg-gray-100 disabled:opacity-50 w-full sm:w-auto shadow-sm"
+                  <button
+                    type="submit"
+                    disabled={savingPassword}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-inverse-surface  px-5 py-2.5 text-sm font-semibold text-white  transition-colors hover:bg-inverse-surface  disabled:opacity-50 w-full sm:w-auto shadow-sm"
                   >
                     {savingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
                     {savingPassword ? copy.savingPassword : copy.savePassword}
@@ -722,37 +722,37 @@ export default function ProfilePage() {
             </section>
 
             {/* DANGER ZONE */}
-            <section className="bg-white dark:bg-gray-900 rounded-2xl border border-red-200 dark:border-red-900/30 shadow-sm overflow-hidden">
-              <div className="px-6 py-5 border-b border-red-100 dark:border-red-900/20 bg-red-50/50 dark:bg-red-900/10">
-                <h2 className="text-lg font-bold text-red-700 dark:text-red-500">{copy.dangerZone}</h2>
+            <section className="bg-raised  rounded-2xl border border-status-danger-border  shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-status-danger-border  bg-status-danger-bg/50 ">
+                <h2 className="text-lg font-bold text-status-danger-content ">{copy.dangerZone}</h2>
               </div>
               <form onSubmit={handleDeleteAccount} className="p-6">
                 <div className="flex items-start gap-4 mb-6">
-                  <div className="h-10 w-10 flex-shrink-0 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-500">
+                  <div className="h-10 w-10 flex-shrink-0 rounded-full bg-status-danger-bg  flex items-center justify-center text-status-danger-content ">
                     <AlertTriangle className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-gray-900 dark:text-white">{copy.deleteAccount}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
+                    <h3 className="text-base font-bold text-content-primary ">{copy.deleteAccount}</h3>
+                    <p className="text-sm text-content-secondary  mt-1 leading-relaxed">
                       {copy.deleteDesc}
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-                  <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-1.5">{copy.deleteConfirm}</label>
+                <div className="bg-canvas  rounded-xl p-5 border border-outline-subtle ">
+                  <label className="block text-sm font-semibold text-content-primary  mb-1.5">{copy.deleteConfirm}</label>
                   <input
                     type="password"
                     value={deletePassword}
                     onChange={(e) => setDeletePassword(e.target.value)}
                     required
                     autoComplete="current-password"
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-colors"
+                    className="w-full rounded-lg border border-outline-strong  bg-raised  px-3 py-2 text-sm text-content-primary  focus:border-status-danger-border focus:ring-1 focus:ring-status-danger-border outline-none transition-colors"
                   />
                   <div className="mt-4 flex justify-end">
-                    <button 
-                      type="submit" 
-                      disabled={deletingAccount} 
+                    <button
+                      type="submit"
+                      disabled={deletingAccount}
                       className="inline-flex items-center justify-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50 w-full sm:w-auto shadow-sm"
                     >
                       {deletingAccount ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

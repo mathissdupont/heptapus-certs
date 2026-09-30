@@ -80,14 +80,14 @@ function GoogleCallbackContent() {
       <div className="card w-full max-w-md p-8 text-center">
         {error ? (
           <>
-            <h1 className="text-xl font-bold text-slate-900">{copy.error}</h1>
-            <p className="mt-2 text-sm text-slate-500">{error}</p>
+            <h1 className="text-xl font-bold text-content-primary">{copy.error}</h1>
+            <p className="mt-2 text-sm text-content-muted">{error}</p>
           </>
         ) : (
           <>
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-brand-600" />
-            <h1 className="mt-4 text-xl font-bold text-slate-900">{copy.title}</h1>
-            <p className="mt-2 text-sm text-slate-500">{copy.body}</p>
+            <h1 className="mt-4 text-xl font-bold text-content-primary">{copy.title}</h1>
+            <p className="mt-2 text-sm text-content-muted">{copy.body}</p>
           </>
         )}
       </div>

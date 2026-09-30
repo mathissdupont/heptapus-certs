@@ -19,23 +19,23 @@ type NewSecret = { client_id: string; client_secret: string; name: string };
 
 // Keep in sync with services.GRANTABLE_SCOPES (backend single source of truth).
 const ALL_SCOPES = [
-  "events:read",
-  "events:write",
-  "attendees:read",
-  "attendees:write",
-  "certificates:read",
-  "certificates:write",
-  "sessions:read",
-  "sessions:write",
-  "checkin:write",
-  "analytics:read",
-  "automations:read",
-  "automations:write",
-  "crm:read",
-  "crm:write",
-  "forms:read",
-  "forms:write",
-  "reports:read",
+ "events:read",
+ "events:write",
+ "attendees:read",
+ "attendees:write",
+ "certificates:read",
+ "certificates:write",
+ "sessions:read",
+ "sessions:write",
+ "checkin:write",
+ "analytics:read",
+ "automations:read",
+ "automations:write",
+ "crm:read",
+ "crm:write",
+ "forms:read",
+ "forms:write",
+ "reports:read",
 ];
 
 function getCopy(isTr: boolean) {
@@ -129,7 +129,7 @@ function CopyButton({ value, copy }: { value: string; copy: CopyText }) {
 
   return (
     <button type="button" onClick={handleCopy} className="ml-2 rounded p-1 text-surface-400 hover:text-surface-700" title={copy.copy}>
-      {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-status-success-content" /> : <Copy className="h-3.5 w-3.5" />}
     </button>
   );
 }
@@ -237,7 +237,7 @@ function CreateClientForm({ onCreated, copy }: { onCreated: (s: NewSecret) => vo
               onClick={() => toggleScope(opt.value)}
               title={opt.value}
               className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
-                scopes.includes(opt.value) ? "border-brand-800 bg-brand-900 text-white" : "border-surface-200 bg-white text-surface-500 hover:border-surface-300"
+                scopes.includes(opt.value) ? "border-brand-800 bg-brand-900 text-white" : "border-surface-200 bg-raised text-surface-500 hover:border-surface-300"
               }`}
             >
               {opt.label}
@@ -272,7 +272,7 @@ function SecretReveal({ data, onDismiss, copy }: { data: NewSecret; onDismiss: (
         </div>
       </div>
 
-      <div className="space-y-2 rounded-lg border border-amber-200 bg-white p-3 text-xs font-mono">
+      <div className="space-y-2 rounded-lg border border-status-warning-border bg-raised p-3 text-xs font-mono">
         <div className="flex items-center justify-between">
           <span className="text-surface-500">client_id</span>
           <span className="flex items-center text-surface-900">
@@ -337,7 +337,7 @@ function EditUris({
   return (
     <div className="mt-3 space-y-2">
       <textarea rows={4} value={value} onChange={(e) => setValue(e.target.value)} className="input font-mono text-xs" placeholder={copy.uriPlaceholder} />
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs text-status-danger-content">{error}</p>}
       <div className="flex gap-2">
         <button type="button" onClick={handleSave} disabled={saving} className="btn-primary min-h-0 px-3 py-1.5 text-xs">
           <Check className="h-3.5 w-3.5" />
@@ -483,13 +483,13 @@ export default function OAuthClientsPage() {
                     <button type="button" onClick={() => setEditingUris(editingUris === client.client_id ? null : client.client_id)} title={copy.editRedirect} className="btn-ghost px-2">
                       <Pencil className="h-4 w-4" />
                     </button>
-                    <button type="button" onClick={() => void disconnectMyAccount(client.client_id)} disabled={disconnecting === client.client_id} title={copy.disconnect} className="btn-ghost px-2 text-amber-600 hover:bg-amber-50">
+                    <button type="button" onClick={() => void disconnectMyAccount(client.client_id)} disabled={disconnecting === client.client_id} title={copy.disconnect} className="btn-ghost px-2 text-status-warning-content hover:bg-status-warning-bg">
                       <LogOut className="h-4 w-4" />
                     </button>
                     <button type="button" onClick={() => void toggleActive(client)} title={client.is_active ? copy.deactivate : copy.activate} className="btn-ghost px-2">
-                      {client.is_active ? <ToggleRight className="h-5 w-5 text-emerald-600" /> : <ToggleLeft className="h-5 w-5" />}
+                      {client.is_active ? <ToggleRight className="h-5 w-5 text-status-success-content" /> : <ToggleLeft className="h-5 w-5" />}
                     </button>
-                    <button type="button" onClick={() => void revokeTokens(client.client_id)} disabled={revoking === client.client_id} title={copy.revokeTokens} className="btn-ghost px-2 text-red-600 hover:bg-red-50">
+                    <button type="button" onClick={() => void revokeTokens(client.client_id)} disabled={revoking === client.client_id} title={copy.revokeTokens} className="btn-ghost px-2 text-status-danger-content hover:bg-status-danger-bg">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>

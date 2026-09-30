@@ -84,7 +84,7 @@ export default function ScheduleEmailPage() {
 
   const eventId = parseInt(params.id as string);
   if (isNaN(eventId)) {
-    return <div className="p-4 text-red-600">{copy.invalidId}</div>;
+    return <div className="p-4 text-status-danger-content">{copy.invalidId}</div>;
   }
 
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -158,10 +158,10 @@ export default function ScheduleEmailPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
-      case 'pending': return 'bg-amber-100 text-amber-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'failed': return 'bg-red-100 text-red-800';
+      case 'scheduled': return 'bg-status-info-bg text-status-info-content';
+      case 'pending': return 'bg-status-warning-bg text-status-warning-content';
+      case 'completed': return 'bg-status-success-bg text-status-success-content';
+      case 'failed': return 'bg-status-danger-bg text-status-danger-content';
       case 'cancelled': return 'bg-surface-100 text-surface-800';
       default: return 'bg-surface-100 text-surface-800';
     }
@@ -182,7 +182,7 @@ export default function ScheduleEmailPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1">
-              <div className="bg-white shadow rounded-lg p-6 sticky top-8">
+              <div className="bg-raised shadow rounded-lg p-6 sticky top-8">
                 <h2 className="text-lg font-semibold mb-6">{copy.scheduleNew}</h2>
 
                 <div className="mb-6">
@@ -253,7 +253,7 @@ export default function ScheduleEmailPage() {
             </div>
 
             <div className="lg:col-span-2">
-              <div className="bg-white shadow rounded-lg overflow-hidden">
+              <div className="bg-raised shadow rounded-lg overflow-hidden">
                 <div className="p-6 border-b border-surface-200">
                   <h2 className="text-lg font-semibold text-surface-900">
                     {copy.listTitle} ({scheduledEmails.length})
@@ -307,7 +307,7 @@ export default function ScheduleEmailPage() {
                             </div>
                           )}
                           {email.failed_count > 0 && (
-                            <p className="text-xs text-red-600 mb-3">{copy.failedCount(email.failed_count)}</p>
+                            <p className="text-xs text-status-danger-content mb-3">{copy.failedCount(email.failed_count)}</p>
                           )}
                           {email.completed_at && (
                             <p className="text-xs text-surface-500 mb-3">
@@ -315,7 +315,7 @@ export default function ScheduleEmailPage() {
                             </p>
                           )}
                           {['pending', 'scheduled'].includes(email.status) && (
-                            <button onClick={() => handleCancel(email.id)} className="text-xs text-red-600 hover:text-red-800 font-medium">
+                            <button onClick={() => handleCancel(email.id)} className="text-xs text-status-danger-content hover:text-status-danger-content font-medium">
                               {copy.cancelBtn}
                             </button>
                           )}

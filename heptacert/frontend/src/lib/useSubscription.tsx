@@ -28,15 +28,15 @@ const PLAN_ORDER: Record<string, number> = {
 };
 
 const PLAN_GATE_MATCHERS = [
-  "plan",
-  "abonelik",
-  "subscription",
-  "enterprise",
-  "growth",
-  "pro",
-  "premium",
-  "ucretli",
-  "ücretli",
+ "plan",
+ "abonelik",
+ "subscription",
+ "enterprise",
+ "growth",
+ "pro",
+ "premium",
+ "ucretli",
+ "ücretli",
 ];
 
 export function planLabel(plan: string) {
@@ -80,7 +80,7 @@ export function planGateCopy({
     return {
       title: "Enterprise plan gerekli",
       body:
-        "Bu alan çalışanlar ve ekip üyeleri için yalnızca etkinlik sahibi kurum Enterprise plandaysa açılır. Kurum sahibi planı yükselttiğinde yetkili kullanıcılar bu ekranı kullanabilir.",
+ "Bu alan çalışanlar ve ekip üyeleri için yalnızca etkinlik sahibi kurum Enterprise plandaysa açılır. Kurum sahibi planı yükselttiğinde yetkili kullanıcılar bu ekranı kullanabilir.",
       detail: serverMessage || undefined,
       cta: "Planları Gör",
     };
@@ -106,7 +106,7 @@ export function PlanGateCard({
 }) {
   const copy = planGateCopy({ feature, requiredPlans, serverMessage });
   return (
-    <div className={`rounded-[28px] border border-surface-200 bg-white shadow-sm ${compact ? "p-5" : "p-7 sm:p-8"}`}>
+    <div className={`rounded-[28px] border border-surface-200 bg-raised shadow-sm ${compact ? "p-5" : "p-7 sm:p-8"}`}>
       <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-surface-200 bg-surface-50 text-surface-700">
           <span className="text-lg font-black">↑</span>

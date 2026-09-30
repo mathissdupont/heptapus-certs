@@ -163,7 +163,7 @@ export default function AdminVenues() {
         {/* Form */}
         <form onSubmit={submitVenue} className="surface-panel h-fit p-5 sm:p-6">
           <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-xl bg-indigo-50 p-3 text-indigo-600"><Building2 className="h-5 w-5" /></div>
+            <div className="rounded-xl bg-status-info-bg p-3 text-status-info-content"><Building2 className="h-5 w-5" /></div>
             <div>
               <h2 className="font-semibold text-surface-900">{editingId ? copy.editVenue : copy.newVenue}</h2>
               <p className="text-sm text-surface-500">{copy.areaInfo}</p>
@@ -226,7 +226,7 @@ export default function AdminVenues() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button onClick={() => startEdit(venue)} className="btn-ghost px-2.5 py-1.5 text-xs"><Pencil className="h-3.5 w-3.5" /></button>
-                    <button onClick={() => removeVenue(venue)} className="btn-ghost px-2.5 py-1.5 text-xs text-rose-500 hover:bg-rose-50 hover:text-rose-700"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => removeVenue(venue)} className="btn-ghost px-2.5 py-1.5 text-xs text-status-danger-content hover:bg-status-danger-bg hover:text-status-danger-content"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
               ))}

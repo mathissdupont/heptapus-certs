@@ -327,7 +327,7 @@ export default function AdminReservations() {
       ) : reservations.length === 0 ? (
         <EmptyState title={copy.emptyTitle} description={copy.emptyBody} icon={<CalendarClock className="h-6 w-6" />} />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
+        <div className="overflow-hidden rounded-xl border border-surface-200 bg-raised shadow-card">
           {reservations.map((r, i) => {
             const venue = venueName.get(r.venue_id);
             return (
@@ -346,7 +346,7 @@ export default function AdminReservations() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button onClick={() => openEdit(r)} className="btn-ghost px-2.5 py-1.5 text-xs"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => cancelReservation(r)} className="btn-ghost px-2.5 py-1.5 text-xs text-rose-500 hover:bg-rose-50 hover:text-rose-700"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => cancelReservation(r)} className="btn-ghost px-2.5 py-1.5 text-xs text-status-danger-content hover:bg-status-danger-bg hover:text-status-danger-content"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
             );

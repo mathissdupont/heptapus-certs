@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       canonical: `${SITE}/${locale}/events`,
       languages: {
         ...Object.fromEntries(routing.locales.map((item) => [item, `${SITE}/${item}/events`])),
-        "x-default": `${SITE}/${routing.defaultLocale}/events`,
+ "x-default": `${SITE}/${routing.defaultLocale}/events`,
       },
     },
   };

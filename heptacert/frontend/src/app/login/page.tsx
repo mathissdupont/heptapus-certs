@@ -115,7 +115,7 @@ function MemberLoginContent() {
               type="button"
               onClick={() => setMode("member")}
               className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                mode === "member" ? "bg-white text-surface-900 shadow-sm" : "text-surface-500"
+                mode === "member" ? "bg-raised text-surface-900 shadow-sm" : "text-surface-500"
               }`}
             >
               <UserRound className="h-4 w-4" />
@@ -125,7 +125,7 @@ function MemberLoginContent() {
               type="button"
               onClick={() => setMode("organizer")}
               className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                mode === "organizer" ? "bg-white text-surface-900 shadow-sm" : "text-surface-500"
+                mode === "organizer" ? "bg-raised text-surface-900 shadow-sm" : "text-surface-500"
               }`}
             >
               <Building2 className="h-4 w-4" />
@@ -144,7 +144,7 @@ function MemberLoginContent() {
                 <div>
                   <label className="label">{copy.email}</label>
                   <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
                     <input
                       className="input-field pl-10"
                       type="email"
@@ -165,7 +165,7 @@ function MemberLoginContent() {
                     </Link>
                   </div>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
                     <input
                       className="input-field pl-10"
                       type="password"
@@ -204,16 +204,16 @@ function MemberLoginContent() {
               </form>
 
               <div className="my-5 flex items-center gap-3">
-                <div className="h-px flex-1 bg-slate-200" />
+                <div className="h-px flex-1 bg-sunken" />
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-surface-400">veya</span>
-                <div className="h-px flex-1 bg-slate-200" />
+                <div className="h-px flex-1 bg-sunken" />
               </div>
 
               <a
                 href={`${API_BASE}/auth/google/start?mode=member&next=${encodeURIComponent(nextPath)}`}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-raised px-4 py-3 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
               >
-                <span className="text-base font-black text-blue-600">G</span>
+                <span className="text-base font-black text-status-info-content">G</span>
                 {copy.googleLogin}
               </a>
 

@@ -14,14 +14,14 @@ export default function OrgSocialProfileAdminPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-14 sm:px-6 lg:px-8">
-      <div className="rounded-2xl border border-surface-200 bg-white p-8 text-center shadow-sm">
+      <div className="rounded-2xl border border-surface-200 bg-raised p-8 text-center shadow-sm">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-surface-600" />
         <h1 className="mt-4 text-xl font-semibold text-surface-900">Kurumsal sekmeye yönlendiriliyorsunuz</h1>
         <p className="mt-2 text-sm text-surface-600">
           Organization Social ve Kurumsal alanları tek ekranda birleştirildi.
         </p>
         <div className="mt-6">
-          <Link href="/admin/settings?tab=branding" className="inline-flex items-center gap-2 text-sm font-semibold text-sky-700 hover:text-sky-800">
+          <Link href="/admin/settings?tab=branding" className="inline-flex items-center gap-2 text-sm font-semibold text-status-info-content hover:text-status-info-content">
             <ArrowLeft className="h-4 w-4" />
             Kurumsal sekmeye git
           </Link>

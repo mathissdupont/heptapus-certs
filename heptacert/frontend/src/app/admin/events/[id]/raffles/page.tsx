@@ -49,7 +49,7 @@ function fmtDate(value?: string | null, lang?: string | null) {
 
 function statusMeta(status: string) {
   if (status === "drawn") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    return "border-status-success-border bg-status-success-bg text-status-success-content";
   }
   return "border-surface-200 bg-surface-50 text-surface-600";
 }
@@ -270,8 +270,8 @@ export default function EventRafflesPage() {
     void runRaffleAction(
       raffle,
       () => drawEventRaffle(eventId, raffle.id),
-      "Kazananlar çekildi.",
-      "Çekiliş başlatılamadı.",
+ "Kazananlar çekildi.",
+ "Çekiliş başlatılamadı.",
     );
   }
 
@@ -280,8 +280,8 @@ export default function EventRafflesPage() {
     void runRaffleAction(
       raffle,
       () => redrawEventRaffle(eventId, raffle.id),
-      "Yeni kazanan turu eklendi.",
-      "Tekrar çekiliş başlatılamadı.",
+ "Yeni kazanan turu eklendi.",
+ "Tekrar çekiliş başlatılamadı.",
     );
   }
 
@@ -290,8 +290,8 @@ export default function EventRafflesPage() {
     void runRaffleAction(
       raffle,
       () => resetEventRaffle(eventId, raffle.id),
-      "Çekiliş sıfırlandı.",
-      "Sıfırlama başarısız.",
+ "Çekiliş sıfırlandı.",
+ "Sıfırlama başarısız.",
     );
   }
 
@@ -485,7 +485,7 @@ function RaffleCard({
   const eligiblePreview = raffle.eligible_attendees.slice(0, 20);
 
   return (
-    <article className="rounded-3xl border border-surface-200 bg-white p-4 shadow-sm">
+    <article className="rounded-3xl border border-surface-200 bg-raised p-4 shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -558,7 +558,7 @@ function RaffleCard({
                 />
               ))}
               {raffle.eligible_attendees.length > eligiblePreview.length && (
-                <p className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-surface-500">
+                <p className="rounded-xl bg-raised px-3 py-2 text-xs font-semibold text-surface-500">
                   İlk 20 kişi gösteriliyor. Tam liste dışa aktarımda bulunur.
                 </p>
               )}
@@ -575,7 +575,7 @@ function RaffleCard({
           ) : (
             <div className="mt-3 space-y-3">
               {rounds.slice(0, 5).map((round) => (
-                <div key={`${raffle.id}-round-${round.round}`} className="rounded-2xl bg-white p-3">
+                <div key={`${raffle.id}-round-${round.round}`} className="rounded-2xl bg-raised p-3">
                   <p className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-surface-400">
                     <Medal className="h-3.5 w-3.5" />
                     Tur {round.round}
@@ -601,7 +601,7 @@ function RaffleCard({
                 </div>
               ))}
               {rounds.length > 5 && (
-                <p className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-surface-500">
+                <p className="rounded-xl bg-raised px-3 py-2 text-xs font-semibold text-surface-500">
                   İlk 5 tur gösteriliyor. Tam sonuçları dışa aktarabilirsin.
                 </p>
               )}
@@ -624,7 +624,7 @@ function MiniStat({ label, value }: { label: string; value: number }) {
 
 function PersonRow({ name, email, meta }: { name: string; email: string; meta: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-raised px-3 py-2">
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-surface-900">{name}</p>
         <p className="truncate text-xs text-surface-500">{email}</p>

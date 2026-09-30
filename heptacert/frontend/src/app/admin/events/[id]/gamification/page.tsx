@@ -187,7 +187,7 @@ function CriteriaEditor({
               <button
                 type="button"
                 onClick={() => removeCriteria(key)}
-                className="p-1 hover:bg-red-100 rounded text-red-400"
+                className="p-1 hover:bg-status-danger-bg rounded text-status-danger-content"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -215,7 +215,7 @@ function CriteriaEditor({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.12 }}
-                className="absolute left-0 top-full mt-1 z-20 bg-white rounded-xl border border-surface-200 shadow-lg min-w-[300px]"
+                className="absolute left-0 top-full mt-1 z-20 bg-raised rounded-xl border border-surface-200 shadow-lg min-w-[300px]"
               >
                 {availableToAdd.map((c) => (
                   <button
@@ -573,7 +573,7 @@ export default function GamificationPage() {
         ].map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.label} className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+            <div key={item.label} className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-surface-500">{item.label}</p>
@@ -611,10 +611,10 @@ export default function GamificationPage() {
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-start gap-3"
+          className="rounded-lg bg-status-danger-bg border border-status-danger-border p-4 flex items-start gap-3"
         >
-          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-red-700 text-sm">{error}</p>
+          <AlertCircle className="h-5 w-5 text-status-danger-content flex-shrink-0 mt-0.5" />
+          <p className="text-status-danger-content text-sm">{error}</p>
         </motion.div>
       )}
 
@@ -622,10 +622,10 @@ export default function GamificationPage() {
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg bg-green-50 border border-green-200 p-4 flex items-start gap-3"
+          className="rounded-lg bg-status-success-bg border border-status-success-border p-4 flex items-start gap-3"
         >
-          <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-          <p className="text-green-700 text-sm">{success}</p>
+          <CheckCircle2 className="h-5 w-5 text-status-success-content flex-shrink-0 mt-0.5" />
+          <p className="text-status-success-content text-sm">{success}</p>
         </motion.div>
       )}
 
@@ -633,7 +633,7 @@ export default function GamificationPage() {
       {activeTab === "rules" && (
         <div className="space-y-6">
           {/* Enable/Disable Toggle */}
-          <div className="bg-white rounded-3xl border border-surface-200 p-6 shadow-sm">
+          <div className="bg-raised rounded-3xl border border-surface-200 p-6 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <h3 className="font-semibold text-surface-900">{copy.badgeSystemTitle}</h3>
@@ -646,7 +646,7 @@ export default function GamificationPage() {
                 className={`px-4 py-2 rounded-lg font-semibold text-sm transition-colors ${
                   enabled
                     ? "bg-brand-600 text-white hover:bg-brand-700"
-                    : "bg-surface-200 text-surface-700 hover:bg-gray-300"
+                    : "bg-surface-200 text-surface-700 hover:bg-sunken"
                 }`}
               >
                 {enabled ? copy.btnDisable : copy.btnEnable}
@@ -663,7 +663,7 @@ export default function GamificationPage() {
                 key={idx}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-[28px] border border-surface-200 p-5 shadow-sm"
+                className="bg-raised rounded-[28px] border border-surface-200 p-5 shadow-sm"
               >
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                   <div className="min-w-0 flex-1">
@@ -802,13 +802,13 @@ export default function GamificationPage() {
                           Object.keys(badge.criteria || {}).map((key) => (
                             <span
                               key={key}
-                              className="rounded-full border border-surface-200 bg-white px-3 py-1 text-xs font-semibold text-surface-600"
+                              className="rounded-full border border-surface-200 bg-raised px-3 py-1 text-xs font-semibold text-surface-600"
                             >
                               {getCriteriaDef(key, criteriaCatalogue)?.label || key}
                             </span>
                           ))
                         ) : (
-                          <span className="rounded-full border border-dashed border-slate-300 bg-white px-3 py-1 text-xs text-surface-500">
+                          <span className="rounded-full border border-dashed border-outline-strong bg-raised px-3 py-1 text-xs text-surface-500">
                             {copy.previewOpenToAll}
                           </span>
                         )}
@@ -816,7 +816,7 @@ export default function GamificationPage() {
                     </div>
                     <button
                       onClick={() => removeBadge(idx)}
-                      className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+                      className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-status-danger-border bg-status-danger-bg px-4 py-3 text-sm font-semibold text-status-danger-content transition hover:bg-status-danger-bg"
                     >
                       <X className="h-4 w-4" />
                       {copy.btnRemoveBadge}
@@ -927,7 +927,7 @@ export default function GamificationPage() {
       {/* Awarded Badges Tab */}
       {activeTab === "awarded" && (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-surface-200 bg-raised p-4 shadow-sm">
             <div className="grid gap-3 md:grid-cols-[1fr,220px,220px]">
               <label className="relative block">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
@@ -963,7 +963,7 @@ export default function GamificationPage() {
           </div>
 
           {filteredAwardedBadges.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-xl border border-surface-200">
+            <div className="text-center py-12 bg-raised rounded-xl border border-surface-200">
               <Trophy className="h-16 w-16 text-surface-300 mx-auto mb-4" />
               <p className="text-surface-500">
                 {awardedBadges.length === 0 ? copy.emptyNoBadges : copy.emptyNoMatch}
@@ -975,7 +975,7 @@ export default function GamificationPage() {
                 key={badge.id}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="grid gap-4 rounded-[28px] border border-surface-200 bg-white p-5 shadow-sm xl:grid-cols-[minmax(0,1fr)_320px]"
+                className="grid gap-4 rounded-[28px] border border-surface-200 bg-raised p-5 shadow-sm xl:grid-cols-[minmax(0,1fr)_320px]"
               >
                 <div className="min-w-0">
                   <div className="break-words text-lg font-black text-surface-900">
@@ -1016,7 +1016,7 @@ export default function GamificationPage() {
                           <div key={key} className="rounded-lg border border-surface-200 bg-surface-50 px-3 py-2">
                             <div className="flex items-center justify-between gap-3">
                               <span className="text-sm font-medium text-surface-700">{key}</span>
-                              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${criteria.passed ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${criteria.passed ? "bg-status-success-bg text-status-success-content" : "bg-status-danger-bg text-status-danger-content"}`}>
                                 {criteria.passed ? copy.criteriaPassed : copy.criteriaFailed}
                               </span>
                             </div>

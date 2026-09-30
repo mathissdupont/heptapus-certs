@@ -35,7 +35,7 @@ export default function BulkActionBar({
         >
           <div className="flex flex-col gap-3 rounded-2xl border border-surface-700 bg-surface-900 px-4 py-3.5 shadow-float sm:flex-row sm:items-center sm:gap-4">
             <div className="flex min-w-0 flex-1 items-center gap-2.5">
-              <span className="inline-flex shrink-0 items-center rounded-lg bg-white/15 px-2.5 py-1 text-xs font-semibold text-white">
+              <span className="inline-flex shrink-0 items-center rounded-lg bg-raised/15 px-2.5 py-1 text-xs font-semibold text-white">
                 {selectedCount}
               </span>
               <div className="min-w-0">
@@ -50,7 +50,7 @@ export default function BulkActionBar({
                 onClick={onClear}
                 aria-label={clearLabel}
                 title={clearLabel}
-                className="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+                className="ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-raised/10 hover:text-white"
               >
                 <X className="h-3.5 w-3.5" />
               </button>

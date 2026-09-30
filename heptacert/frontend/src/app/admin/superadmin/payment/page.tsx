@@ -68,7 +68,7 @@ const DEFAULT_CONFIG: PaymentConfig = {
 const PROVIDERS: ProviderDefinition[] = [
   {
     id: "iyzico",
-    tone: "bg-sky-50 border-sky-200 text-sky-700",
+    tone: "bg-status-info-bg border-status-info-border text-status-info-content",
     fields: [
       { key: "iyzico_api_key", label: "API Key" },
       { key: "iyzico_secret_key", label: "Secret Key" },
@@ -77,7 +77,7 @@ const PROVIDERS: ProviderDefinition[] = [
   },
   {
     id: "paytr",
-    tone: "bg-violet-50 border-violet-200 text-violet-700",
+    tone: "bg-status-info-bg border-status-info-border text-status-info-content",
     fields: [
       { key: "paytr_merchant_id", label: "Merchant ID" },
       { key: "paytr_merchant_key", label: "Merchant Key" },
@@ -86,7 +86,7 @@ const PROVIDERS: ProviderDefinition[] = [
   },
   {
     id: "stripe",
-    tone: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    tone: "bg-status-success-bg border-status-success-border text-status-success-content",
     fields: [
       { key: "stripe_publishable_key", label: "Publishable Key" },
       { key: "stripe_secret_key", label: "Secret Key" },
@@ -258,7 +258,7 @@ export default function SuperadminPaymentPage() {
           className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${config.enabled ? "bg-brand-600" : "bg-surface-200"}`}
           aria-pressed={config.enabled}
         >
-          <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${config.enabled ? "translate-x-8" : "translate-x-1"}`} />
+          <span className={`inline-block h-5 w-5 transform rounded-full bg-raised shadow transition-transform ${config.enabled ? "translate-x-8" : "translate-x-1"}`} />
         </button>
       </div>
 

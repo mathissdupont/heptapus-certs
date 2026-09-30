@@ -111,7 +111,7 @@ export default function LiveModeratorPage() {
                 <div key={p.id} className="card p-4">
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <p className="font-semibold text-surface-900">{p.prompt}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-11 font-semibold ${p.status === "open" ? "bg-emerald-50 text-emerald-700" : "bg-surface-100 text-surface-500"}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-11 font-semibold ${p.status === "open" ? "bg-status-success-bg text-status-success-content" : "bg-surface-100 text-surface-500"}`}>
                       {p.status === "open" ? t("live_poll_open") : t("live_poll_closed")}
                     </span>
                   </div>
@@ -120,7 +120,7 @@ export default function LiveModeratorPage() {
                       const pct = p.total_votes > 0 ? Math.round((o.votes / p.total_votes) * 100) : 0;
                       return (
                         <div key={o.id} className="relative overflow-hidden rounded-lg border border-surface-200">
-                          <div className="absolute inset-y-0 left-0 bg-rose-100" style={{ width: `${pct}%` }} />
+                          <div className="absolute inset-y-0 left-0 bg-status-danger-bg" style={{ width: `${pct}%` }} />
                           <div className="relative flex items-center justify-between px-3 py-1.5 text-sm">
                             <span className="text-surface-700">{o.label}</span>
                             <span className="text-surface-500">{o.votes} · {pct}%</span>
@@ -134,8 +134,8 @@ export default function LiveModeratorPage() {
                     <div className="flex gap-1">
                       {p.status === "open"
                         ? <button onClick={() => pollStatus(p.id, "closed")} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 px-2 py-1 text-11 font-semibold text-surface-600 hover:bg-surface-50"><Square className="h-3 w-3" /> {t("live_close_poll")}</button>
-                        : <button onClick={() => pollStatus(p.id, "open")} className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 px-2 py-1 text-11 font-semibold text-emerald-700 hover:bg-emerald-50"><Play className="h-3 w-3" /> {t("live_open_poll")}</button>}
-                      <button onClick={() => removePoll(p.id)} className="rounded-lg p-1.5 text-surface-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
+                        : <button onClick={() => pollStatus(p.id, "open")} className="inline-flex items-center gap-1 rounded-lg border border-status-success-border px-2 py-1 text-11 font-semibold text-status-success-content hover:bg-status-success-bg"><Play className="h-3 w-3" /> {t("live_open_poll")}</button>}
+                      <button onClick={() => removePoll(p.id)} className="rounded-lg p-1.5 text-surface-400 hover:bg-status-danger-bg hover:text-status-danger-content"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   </div>
                 </div>
@@ -146,7 +146,7 @@ export default function LiveModeratorPage() {
             <section className="space-y-3">
               <h2 className="flex items-center gap-2 text-sm font-bold text-surface-900"><MessageCircleQuestion className="h-4 w-4 text-surface-400" /> {t("live_qa")}</h2>
               {questions.length === 0 ? <p className="text-sm text-surface-500">{t("live_no_questions")}</p> : questions.map((q) => (
-                <div key={q.id} className={`card p-3 ${q.status === "hidden" ? "opacity-60" : ""} ${q.status === "answered" ? "border-emerald-200" : ""}`}>
+                <div key={q.id} className={`card p-3 ${q.status === "hidden" ? "opacity-60" : ""} ${q.status === "answered" ? "border-status-success-border" : ""}`}>
                   <div className="flex items-start gap-2">
                     <span className="flex shrink-0 flex-col items-center rounded-lg border border-surface-200 px-2 py-1 text-surface-500">
                       <ChevronUp className="h-3.5 w-3.5" /><span className="text-11 font-bold">{q.upvotes}</span>
@@ -155,13 +155,13 @@ export default function LiveModeratorPage() {
                       <p className="text-sm text-surface-800">{q.text}</p>
                       <p className="text-11 text-surface-400">
                         {q.author_name}
-                        {q.status === "answered" && <span className="ml-2 text-emerald-600">· {t("live_status_answered")}</span>}
+                        {q.status === "answered" && <span className="ml-2 text-status-success-content">· {t("live_status_answered")}</span>}
                         {q.status === "hidden" && <span className="ml-2 text-surface-400">· {t("live_status_hidden")}</span>}
                       </p>
                     </div>
                   </div>
                   <div className="mt-2 flex justify-end gap-1">
-                    {q.status !== "answered" && <button onClick={() => moderate(q.id, "answered")} title={t("live_mark_answered")} className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50"><CheckCircle2 className="h-4 w-4" /></button>}
+                    {q.status !== "answered" && <button onClick={() => moderate(q.id, "answered")} title={t("live_mark_answered")} className="rounded-lg p-1.5 text-status-success-content hover:bg-status-success-bg"><CheckCircle2 className="h-4 w-4" /></button>}
                     {q.status !== "hidden"
                       ? <button onClick={() => moderate(q.id, "hidden")} title={t("live_hide")} className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100"><EyeOff className="h-4 w-4" /></button>
                       : <button onClick={() => moderate(q.id, "visible")} title={t("live_restore")} className="rounded-lg p-1.5 text-surface-500 hover:bg-surface-100"><Eye className="h-4 w-4" /></button>}
@@ -198,7 +198,7 @@ function PollForm({ eventId, onCreated, onError }: { eventId: number; onCreated:
         {options.map((o, i) => (
           <div key={i} className="flex items-center gap-2">
             <input value={o} onChange={(e) => setOptions((prev) => prev.map((x, j) => j === i ? e.target.value : x))} placeholder={`${t("live_poll_option")} ${i + 1}`} className="input-field flex-1" />
-            {options.length > 2 && <button onClick={() => setOptions((prev) => prev.filter((_, j) => j !== i))} className="p-2 text-surface-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>}
+            {options.length > 2 && <button onClick={() => setOptions((prev) => prev.filter((_, j) => j !== i))} className="p-2 text-surface-400 hover:text-status-danger-content"><Trash2 className="h-4 w-4" /></button>}
           </div>
         ))}
         {options.length < 10 && <button onClick={() => setOptions((prev) => [...prev, ""])} className="btn-secondary text-xs"><Plus className="h-3.5 w-3.5" /> {t("live_add_option")}</button>}

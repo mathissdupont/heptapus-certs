@@ -116,7 +116,7 @@ export default function CommandPalette() {
     const term = query.trim().toLowerCase();
     if (!term) return commands;
     return commands.filter((item) =>
-      `${item.title} ${item.description} ${item.href} ${item.keywords || ""}`.toLowerCase().includes(term)
+ `${item.title} ${item.description} ${item.href} ${item.keywords || ""}`.toLowerCase().includes(term)
     );
   }, [commands, query]);
 
@@ -149,7 +149,7 @@ export default function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden items-center gap-2 rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-xs font-semibold text-surface-500 shadow-sm transition-all hover:bg-surface-50 hover:text-surface-900 hover:border-gray-300 md:inline-flex"
+        className="hidden items-center gap-2 rounded-xl border border-surface-200 bg-raised px-3 py-1.5 text-xs font-semibold text-surface-500 shadow-sm transition-all hover:bg-surface-50 hover:text-surface-900 hover:border-outline-strong md:inline-flex"
         aria-label={copy.button}
       >
         <Command className="h-3.5 w-3.5 stroke-[2]" />
@@ -162,8 +162,8 @@ export default function CommandPalette() {
       {/* Komut Paleti Modalı */}
       {open && (
         <div className="fixed inset-0 z-[80] flex items-start justify-center bg-surface-800/25 px-3 pt-16 backdrop-blur-md sm:pt-28">
-          <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-surface-200 bg-white/95 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-            
+          <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-surface-200 bg-raised/95 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.12)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+
             {/* Arama Alanı */}
             <div className="flex items-center gap-3 border-b border-surface-100 px-4 py-3.5">
               <Search className="h-4 w-4 text-surface-400 stroke-[2.5]" />
@@ -174,9 +174,9 @@ export default function CommandPalette() {
                 placeholder={copy.placeholder}
                 className="min-w-0 flex-1 bg-transparent text-sm font-medium text-surface-900 outline-none placeholder:text-surface-400"
               />
-              <button 
-                type="button" 
-                onClick={() => setOpen(false)} 
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
                 className="rounded-lg p-1 text-surface-400 hover:bg-surface-50 hover:text-surface-700 transition-colors"
               >
                 <X className="h-4 w-4" />
@@ -199,10 +199,10 @@ export default function CommandPalette() {
                         className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-surface-50 active:bg-surface-100/70"
                       >
                         {/* İkon Yuvası */}
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-500 shadow-sm transition group-hover:border-surface-200 group-hover:text-surface-900">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-surface-100 bg-raised text-surface-500 shadow-sm transition group-hover:border-surface-200 group-hover:text-surface-900">
                           <Icon className="h-4 w-4 stroke-[1.8]" />
                         </span>
-                        
+
                         {/* Metin Alanı */}
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-xs font-semibold text-surface-800 tracking-tight group-hover:text-surface-900">
@@ -212,9 +212,9 @@ export default function CommandPalette() {
                             {item.description}
                           </span>
                         </span>
-                        
+
                         {/* Sağ Ok İşareti */}
-                        <ArrowRight className="h-3.5 w-3.5 text-gray-300 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-surface-600" />
+                        <ArrowRight className="h-3.5 w-3.5 text-content-muted opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-surface-600" />
                       </button>
                     );
                   })}

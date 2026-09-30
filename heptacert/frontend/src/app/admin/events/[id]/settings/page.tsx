@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
@@ -42,18 +42,18 @@ import {
   Building2,
   X,
 } from "lucide-react";
-import { 
-  apiFetch, 
-  API_BASE, 
-  getToken, 
-  consumeOAuthBridgeToken, 
-  getMySubscription, 
-  setToken, 
-  updateAdminEventComment, 
+import {
+  apiFetch,
+  API_BASE,
+  getToken,
+  consumeOAuthBridgeToken,
+  getMySubscription,
+  setToken,
+  updateAdminEventComment,
   listAdminEventComments,
-  type RegistrationField, 
-  type SubscriptionInfo, 
-  type PublicEventComment 
+  type RegistrationField,
+  type SubscriptionInfo,
+  type PublicEventComment
 } from "@/lib/api";
 import EventAdminNav, { refreshEventAdminMeta } from "@/components/Admin/EventAdminNav";
 import PageHeader from "@/components/Admin/PageHeader";
@@ -590,7 +590,7 @@ export default function EventSettingsPage() {
     venue_reservation_start_at: "",
     venue_reservation_end_at: "",
   });
-  
+
   const [savedFormSnapshot, setSavedFormSnapshot] = useState("");
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -598,7 +598,7 @@ export default function EventSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   const [activeTab, setActiveTab] = useState<"general" | "registration" | "banner" | "email" | "comments" >("general");
   const [comments, setComments] = useState<PublicEventComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
@@ -618,12 +618,12 @@ export default function EventSettingsPage() {
     const t = setTimeout(() => setSuccess(null), 4000);
     return () => clearTimeout(t);
   }, [success]);
-  
+
   useUnsavedChanges(isDirty && !saving, lang === "tr" ? "Kaydedilmemiş etkinlik ayarları var." : "You have unsaved event settings.");
   useKeyboardShortcut("s", () => void handleSave(), { meta: true, enabled: !saving });
 
   const hasGrowthPlan = subscription?.role === "superadmin" || (subscription?.active && ["growth", "enterprise"].includes(subscription?.plan_id || ""));
-  
+
   const fieldTypeOptions = FIELD_TYPE_OPTIONS.map((option) => ({
     value: option.value,
     label: lang === "tr" ? option.tr : option.en,
@@ -1133,7 +1133,7 @@ export default function EventSettingsPage() {
 
   return (
     <div className="w-full flex flex-col gap-5 antialiased text-surface-900 pb-16">
-      
+
       {/* ÜST ETKİNLİK NAVİGASYONU */}
       <EventAdminNav eventId={Number(eventId)} eventName={event?.name} active="settings" />
 
@@ -1144,12 +1144,12 @@ export default function EventSettingsPage() {
         icon={<Settings className="h-4 w-4 stroke-[2]" />}
         actions={
           <div className="flex items-center gap-2">
-            <Link href={`/admin/events/${eventId}/editor`} className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50">
+            <Link href={`/admin/events/${eventId}/editor`} className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50">
               {copy.openEditor}
             </Link>
-            <button 
-              onClick={handleSave} 
-              disabled={saving} 
+            <button
+              onClick={handleSave}
+              disabled={saving}
               className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-surface-800 active:scale-95 disabled:opacity-40"
             >
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5 stroke-[2.5]" />}
@@ -1161,11 +1161,11 @@ export default function EventSettingsPage() {
 
       {/* AI ASSISTANT PREFILL BANNERI */}
       {(event?.config as any)?.ai_assistant_populated_kvkk && (
-        <div className="rounded-2xl border border-amber-100 bg-amber-50/20 p-4 flex items-start gap-3 animate-in fade-in duration-200">
-          <ShieldAlert className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+        <div className="rounded-2xl border border-status-warning-border bg-status-warning-bg/20 p-4 flex items-start gap-3 animate-in fade-in duration-200">
+          <ShieldAlert className="h-4 w-4 text-status-warning-content mt-0.5 shrink-0" />
           <div className="space-y-2 flex-1 text-xs">
-            <h4 className="font-bold text-amber-900 tracking-tight">Otomatik Eklenmiş KVKK / Gizlilik Öğeleri</h4>
-            <p className="text-amber-800 leading-relaxed font-medium">AI Asistanı bu etkinlik için KVKK/gizlilik öğelerini otomatik ekledi. Lütfen gözden geçirip doğrulayın.</p>
+            <h4 className="font-bold text-status-warning-content tracking-tight">Otomatik Eklenmiş KVKK / Gizlilik Öğeleri</h4>
+            <p className="text-status-warning-content leading-relaxed font-medium">AI Asistanı bu etkinlik için KVKK/gizlilik öğelerini otomatik ekledi. Lütfen gözden geçirip doğrulayın.</p>
             <button
               type="button"
               onClick={() => {
@@ -1194,13 +1194,13 @@ export default function EventSettingsPage() {
 
       {/* DURUM BİLGİLENDİRME ŞERİTLERİ */}
       {error && (
-        <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
+        <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
       {success && (
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-xs font-semibold text-emerald-600 flex items-center gap-2">
+        <div className="rounded-xl border border-status-success-border bg-status-success-bg/40 p-4 text-xs font-semibold text-status-success-content flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>{success}</span>
         </div>
@@ -1220,8 +1220,8 @@ export default function EventSettingsPage() {
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`inline-flex items-center gap-2 rounded-lg px-4 py-1.5 text-xs font-semibold tracking-tight transition-all ${
                   isAct
-                    ? "bg-white text-surface-900 shadow-sm border border-surface-200/60"
-                    : "border border-transparent text-surface-500 hover:text-surface-900 hover:bg-white/40"
+                    ? "bg-raised text-surface-900 shadow-sm border border-surface-200/60"
+                    : "border border-transparent text-surface-500 hover:text-surface-900 hover:bg-raised/40"
                 }`}
               >
                 <Icon className={`h-3.5 w-3.5 shrink-0 ${isAct ? "text-surface-900 stroke-[2]" : "text-surface-400 stroke-[1.8]"}`} />
@@ -1234,35 +1234,35 @@ export default function EventSettingsPage() {
 
       {/* DEĞİŞİKLİK VE KAYDETME YÜZEY UYARI ÇUBUĞU */}
       {isDirty && !saving && (
-        <div className="rounded-xl border border-amber-100 bg-amber-50/30 p-3 text-center text-11 font-bold text-amber-700 tracking-tight animate-in fade-in duration-150">
+        <div className="rounded-xl border border-status-warning-border bg-status-warning-bg/30 p-3 text-center text-11 font-bold text-status-warning-content tracking-tight animate-in fade-in duration-150">
           ⚠️ {lang === "tr" ? "Kaydedilmemiş değişiklikleriniz bulunuyor. Değişiklikleri doğrulamak için Ctrl/⌘ + S kısayolunu kullanabilirsiniz." : "You have unsaved changes. Use Ctrl/⌘ + S to sync and verify configurations."}
         </div>
       )}
 
       {/* 5. AKTİF SEKME AYAR KAPSÜLLERİ GÖVDESİ */}
       <div className="space-y-4">
-        
+
         {/* TAB 1: GENEL AYARLAR VE SALON REZERVASYON Katmanı */}
         {activeTab === "general" && (
           <div className="space-y-4 w-full">
             {/* Blok A: Temel Bilgiler Formu */}
-            <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+            <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                 <FileText className="h-4 w-4 text-surface-800 stroke-[1.8]" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.basicTitle}</h2>
               </div>
-              
+
               <div className="grid gap-4">
                 <label className="block w-full">
                   <span className="block text-11 font-bold text-surface-500 mb-1">{copy.name}</span>
-                  <input value={formData.name} onChange={(e) => setFormData((curr) => ({ ...curr, name: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder={copy.namePlaceholder} />
+                  <input value={formData.name} onChange={(e) => setFormData((curr) => ({ ...curr, name: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder={copy.namePlaceholder} />
                 </label>
-                
+
                 <div className="grid gap-4 sm:grid-cols-2">
                   <DateField label={copy.date} value={formData.event_date} onChange={(val) => setFormData((curr) => ({ ...curr, event_date: val }))} placeholder={copy.datePlaceholder} locale={localeTag(lang)} />
                   <label className="block w-full">
                     <span className="block text-11 font-bold text-surface-500 mb-1">{copy.location}</span>
-                    <input value={formData.event_location} onChange={(e) => setFormData((curr) => ({ ...curr, event_location: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder={copy.locationPlaceholder} />
+                    <input value={formData.event_location} onChange={(e) => setFormData((curr) => ({ ...curr, event_location: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder={copy.locationPlaceholder} />
                   </label>
                 </div>
 
@@ -1275,12 +1275,12 @@ export default function EventSettingsPage() {
 
             {/* Blok B: Salon Rezervasyon Otomasyonu */}
             {venues.length > 0 && (
-              <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                   <Building2 className="h-4 w-4 text-surface-800 stroke-[1.8]" />
                   <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{lang === "tr" ? "Salon ve Rezervasyon Otomasyonu" : "Venue and Reservation"}</h2>
                 </div>
-                
+
                 <div className="grid gap-4 sm:grid-cols-3">
                   <label className="block w-full">
                     <span className="block text-11 font-bold text-surface-500 mb-1">{lang === "tr" ? "Yerleşke / Salon" : "Venue"}</span>
@@ -1288,7 +1288,7 @@ export default function EventSettingsPage() {
                       <select
                         value={formData.organization_venue_id}
                         onChange={(e) => setFormData((curr) => ({ ...curr, organization_venue_id: e.target.value, auto_reserve_venue: e.target.value ? curr.auto_reserve_venue : false }))}
-                        className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-white px-3 text-xs font-semibold outline-none cursor-pointer"
+                        className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-raised px-3 text-xs font-semibold outline-none cursor-pointer"
                       >
                         <option value="">{lang === "tr" ? "Salon Seçilmedi" : "No venue selected"}</option>
                         {venues.map((v) => (
@@ -1311,12 +1311,12 @@ export default function EventSettingsPage() {
             )}
 
             {/* Blok C: Etkinlik Özellik Matrisi ve Switch Kapakları */}
-            <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+            <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                 <Settings className="h-4 w-4 text-surface-800 stroke-[1.8]" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{lang === "tr" ? "Modül Aktivasyon Mimari Filtresi" : "Feature Configuration Matrix"}</h2>
               </div>
-              
+
               <div className="space-y-3.5">
                 <label className="block w-full sm:max-w-xs">
                   <span className="block text-11 font-bold text-surface-500 mb-1">{lang === "tr" ? "Ana Şablon Tipi" : "Base Event Type"}</span>
@@ -1324,7 +1324,7 @@ export default function EventSettingsPage() {
                     <select
                       value={formData.event_type}
                       onChange={(e) => setFormData((curr) => ({ ...curr, event_type: e.target.value as EventType, ...defaultsForEventType(e.target.value as EventType) }))}
-                      className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-white px-3 text-xs font-semibold outline-none cursor-pointer"
+                      className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-raised px-3 text-xs font-semibold outline-none cursor-pointer"
                     >
                       {EVENT_TYPE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>{lang === "tr" ? option.tr : option.en}</option>
@@ -1363,18 +1363,18 @@ export default function EventSettingsPage() {
             </section>
 
             {/* Blok D: Görünürlük Ayarı */}
-            <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+            <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                 <Sparkles className="h-4 w-4 text-surface-800 stroke-[1.8]" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.visibilityTitle}</h2>
               </div>
               <p className="text-11 leading-relaxed text-surface-400 font-medium">{copy.visibilityBody}</p>
-              
+
               <div className="space-y-3.5 max-w-sm">
                 <label className="block w-full">
                   <span className="block text-11 font-bold text-surface-500 mb-1">{copy.visibilityLabel}</span>
                   <div className="relative inline-flex items-center w-full">
-                    <select value={formData.visibility} onChange={(e) => setFormData((curr) => ({ ...curr, visibility: e.target.value as FormState["visibility"] }))} className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-white px-3 text-xs font-semibold outline-none cursor-pointer focus:border-surface-900">
+                    <select value={formData.visibility} onChange={(e) => setFormData((curr) => ({ ...curr, visibility: e.target.value as FormState["visibility"] }))} className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-raised px-3 text-xs font-semibold outline-none cursor-pointer focus:border-surface-900">
                       {visibilityOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-surface-400" />
@@ -1385,7 +1385,7 @@ export default function EventSettingsPage() {
             </section>
 
             {/* Blok E: Kota ve Kayıt Durumu Sınırları */}
-            <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+            <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                 <AlertCircle className="h-4 w-4 text-surface-800 stroke-[1.8]" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.registrationStatusTitle}</h2>
@@ -1399,16 +1399,16 @@ export default function EventSettingsPage() {
                 </label>
                 <p className="text-11 leading-none text-surface-400 font-medium pl-6">{copy.registrationHint}</p>
 
-                <div className="border-t border-gray-50 pt-3 max-w-sm space-y-2.5">
+                <div className="border-t border-outline-subtle pt-3 max-w-sm space-y-2.5">
                   <label className="inline-flex cursor-pointer items-center gap-2.5 select-none">
                     <input type="checkbox" checked={formData.registration_quota_enabled} onChange={(e) => setFormData((curr) => ({ ...curr, registration_quota_enabled: e.target.checked }))} className="h-4 w-4 rounded-md border-surface-300 text-surface-900 focus:ring-0 cursor-pointer" />
                     <span className="text-xs font-semibold text-surface-800 tracking-tight">{copy.registrationQuotaToggle}</span>
                   </label>
                   <p className="text-11 leading-normal text-surface-400 font-medium pl-6">{copy.registrationQuotaHint}</p>
-                  
+
                   {formData.registration_quota_enabled && (
                     <div className="pl-6 pt-1">
-                      <input type="number" min={1} step={1} value={formData.registration_quota} onChange={(e) => setFormData((curr) => ({ ...curr, registration_quota: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold font-mono outline-none transition focus:border-surface-900 placeholder:text-surface-400" placeholder={copy.registrationQuotaPlaceholder} />
+                      <input type="number" min={1} step={1} value={formData.registration_quota} onChange={(e) => setFormData((curr) => ({ ...curr, registration_quota: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold font-mono outline-none transition focus:border-surface-900 placeholder:text-surface-400" placeholder={copy.registrationQuotaPlaceholder} />
                     </div>
                   )}
                 </div>
@@ -1416,7 +1416,7 @@ export default function EventSettingsPage() {
             </section>
 
             {/* Blok F: KVKK, Aydınlatma Sorumluluk Grubu */}
-            <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+            <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                 <ShieldAlert className="h-4 w-4 text-surface-800 stroke-[1.8]" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{lang === "tr" ? "Hukuki KVKK ve Veri İşleme Mevzuatı" : "Privacy and Data Processing"}</h2>
@@ -1437,23 +1437,23 @@ export default function EventSettingsPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block w-full">
                     <span className="block text-11 font-bold text-surface-500 mb-1">Veri Sorumlusu Kurum Unvanı</span>
-                    <input value={formData.data_controller_name} onChange={(e) => setFormData((curr) => ({ ...curr, data_controller_name: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder="Örn: Heptapus Teknoloji Grubu" />
+                    <input value={formData.data_controller_name} onChange={(e) => setFormData((curr) => ({ ...curr, data_controller_name: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder="Örn: Heptapus Teknoloji Grubu" />
                   </label>
                   <label className="block w-full">
                     <span className="block text-11 font-bold text-surface-500 mb-1">Mevzuat Veri Sorumlusu E-postası</span>
-                    <input type="email" value={formData.data_controller_contact_email} onChange={(e) => setFormData((curr) => ({ ...curr, data_controller_contact_email: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder="contact@heptapusgroup.com" />
+                    <input type="email" value={formData.data_controller_contact_email} onChange={(e) => setFormData((curr) => ({ ...curr, data_controller_contact_email: e.target.value }))} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder="contact@heptapusgroup.com" />
                   </label>
                 </div>
 
                 <label className="block w-full">
                   <span className="block text-11 font-bold text-surface-500 mb-1">Veri İmha ve Saklama Politikası Notu</span>
-                  <textarea value={formData.data_retention_note} onChange={(e) => setFormData((curr) => ({ ...curr, data_retention_note: e.target.value }))} className="w-full rounded-xl border border-surface-200 bg-white p-3 text-xs font-medium outline-none transition focus:border-surface-900 min-h-24 resize-none placeholder:text-surface-400" placeholder="Örn: Veriler kanuni süre uyarınca etkinlik tamamlandıktan 180 gün sonra imha edilir." />
+                  <textarea value={formData.data_retention_note} onChange={(e) => setFormData((curr) => ({ ...curr, data_retention_note: e.target.value }))} className="w-full rounded-xl border border-surface-200 bg-raised p-3 text-xs font-medium outline-none transition focus:border-surface-900 min-h-24 resize-none placeholder:text-surface-400" placeholder="Örn: Veriler kanuni süre uyarınca etkinlik tamamlandıktan 180 gün sonra imha edilir." />
                 </label>
 
                 {/* Sabit Yasal Uyarı Paneli */}
-                <div className="rounded-xl border border-amber-100 bg-amber-50/30 p-3.5 flex items-start gap-3">
-                  <Info className="h-4 w-4 shrink-0 text-amber-500 mt-0.5 stroke-[2]" />
-                  <div className="space-y-1 text-11 leading-relaxed text-amber-800 font-medium">
+                <div className="rounded-xl border border-status-warning-border bg-status-warning-bg/30 p-3.5 flex items-start gap-3">
+                  <Info className="h-4 w-4 shrink-0 text-status-warning-content mt-0.5 stroke-[2]" />
+                  <div className="space-y-1 text-11 leading-relaxed text-status-warning-content font-medium">
                     <p className="font-bold">{lang === "tr" ? "Yurt Dışı Veri Aktarımı Açık Rıza Beyanı" : "Cross-Border Data Transfer Node"}</p>
                     <p>{lang === "tr" ? "HeptaCert çekirdek altyapısı egemen, self-hosted ve kriptografik güvenli sunucularda çalışsa da küresel CDN ağları, barındırma katmanları ve yedekleme modülleri sınır ötesi veri transferi doğurabileceğinden, bu açık rıza onay mekanizması kayıt akışına sistem tarafından otomatik eklenir." : "System forces cross-border acknowledgement automatically."}</p>
                   </div>
@@ -1468,7 +1468,7 @@ export default function EventSettingsPage() {
         {/* TAB 2: KAYIT FORMU ÖZEL ALAN YAPILANDIRMASI */}
         {activeTab === "registration" && (
           <div className="space-y-4 w-full">
-            <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+            <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-surface-100 pb-2.5">
                 <div className="space-y-0.5">
                   <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.registrationTitleMeta}</h2>
@@ -1491,18 +1491,18 @@ export default function EventSettingsPage() {
                     const conditionalValueOptions = (selectedConditionalSource?.options || []).map((o: any) => typeof o === "string" ? o : o.label || String(o)).map((s: string) => s.trim()).filter(Boolean);
 
                     return (
-                      <div key={field.id} className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4 relative transition-all hover:border-surface-300">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-50 pb-3">
+                      <div key={field.id} className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm space-y-4 relative transition-all hover:border-surface-300">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-outline-subtle pb-3">
                           <div className="flex items-center gap-2.5 text-xs font-bold text-surface-900 tracking-tight">
                             <span className="flex h-5 w-5 items-center justify-center rounded-md bg-surface-900 font-mono text-11 text-white shadow-sm">{index + 1}</span>
                             <span className="truncate max-w-[240px]">{field.label || "İsimsiz Alan Çeperi"}</span>
                           </div>
-                          
+
                           {/* Alan Hiyerarşi Değiştirme Butonları */}
                           <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">
-                            <button type="button" onClick={() => moveRegistrationField(field.id, "up")} disabled={index === 0} className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 hover:text-surface-900 disabled:opacity-20 shadow-sm"><ChevronUp className="h-4 w-4 stroke-[2]" /></button>
-                            <button type="button" onClick={() => moveRegistrationField(field.id, "down")} disabled={index === formData.registration_fields.length - 1} className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 hover:text-surface-900 disabled:opacity-20 shadow-sm"><ChevronDown className="h-4 w-4 stroke-[2]" /></button>
-                            <button type="button" onClick={() => removeRegistrationField(field.id)} className="inline-flex min-h-[28px] items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2 text-11 font-bold text-red-600 shadow-sm hover:bg-red-50"><Trash2 className="h-3 w-3 stroke-[1.8]" /> <span>Kaldır</span></button>
+                            <button type="button" onClick={() => moveRegistrationField(field.id, "up")} disabled={index === 0} className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-raised text-surface-400 hover:text-surface-900 disabled:opacity-20 shadow-sm"><ChevronUp className="h-4 w-4 stroke-[2]" /></button>
+                            <button type="button" onClick={() => moveRegistrationField(field.id, "down")} disabled={index === formData.registration_fields.length - 1} className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-raised text-surface-400 hover:text-surface-900 disabled:opacity-20 shadow-sm"><ChevronDown className="h-4 w-4 stroke-[2]" /></button>
+                            <button type="button" onClick={() => removeRegistrationField(field.id)} className="inline-flex min-h-[28px] items-center justify-center gap-1 rounded-lg border border-status-danger-border bg-raised px-2 text-11 font-bold text-status-danger-content shadow-sm hover:bg-status-danger-bg"><Trash2 className="h-3 w-3 stroke-[1.8]" /> <span>Kaldır</span></button>
                           </div>
                         </div>
 
@@ -1510,13 +1510,13 @@ export default function EventSettingsPage() {
                         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4 font-semibold text-surface-600">
                           <label className="block w-full">
                             <span className="block text-11 font-bold text-surface-500 mb-1">{copy.fieldLabel}</span>
-                            <input value={field.label} onChange={(e) => updateRegistrationField(field.id, { label: e.target.value })} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder="Örn: Şirket / Kurum Unvanı" />
+                            <input value={field.label} onChange={(e) => updateRegistrationField(field.id, { label: e.target.value })} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder="Örn: Şirket / Kurum Unvanı" />
                           </label>
 
                           <label className="block w-full">
                             <span className="block text-11 font-bold text-surface-500 mb-1">{copy.fieldType}</span>
                             <div className="relative inline-flex items-center w-full">
-                              <select value={field.type} onChange={(e) => updateRegistrationField(field.id, { type: e.target.value as any, options: e.target.value === "select" ? (field.options || [""]) : [] })} className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none cursor-pointer">
+                              <select value={field.type} onChange={(e) => updateRegistrationField(field.id, { type: e.target.value as any, options: e.target.value === "select" ? (field.options || [""]) : [] })} className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none cursor-pointer">
                                 {fieldTypeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                               </select>
                               <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-surface-400" />
@@ -1525,7 +1525,7 @@ export default function EventSettingsPage() {
 
                           <label className="block w-full sm:col-span-2">
                             <span className="block text-11 font-bold text-surface-500 mb-1">{copy.fieldPlaceholder}</span>
-                            <input value={field.placeholder || ""} onChange={(e) => updateRegistrationField(field.id, { placeholder: e.target.value })} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder="Kutunun içinde silik görünecek açıklama..." />
+                            <input value={field.placeholder || ""} onChange={(e) => updateRegistrationField(field.id, { placeholder: e.target.value })} className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" placeholder="Kutunun içinde silik görünecek açıklama..." />
                           </label>
                         </div>
 
@@ -1540,19 +1540,19 @@ export default function EventSettingsPage() {
                             <div className="space-y-1.5">
                               <span className="block text-11 font-bold text-surface-500">Çoklu Seçim Tolerans Ayarı</span>
                               <div className="flex gap-2 font-bold text-xs">
-                                <button type="button" onClick={() => updateRegistrationField(field.id, { selection_mode: "single" })} className={`inline-flex h-8 px-4 items-center justify-center rounded-xl border transition-all ${(!field.selection_mode || field.selection_mode === "single") ? "border-gray-950 bg-surface-900 text-white shadow-sm" : "border-surface-200 bg-white text-surface-600 hover:bg-surface-900"}`}>Tekil Radyo Seçimi</button>
-                                <button type="button" onClick={() => updateRegistrationField(field.id, { selection_mode: "multiple" })} className={`inline-flex h-8 px-4 items-center justify-center rounded-xl border transition-all ${(field.selection_mode === "multiple") ? "border-gray-950 bg-surface-900 text-white shadow-sm" : "border-surface-200 bg-white text-surface-600 hover:bg-surface-900"}`}>Çoklu Onay Kutusu (Checkbox)</button>
+                                <button type="button" onClick={() => updateRegistrationField(field.id, { selection_mode: "single" })} className={`inline-flex h-8 px-4 items-center justify-center rounded-xl border transition-all ${(!field.selection_mode || field.selection_mode === "single") ? "border-outline-strong bg-surface-900 text-white shadow-sm" : "border-surface-200 bg-raised text-surface-600 hover:bg-surface-900"}`}>Tekil Radyo Seçimi</button>
+                                <button type="button" onClick={() => updateRegistrationField(field.id, { selection_mode: "multiple" })} className={`inline-flex h-8 px-4 items-center justify-center rounded-xl border transition-all ${(field.selection_mode === "multiple") ? "border-outline-strong bg-surface-900 text-white shadow-sm" : "border-surface-200 bg-raised text-surface-600 hover:bg-surface-900"}`}>Çoklu Onay Kutusu (Checkbox)</button>
                               </div>
                             </div>
 
                             <div className="space-y-2.5">
                               <span className="block text-11 font-bold text-surface-500">{copy.fieldOptions}</span>
                               {Array.isArray(field.options) && field.options.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 rounded-xl border border-surface-100 bg-white p-3 shadow-inner">
+                                <div className="flex flex-wrap gap-1.5 rounded-xl border border-surface-100 bg-raised p-3 shadow-inner">
                                   {field.options.map((opt: any, idx) => (
                                     <div key={idx} className="inline-flex items-center gap-2 rounded-lg border border-surface-100 bg-surface-50/50 pl-2.5 pr-1.5 py-1 text-xs font-semibold text-surface-800">
                                       <span>{typeof opt === "string" ? opt : opt.label}</span>
-                                      {typeof opt === "object" && opt.capacity != null && <span className="font-mono text-11 text-emerald-600 bg-emerald-50 px-1 rounded">Maks {opt.capacity}</span>}
+                                      {typeof opt === "object" && opt.capacity != null && <span className="font-mono text-11 text-status-success-content bg-status-success-bg px-1 rounded">Maks {opt.capacity}</span>}
                                       <input
                                         type="number"
                                         placeholder="Kota"
@@ -1563,15 +1563,15 @@ export default function EventSettingsPage() {
                                             options: (field.options || []).map((o: any, i: number) => i === idx ? { label: typeof o === "string" ? o : o.label, capacity: v ? Number(v) : null } : o)
                                           });
                                         }}
-                                        className="w-12 border border-surface-200 rounded px-1 text-center font-mono text-11 bg-white h-5 outline-none"
+                                        className="w-12 border border-surface-200 rounded px-1 text-center font-mono text-11 bg-raised h-5 outline-none"
                                       />
-                                      <span onClick={() => updateRegistrationField(field.id, { options: (field.options || []).filter((_, i) => i !== idx) })} className="p-0.5 text-surface-400 hover:text-red-500 transition-colors cursor-pointer"><X className="h-3 w-3 stroke-[2.5]" /></span>
+                                      <span onClick={() => updateRegistrationField(field.id, { options: (field.options || []).filter((_, i) => i !== idx) })} className="p-0.5 text-surface-400 hover:text-status-danger-content transition-colors cursor-pointer"><X className="h-3 w-3 stroke-[2.5]" /></span>
                                     </div>
                                   ))}
                                 </div>
                               )}
                               <div className="flex gap-2 max-w-sm">
-                                <input id={`option-input-${field.id}`} placeholder="Yeni seçenek metnini yazın..." onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const inp = e.currentTarget; const val = inp.value.trim(); if (val) { updateRegistrationField(field.id, { options: [...(field.options || []), { label: val, capacity: null }] }); inp.value = ""; } } }} className="w-full min-h-[34px] rounded-xl border border-surface-200 bg-white px-3 text-xs font-semibold outline-none transition focus:border-surface-900" />
+                                <input id={`option-input-${field.id}`} placeholder="Yeni seçenek metnini yazın..." onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); const inp = e.currentTarget; const val = inp.value.trim(); if (val) { updateRegistrationField(field.id, { options: [...(field.options || []), { label: val, capacity: null }] }); inp.value = ""; } } }} className="w-full min-h-[34px] rounded-xl border border-surface-200 bg-raised px-3 text-xs font-semibold outline-none transition focus:border-surface-900" />
                                 <button type="button" onClick={() => { const inp = document.getElementById(`option-input-${field.id}`) as HTMLInputElement; if (inp) { const val = inp.value.trim(); if (val) { updateRegistrationField(field.id, { options: [...(field.options || []), { label: val, capacity: null }] }); inp.value = ""; } } }} className="inline-flex min-h-[34px] items-center justify-center rounded-lg bg-surface-900 px-3.5 text-xs font-bold text-white shadow-sm hover:bg-surface-800">Ekle</button>
                               </div>
                             </div>
@@ -1584,8 +1584,8 @@ export default function EventSettingsPage() {
                             <span className="text-xs font-semibold text-surface-800 tracking-tight">{copy.requiredField}</span>
                           </label>
                           <label className="inline-flex cursor-pointer items-center gap-2.5 select-none" title={t("field_pii_hint")}>
-                            <input type="checkbox" checked={Boolean(field.pii)} onChange={(e) => updateRegistrationField(field.id, { pii: e.target.checked })} className="h-4 w-4 rounded-md border-surface-300 text-amber-600 focus:ring-0 cursor-pointer" />
-                            <span className="text-xs font-semibold text-amber-700 tracking-tight">{t("field_pii_label")}</span>
+                            <input type="checkbox" checked={Boolean(field.pii)} onChange={(e) => updateRegistrationField(field.id, { pii: e.target.checked })} className="h-4 w-4 rounded-md border-surface-300 text-status-warning-content focus:ring-0 cursor-pointer" />
+                            <span className="text-xs font-semibold text-status-warning-content tracking-tight">{t("field_pii_label")}</span>
                           </label>
                         </div>
 
@@ -1601,18 +1601,18 @@ export default function EventSettingsPage() {
                               <label className="block w-full">
                                 <span className="block text-11 font-bold text-surface-500 mb-1">{copy.conditionalDependsOn}</span>
                                 <div className="relative inline-flex items-center w-full">
-                                  <select value={field.required_when_field_id || ""} onChange={(e) => { const nextId = e.target.value; updateRegistrationField(field.id, { required_when_field_id: nextId || undefined, required_when_equals: nextId ? (field.required_when_equals || "") : undefined }); }} className="w-full min-h-[36px] appearance-none rounded-xl border border-surface-200 bg-white px-3 font-semibold outline-none cursor-pointer">
+                                  <select value={field.required_when_field_id || ""} onChange={(e) => { const nextId = e.target.value; updateRegistrationField(field.id, { required_when_field_id: nextId || undefined, required_when_equals: nextId ? (field.required_when_equals || "") : undefined }); }} className="w-full min-h-[36px] appearance-none rounded-xl border border-surface-200 bg-raised px-3 font-semibold outline-none cursor-pointer">
                                     <option value="">{lang === "tr" ? "Bağlantı Yok" : "None"}</option>
                                     {conditionalSourceFields.map((c) => <option key={c.id} value={c.id}>{c.label || c.id}</option>)}
                                   </select>
                                   <ChevronDown className="pointer-events-none absolute right-3 h-3.5 w-3.5 text-surface-400" />
                                 </div>
                               </label>
-                              
+
                               <label className="block w-full">
                                 <span className="block text-11 font-bold text-surface-500 mb-1">{copy.conditionalValue}</span>
                                 <div className="relative inline-flex items-center w-full">
-                                  <select value={field.required_when_equals || ""} onChange={(e) => updateRegistrationField(field.id, { required_when_equals: e.target.value })} disabled={!field.required_when_field_id || !conditionalValueOptions.length} className="w-full min-h-[36px] appearance-none rounded-xl border border-surface-200 bg-white px-3 font-semibold outline-none cursor-pointer disabled:opacity-40">
+                                  <select value={field.required_when_equals || ""} onChange={(e) => updateRegistrationField(field.id, { required_when_equals: e.target.value })} disabled={!field.required_when_field_id || !conditionalValueOptions.length} className="w-full min-h-[36px] appearance-none rounded-xl border border-surface-200 bg-raised px-3 font-semibold outline-none cursor-pointer disabled:opacity-40">
                                     <option value="">{copy.conditionalValuePlaceholder}</option>
                                     {conditionalValueOptions.map((o) => <option key={o} value={o}>{o}</option>)}
                                   </select>
@@ -1634,7 +1634,7 @@ export default function EventSettingsPage() {
 
         {/* TAB 3: AFİŞ / BANNER YÜKLEME PANELİ */}
         {activeTab === "banner" && (
-          <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+          <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
             <div className="flex items-start gap-3 border-b border-surface-100 pb-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-surface-100 bg-surface-50 text-surface-500 shadow-sm">
                 <ImageIcon className="h-4 w-4 stroke-[1.8]" />
@@ -1653,9 +1653,9 @@ export default function EventSettingsPage() {
                   <div className="flex h-48 sm:h-56 items-center justify-center text-xs font-semibold text-surface-400">{copy.noBanner}</div>
                 )}
               </div>
-              
+
               <div className="flex items-center gap-3">
-                <label className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold text-surface-800 shadow-sm transition hover:bg-surface-50 cursor-pointer select-none">
+                <label className="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold text-surface-800 shadow-sm transition hover:bg-surface-50 cursor-pointer select-none">
                   <Upload className="h-3.5 w-3.5 text-surface-500 stroke-[2]" />
                   <span>{copy.uploadBanner}</span>
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleBannerSelect(e.target.files[0])} />
@@ -1668,7 +1668,7 @@ export default function EventSettingsPage() {
 
         {/* TAB 4: OTOMATİK SERTİFİKA TESLİMAT BÜLTEN KANALI */}
         {activeTab === "email" && (
-          <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+          <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
             <div className="flex items-start gap-3 border-b border-surface-100 pb-2.5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-surface-100 bg-surface-50 text-surface-500 shadow-sm">
                 <Mail className="h-4 w-4 stroke-[1.8]" />
@@ -1676,7 +1676,7 @@ export default function EventSettingsPage() {
               <div className="min-w-0 space-y-0.5 flex-1">
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-bold tracking-tight text-surface-900">{copy.emailTitle}</h2>
-                  {hasGrowthPlan && <span className="inline-flex rounded-md bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-11 font-bold uppercase text-emerald-700 shadow-sm">{subscription?.plan_id === "enterprise" ? copy.enterprise : copy.growth}</span>}
+                  {hasGrowthPlan && <span className="inline-flex rounded-md bg-status-success-bg border border-status-success-border px-1.5 py-0.5 text-11 font-bold uppercase text-status-success-content shadow-sm">{subscription?.plan_id === "enterprise" ? copy.enterprise : copy.growth}</span>}
                 </div>
                 <p className="text-xs text-surface-400 font-medium">{copy.emailBody}</p>
               </div>
@@ -1699,7 +1699,7 @@ export default function EventSettingsPage() {
                     <label className="block w-full">
                       <span className="block text-11 font-bold text-surface-500 mb-1">{copy.templateLabel}</span>
                       <div className="relative inline-flex items-center w-full">
-                        <select value={formData.cert_email_template_id || ""} onChange={(e) => setFormData((curr) => ({ ...curr, cert_email_template_id: e.target.value ? Number(e.target.value) : null }))} className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-white px-3 text-xs font-semibold outline-none cursor-pointer">
+                        <select value={formData.cert_email_template_id || ""} onChange={(e) => setFormData((curr) => ({ ...curr, cert_email_template_id: e.target.value ? Number(e.target.value) : null }))} className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-raised px-3 text-xs font-semibold outline-none cursor-pointer">
                           <option value="">{copy.templatePlaceholder}</option>
                           {customEmailTemplates.length > 0 && <optgroup label={copy.customTemplates}>{customEmailTemplates.map((t) => <option key={`custom-${t.id}`} value={t.id}>{t.name}</option>)}</optgroup>}
                           {systemEmailTemplates.length > 0 && <optgroup label={copy.systemTemplates}>{systemEmailTemplates.map((t) => <option key={`system-${t.id}`} value={t.id}>{t.name}</option>)}</optgroup>}
@@ -1708,8 +1708,8 @@ export default function EventSettingsPage() {
                       </div>
                     </label>
 
-                    {availableEmailTemplates.length === 0 && <div className="rounded-xl border border-amber-100 bg-amber-50/20 p-3.5 text-xs font-semibold text-amber-700">{copy.noTemplates}</div>}
-                    
+                    {availableEmailTemplates.length === 0 && <div className="rounded-xl border border-status-warning-border bg-status-warning-bg/20 p-3.5 text-xs font-semibold text-status-warning-content">{copy.noTemplates}</div>}
+
                     {formData.cert_email_template_id && (
                       <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3 text-xs flex items-center justify-between gap-3">
                         <div className="min-w-0"><p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.active}</p><p className="font-bold text-surface-900 mt-0.5 truncate">{availableEmailTemplates.find((t) => t.id === formData.cert_email_template_id)?.name}</p></div>
@@ -1717,8 +1717,8 @@ export default function EventSettingsPage() {
                     )}
                   </div>
                 )}
-                
-                <div className="flex flex-wrap items-center gap-3 text-xs font-bold pt-1.5 border-t border-gray-50">
+
+                <div className="flex flex-wrap items-center gap-3 text-xs font-bold pt-1.5 border-t border-outline-subtle">
                   <Link href={`/admin/events/${eventId}/email-templates`} className="text-surface-900 hover:text-surface-900 underline underline-offset-2">{copy.manageTemplates}</Link>
                   <Link href={`/admin/events/${eventId}/bulk-emails`} className="text-surface-400 hover:text-surface-900 transition-colors font-medium">{copy.manageCampaigns}</Link>
                 </div>
@@ -1729,7 +1729,7 @@ export default function EventSettingsPage() {
 
         {/* TAB 5: ETKİNLİK YORUM MODERASYON PANELİ */}
         {activeTab === "comments" && (
-          <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+          <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
             <div className="flex items-start gap-3 border-b border-surface-100 pb-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-surface-100 bg-surface-50 text-surface-500 shadow-sm">
                 <MessageSquare className="h-4 w-4 stroke-[1.8]" />
@@ -1745,11 +1745,11 @@ export default function EventSettingsPage() {
             ) : comments.length === 0 ? (
               <div className="rounded-xl border border-dashed border-surface-200 py-12 text-center text-xs font-semibold text-surface-400 tracking-tight">{copy.commentsEmpty}</div>
             ) : (
-              <div className="space-y-3.5 max-h-[560px] overflow-y-auto scrollbar-none pr-0.5 bg-white">
+              <div className="space-y-3.5 max-h-[560px] overflow-y-auto scrollbar-none pr-0.5 bg-raised">
                 {comments.map((comment) => {
-                  const commentSel = comment.status === "visible" ? "border-emerald-100 bg-emerald-50/10 text-emerald-700" : comment.status === "reported" ? "border-amber-100 bg-amber-50/10 text-amber-700" : "border-surface-100 bg-surface-50/40 text-surface-400";
+                  const commentSel = comment.status === "visible" ? "border-status-success-border bg-status-success-bg/10 text-status-success-content" : comment.status === "reported" ? "border-status-warning-border bg-status-warning-bg/10 text-status-warning-content" : "border-surface-100 bg-surface-50/40 text-surface-400";
                   return (
-                    <article key={comment.id} className="rounded-xl border border-surface-100 bg-white p-4 shadow-sm flex flex-col justify-between lg:flex-row lg:items-center gap-4 transition-colors hover:border-surface-200">
+                    <article key={comment.id} className="rounded-xl border border-surface-100 bg-raised p-4 shadow-sm flex flex-col justify-between lg:flex-row lg:items-center gap-4 transition-colors hover:border-surface-200">
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-xs font-bold text-surface-900 tracking-tight">{comment.member_name}</span>
@@ -1759,16 +1759,16 @@ export default function EventSettingsPage() {
                         <p className="text-xs leading-relaxed text-surface-700 font-medium whitespace-pre-wrap">{comment.body}</p>
                         <div className="pt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-11 font-bold text-surface-400 uppercase tracking-wider">
                           <span>{copy.commentsMember}: {comment.member_public_id}</span>
-                          <span className={comment.report_count > 0 ? "text-red-500" : ""}>{copy.commentsReported}: {comment.report_count}</span>
+                          <span className={comment.report_count > 0 ? "text-status-danger-content" : ""}>{copy.commentsReported}: {comment.report_count}</span>
                           <span className="font-mono text-surface-300 font-medium lowercase">{new Date(comment.updated_at).toLocaleDateString()}</span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0 self-end lg:self-auto w-full lg:w-auto">
-                        <button type="button" onClick={() => void handleCommentStatusChange(comment.id, "visible")} disabled={commentsSavingId === comment.id || comment.status === "visible"} className="flex-1 lg:flex-initial inline-flex h-7 items-center justify-center rounded-lg border border-emerald-100 bg-white px-2.5 text-11 font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 disabled:opacity-20">
+                        <button type="button" onClick={() => void handleCommentStatusChange(comment.id, "visible")} disabled={commentsSavingId === comment.id || comment.status === "visible"} className="flex-1 lg:flex-initial inline-flex h-7 items-center justify-center rounded-lg border border-status-success-border bg-raised px-2.5 text-11 font-bold text-status-success-content shadow-sm hover:bg-status-success-bg disabled:opacity-20">
                           {commentsSavingId === comment.id && <Loader2 className="h-3 w-3 animate-spin mr-1" />} <span>{copy.commentsPublish}</span>
                         </button>
-                        <button type="button" onClick={() => void handleCommentStatusChange(comment.id, "hidden")} disabled={commentsSavingId === comment.id || comment.status === "hidden"} className="flex-1 lg:flex-initial inline-flex h-7 items-center justify-center rounded-lg border border-red-100 bg-white px-2.5 text-11 font-bold text-red-600 shadow-sm hover:bg-red-50 disabled:opacity-20">
+                        <button type="button" onClick={() => void handleCommentStatusChange(comment.id, "hidden")} disabled={commentsSavingId === comment.id || comment.status === "hidden"} className="flex-1 lg:flex-initial inline-flex h-7 items-center justify-center rounded-lg border border-status-danger-border bg-raised px-2.5 text-11 font-bold text-status-danger-content shadow-sm hover:bg-status-danger-bg disabled:opacity-20">
                           {commentsSavingId === comment.id && <Loader2 className="h-3 w-3 animate-spin mr-1" />} <span>{copy.commentsHide}</span>
                         </button>
                       </div>

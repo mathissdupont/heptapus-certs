@@ -255,7 +255,7 @@ export default function SuperAdminAdminsPage() {
 
       <div className="card p-6">
         <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-status-warning-bg text-status-warning-content">
             <Coins className="h-5 w-5" />
           </div>
           <div>
@@ -313,7 +313,7 @@ export default function SuperAdminAdminsPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{copy.balance}</p>
-                      <p className="text-sm font-bold text-amber-600">{admin.heptacoin_balance} HC</p>
+                      <p className="text-sm font-bold text-status-warning-content">{admin.heptacoin_balance} HC</p>
                     </div>
                   </div>
 
@@ -324,7 +324,7 @@ export default function SuperAdminAdminsPage() {
                         <option value="superadmin">{copy.superadmin}</option>
                       </select>
                     ) : (
-                      <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold ${admin.role === "superadmin" ? "bg-violet-100 text-violet-800" : "bg-blue-100 text-blue-800"}`}>
+                      <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold ${admin.role === "superadmin" ? "bg-status-info-bg text-status-info-content" : "bg-status-info-bg text-status-info-content"}`}>
                         {admin.role === "superadmin" ? copy.superadmin : copy.admin}
                       </span>
                     )}
@@ -381,12 +381,12 @@ export default function SuperAdminAdminsPage() {
                             <option value="superadmin">{copy.superadmin}</option>
                           </select>
                         ) : (
-                          <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold ${admin.role === "superadmin" ? "bg-violet-100 text-violet-800" : "bg-blue-100 text-blue-800"}`}>
+                          <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-bold ${admin.role === "superadmin" ? "bg-status-info-bg text-status-info-content" : "bg-status-info-bg text-status-info-content"}`}>
                             {admin.role === "superadmin" ? copy.superadmin : copy.admin}
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-amber-600">{admin.heptacoin_balance} HC</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-status-warning-content">{admin.heptacoin_balance} HC</td>
                       <td className="px-6 py-4 text-sm text-surface-500">{admin.created_at ? new Date(admin.created_at).toLocaleDateString(localeTag(lang)) : "-"}</td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -404,8 +404,8 @@ export default function SuperAdminAdminsPage() {
                               <button onClick={() => { setEditingId(admin.id); setEditingRole(admin.role as "admin" | "superadmin"); }} className="rounded-lg p-2 transition-colors hover:bg-surface-100">
                                 <Edit2 className="h-4 w-4 text-surface-500" />
                               </button>
-                              <button onClick={() => setDeletingId(admin.id)} className="rounded-lg p-2 transition-colors hover:bg-rose-50">
-                                <Trash2 className="h-4 w-4 text-rose-500" />
+                              <button onClick={() => setDeletingId(admin.id)} className="rounded-lg p-2 transition-colors hover:bg-status-danger-bg">
+                                <Trash2 className="h-4 w-4 text-status-danger-content" />
                               </button>
                             </>
                           )}

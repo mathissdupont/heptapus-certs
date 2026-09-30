@@ -236,8 +236,8 @@ export default function PublicOrganizationDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center text-gray-500">
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
+        <div className="flex flex-col items-center text-content-muted">
           <Loader2 className="h-8 w-8 animate-spin mb-4" />
           <p className="text-sm font-medium">{copy.loading}</p>
         </div>
@@ -247,12 +247,12 @@ export default function PublicOrganizationDetailPage() {
 
   if (error || !org) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
         <div className="text-center max-w-md px-6">
-          <h1 className="text-xl font-semibold text-gray-900 mb-2">{copy.error || error}</h1>
+          <h1 className="text-xl font-semibold text-content-primary mb-2">{copy.error || error}</h1>
           <Link
             href={backHref}
-            className="inline-flex items-center gap-2 px-4 py-2 mt-4 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 mt-4 bg-raised border border-outline-subtle text-content-secondary rounded-lg hover:bg-canvas transition text-sm font-medium shadow-sm"
           >
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
@@ -263,13 +263,13 @@ export default function PublicOrganizationDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-12">
+    <div className="min-h-screen bg-canvas pb-12">
       {/* Navbar / Header */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-6 py-4">
+      <div className="sticky top-0 z-40 bg-raised/80 backdrop-blur-md border-b border-outline-subtle px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center">
           <Link
             href={backHref}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
+            className="inline-flex items-center gap-2 text-sm font-medium text-content-muted hover:text-content-primary transition"
           >
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
@@ -279,23 +279,23 @@ export default function PublicOrganizationDetailPage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-8">
         {/* Main Organization Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+        <div className="bg-raised rounded-2xl shadow-sm border border-outline-subtle overflow-hidden mb-8">
           {/* Subtle Cover Photo with Brand Color */}
-          <div 
-            className="h-32 w-full opacity-10" 
-            style={{ backgroundColor: org.brand_color || '#94a3b8' }} 
+          <div
+            className="h-32 w-full opacity-10"
+            style={{ backgroundColor: org.brand_color || "rgb(var(--content-faint))" }}
           />
 
           <div className="px-6 sm:px-10 pb-8">
             <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 -mt-16 mb-6">
               {/* Logo */}
               <div className="relative flex-shrink-0">
-                <div className="h-32 w-32 rounded-xl bg-white border-4 border-white shadow-sm flex items-center justify-center overflow-hidden">
+                <div className="h-32 w-32 rounded-xl bg-raised border-4 border-white shadow-sm flex items-center justify-center overflow-hidden">
                   {org.brand_logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={org.brand_logo} alt={org.org_name} className="h-full w-full object-cover" />
                   ) : (
-                    <span className="text-4xl font-semibold text-slate-400">
+                    <span className="text-4xl font-semibold text-content-muted">
                       {org.org_name.charAt(0).toUpperCase()}
                     </span>
                   )}
@@ -305,31 +305,31 @@ export default function PublicOrganizationDetailPage() {
               {/* Details */}
               <div className="flex-1 pt-2 sm:pt-16 flex flex-col sm:flex-row justify-between items-start gap-6">
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-content-primary mb-3">
                     {org.org_name}
                   </h1>
-                  
+
                   {org.bio && (
-                    <p className="text-gray-600 text-sm leading-relaxed max-w-2xl mb-6">
+                    <p className="text-content-secondary text-sm leading-relaxed max-w-2xl mb-6">
                       {org.bio}
                     </p>
                   )}
 
                   {/* Clean Stats */}
                   <div className="flex gap-4 mb-6">
-                    <div className="flex flex-col justify-center rounded-xl bg-gray-50 px-5 py-3 border border-gray-100 min-w-[120px]">
-                      <span className="text-2xl font-bold text-slate-800">
+                    <div className="flex flex-col justify-center rounded-xl bg-canvas px-5 py-3 border border-outline-subtle min-w-[120px]">
+                      <span className="text-2xl font-bold text-content-primary">
                         {org.follower_count.toLocaleString()}
                       </span>
-                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-0.5">
+                      <span className="text-xs font-medium text-content-muted uppercase tracking-wide mt-0.5">
                         {copy.followers}
                       </span>
                     </div>
-                    <div className="flex flex-col justify-center rounded-xl bg-gray-50 px-5 py-3 border border-gray-100 min-w-[120px]">
-                      <span className="text-2xl font-bold text-slate-800">
+                    <div className="flex flex-col justify-center rounded-xl bg-canvas px-5 py-3 border border-outline-subtle min-w-[120px]">
+                      <span className="text-2xl font-bold text-content-primary">
                         {org.event_count.toLocaleString()}
                       </span>
-                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-0.5">
+                      <span className="text-xs font-medium text-content-muted uppercase tracking-wide mt-0.5">
                         {copy.events}
                       </span>
                     </div>
@@ -346,7 +346,7 @@ export default function PublicOrganizationDetailPage() {
                             href={item.href || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-outline-subtle bg-raised text-sm font-medium text-content-secondary hover:bg-canvas transition-colors shadow-sm"
                           >
                             <Icon className="h-4 w-4" />
                             {item.label}
@@ -394,16 +394,16 @@ export default function PublicOrganizationDetailPage() {
           {/* Main Feed Column (Left / 2-cols wide) */}
           {!isWhiteLabel && (
           <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-lg font-bold text-gray-900 px-1">
+            <h2 className="text-lg font-bold text-content-primary px-1">
               {copy.feed}
             </h2>
 
             {/* Post Input */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div className="bg-raised rounded-xl shadow-sm border border-outline-subtle p-5">
               {viewer ? (
                 <div className="space-y-4">
                   <textarea
-                    className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus:bg-white placeholder-gray-400 resize-none min-h-[100px]"
+                    className="w-full rounded-lg border border-outline-subtle bg-canvas px-4 py-3 text-sm text-content-primary outline-none transition focus:border-outline-strong focus:ring-1 focus:ring-outline-strong focus:bg-raised placeholder-content-faint resize-none min-h-[100px]"
                     value={postBody}
                     onChange={(event) => setPostBody(event.target.value)}
                     maxLength={1500}
@@ -412,14 +412,14 @@ export default function PublicOrganizationDetailPage() {
                       : "Start a discussion in this community..."}
                   />
                   <div className="flex justify-between items-center">
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-content-muted">
                       {postBody.length}/1500
                     </p>
                     <button
                       type="button"
                       onClick={() => void handleCreatePost()}
                       disabled={posting || !postBody.trim()}
-                      className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60 shadow-sm"
+                      className="inline-flex items-center gap-2 rounded-lg bg-inverse-surface px-5 py-2 text-sm font-medium text-white transition hover:bg-inverse-surface disabled:opacity-60 shadow-sm"
                     >
                       {posting ? (
                         <>
@@ -437,14 +437,14 @@ export default function PublicOrganizationDetailPage() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-6 text-center">
-                  <p className="text-sm text-gray-500 mb-4">
+                  <p className="text-sm text-content-muted mb-4">
                     {lang === "tr"
                       ? "Paylaşım yapmak veya yorum yazmak için giriş yapın."
                       : "Sign in to create a post or leave a comment."}
                   </p>
                   <button
                     onClick={() => (window.location.href = "/login?mode=member")}
-                    className="inline-flex items-center rounded-lg bg-white border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition shadow-sm"
+                    className="inline-flex items-center rounded-lg bg-raised border border-outline-subtle px-4 py-2 text-sm font-medium text-content-secondary hover:bg-canvas transition shadow-sm"
                   >
                     {lang === "tr" ? "Üye Girişi" : "Sign In"}
                   </button>
@@ -454,12 +454,12 @@ export default function PublicOrganizationDetailPage() {
 
             {/* Posts List */}
             {loadingFeed ? (
-              <div className="flex items-center justify-center py-12 text-sm text-gray-500">
+              <div className="flex items-center justify-center py-12 text-sm text-content-muted">
                 <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                 {copy.loading}
               </div>
             ) : posts.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center text-sm text-gray-500">
+              <div className="rounded-xl border border-dashed border-outline-strong bg-canvas px-6 py-12 text-center text-sm text-content-muted">
                 <p>
                   {lang === "tr"
                     ? "Henüz paylaşım yok. İlk gönderiyi sen oluştur!"
@@ -471,11 +471,11 @@ export default function PublicOrganizationDetailPage() {
                 {posts.map((post) => (
                   <article
                     key={post.public_id}
-                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-5"
+                    className="bg-raised rounded-xl shadow-sm border border-outline-subtle p-5"
                   >
                     {/* Header */}
                     <div className="flex items-start gap-3 mb-3">
-                      <div className="h-10 w-10 rounded-full bg-slate-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <div className="h-10 w-10 rounded-full bg-sunken border border-outline-subtle flex items-center justify-center overflow-hidden flex-shrink-0">
                         {post.author_avatar_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -484,36 +484,36 @@ export default function PublicOrganizationDetailPage() {
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <span className="text-sm font-semibold text-slate-500">
+                          <span className="text-sm font-semibold text-content-muted">
                             {post.author_name.charAt(0).toUpperCase()}
                           </span>
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-content-primary">
                           {post.author_name}
                         </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className="text-xs text-content-muted mt-0.5">
                           {formatTimestamp(post.created_at, lang)}
                         </p>
                       </div>
                     </div>
 
                     {/* Content */}
-                    <p className="text-sm leading-relaxed text-gray-700 mb-4 whitespace-pre-wrap">
+                    <p className="text-sm leading-relaxed text-content-secondary mb-4 whitespace-pre-wrap">
                       {post.body}
                     </p>
 
                     {/* Engagement Actions */}
-                    <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-4 pt-4 border-t border-outline-subtle">
                       <button
                         type="button"
                         onClick={() => void handleToggleLike(post)}
                         disabled={busyPostId === post.public_id}
                         className={`flex items-center gap-1.5 text-sm font-medium transition-colors ${
                           post.liked_by_me
-                            ? "text-rose-600"
-                            : "text-gray-500 hover:text-gray-700"
+                            ? "text-status-danger-content"
+                            : "text-content-muted hover:text-content-secondary"
                         } disabled:opacity-60`}
                       >
                         {busyPostId === post.public_id ? (
@@ -528,7 +528,7 @@ export default function PublicOrganizationDetailPage() {
                       <button
                         type="button"
                         onClick={() => void loadComments(post.public_id)}
-                        className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                        className="flex items-center gap-1.5 text-sm font-medium text-content-muted hover:text-content-secondary transition-colors"
                       >
                         <MessageCircle className="h-4 w-4" />
                         <span>{post.comment_count}</span>
@@ -537,24 +537,24 @@ export default function PublicOrganizationDetailPage() {
 
                     {/* Comments Section */}
                     {commentsByPost[post.public_id] && (
-                      <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
+                      <div className="mt-4 pt-4 border-t border-outline-subtle space-y-4">
                         {(commentsByPost[post.public_id] || []).map((comment) => (
                           <div key={comment.id} className="flex gap-3">
-                            <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                              <span className="text-xs font-medium text-slate-500">
+                            <div className="h-8 w-8 rounded-full bg-sunken flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-xs font-medium text-content-muted">
                                 {comment.member_name.charAt(0).toUpperCase()}
                               </span>
                             </div>
-                            <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3">
+                            <div className="flex-1 bg-canvas rounded-xl px-4 py-3">
                               <div className="flex items-center justify-between gap-2 mb-1">
-                                <span className="text-sm font-medium text-gray-900">
+                                <span className="text-sm font-medium text-content-primary">
                                   {comment.member_name}
                                 </span>
-                                <span className="text-11 text-gray-500">
+                                <span className="text-11 text-content-muted">
                                   {formatTimestamp(comment.created_at, lang)}
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-700">
+                              <p className="text-sm text-content-secondary">
                                 {comment.body}
                               </p>
                             </div>
@@ -575,7 +575,7 @@ export default function PublicOrganizationDetailPage() {
                               placeholder={
                                 lang === "tr" ? "Yorum yaz..." : "Write a comment..."
                               }
-                              className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-400"
+                              className="flex-1 rounded-lg border border-outline-subtle bg-raised px-3 py-2 text-sm text-content-primary outline-none transition focus:border-outline-strong focus:ring-1 focus:ring-outline-strong"
                             />
                             <button
                               type="button"
@@ -584,7 +584,7 @@ export default function PublicOrganizationDetailPage() {
                                 busyPostId === post.public_id ||
                                 !(commentInputs[post.public_id] || "").trim()
                               }
-                              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-60 shadow-sm"
+                              className="rounded-lg bg-inverse-surface px-4 py-2 text-sm font-medium text-white transition hover:bg-inverse-surface disabled:opacity-60 shadow-sm"
                             >
                               {lang === "tr" ? "Yanıtla" : "Reply"}
                             </button>
@@ -601,12 +601,12 @@ export default function PublicOrganizationDetailPage() {
 
           {/* Sidebar / Events Column */}
           <div className="space-y-6">
-            <h2 className="text-lg font-bold text-gray-900 px-1">
+            <h2 className="text-lg font-bold text-content-primary px-1">
               {copy.events}
             </h2>
 
             {org.events.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center text-sm text-gray-500">
+              <div className="rounded-xl border border-dashed border-outline-strong bg-canvas px-6 py-8 text-center text-sm text-content-muted">
                 {copy.noEvents}
               </div>
             ) : (
@@ -615,10 +615,10 @@ export default function PublicOrganizationDetailPage() {
                   <Link
                     key={event.public_id}
                     href={`/events/${event.public_id}`}
-                    className="group bg-white rounded-xl shadow-sm border border-gray-200 hover:border-gray-300 transition-all overflow-hidden"
+                    className="group bg-raised rounded-xl shadow-sm border border-outline-subtle hover:border-outline-strong transition-all overflow-hidden"
                   >
                     {/* Banner Image */}
-                    <div className="h-32 bg-slate-100 border-b border-gray-100 overflow-hidden relative">
+                    <div className="h-32 bg-sunken border-b border-outline-subtle overflow-hidden relative">
                       {event.event_banner_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -627,17 +627,17 @@ export default function PublicOrganizationDetailPage() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="h-full w-full flex items-center justify-center bg-gray-50">
-                          <Calendar className="h-8 w-8 text-gray-300" />
+                        <div className="h-full w-full flex items-center justify-center bg-canvas">
+                          <Calendar className="h-8 w-8 text-content-muted" />
                         </div>
                       )}
                     </div>
                     {/* Content */}
                     <div className="p-4">
-                      <h3 className="text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 mb-3">
+                      <h3 className="text-sm font-semibold text-content-primary group-hover:text-status-info-content transition-colors line-clamp-2 mb-3">
                         {event.name}
                       </h3>
-                      <div className="inline-flex items-center gap-1.5 rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 border border-slate-100">
+                      <div className="inline-flex items-center gap-1.5 rounded-md bg-canvas px-2 py-1 text-xs font-medium text-content-secondary border border-outline-subtle">
                         <Users className="h-3 w-3" />
                         {event.session_count} {lang === "tr" ? "Oturum" : "Sessions"}
                       </div>

@@ -117,7 +117,7 @@ export default function ApiSettingsPage() {
     });
   }
 
-  if (loading) return <div className="p-8 text-gray-400">Yükleniyor…</div>;
+  if (loading) return <div className="p-8 text-content-muted">Yükleniyor…</div>;
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -127,7 +127,7 @@ export default function ApiSettingsPage() {
           <Link
             href="/developers"
             target="_blank"
-            className="px-3 py-2 text-sm border rounded hover:bg-gray-50"
+            className="px-3 py-2 text-sm border rounded hover:bg-canvas"
           >
             Dokümantasyon ↗
           </Link>
@@ -139,12 +139,12 @@ export default function ApiSettingsPage() {
           </button>
         </div>
       </div>
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-sm text-content-muted mb-6">
         API anahtarları ile HeptaCert verilerinize programatik erişim sağlayın.
       </p>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+        <div className="mb-4 p-3 bg-status-danger-bg border border-status-danger-border text-status-danger-content rounded text-sm">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">kapat</button>
         </div>
@@ -152,12 +152,12 @@ export default function ApiSettingsPage() {
 
       {/* Created key banner */}
       {createdKey && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-300 rounded-lg">
-          <p className="text-sm font-semibold text-green-800 mb-1">
+        <div className="mb-6 p-4 bg-status-success-bg border border-status-success-border rounded-lg">
+          <p className="text-sm font-semibold text-status-success-content mb-1">
             Anahtar oluşturuldu — bir kez görüntüleniyor, kaydedin!
           </p>
           <div className="flex items-center gap-2 mt-2">
-            <code className="flex-1 text-xs bg-white border px-3 py-2 rounded font-mono break-all">
+            <code className="flex-1 text-xs bg-raised border px-3 py-2 rounded font-mono break-all">
               {createdKey.full_key}
             </code>
             <button
@@ -173,11 +173,11 @@ export default function ApiSettingsPage() {
       {/* Create form */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+          <div className="bg-raised rounded-xl shadow-xl w-full max-w-lg p-6">
             <h2 className="text-lg font-semibold mb-4">Yeni API Anahtarı</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ad</label>
+                <label className="block text-sm font-medium text-content-secondary mb-1">Ad</label>
                 <input
                   type="text"
                   value={form.name}
@@ -187,7 +187,7 @@ export default function ApiSettingsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">İzinler</label>
+                <label className="block text-sm font-medium text-content-secondary mb-2">İzinler</label>
                 <div className="grid grid-cols-2 gap-2">
                   {scopes.map((s) => (
                     <label key={s.value} className="flex items-start gap-2 cursor-pointer group">
@@ -197,17 +197,17 @@ export default function ApiSettingsPage() {
                         onChange={() => toggleScope(s.value)}
                         className="mt-0.5 rounded"
                       />
-                      <span className="text-xs text-gray-700">
-                        <span className="font-mono text-indigo-700">{s.value}</span>
+                      <span className="text-xs text-content-secondary">
+                        <span className="font-mono text-status-info-content">{s.value}</span>
                         <br />
-                        <span className="text-gray-500">{s.label}</span>
+                        <span className="text-content-muted">{s.label}</span>
                       </span>
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-content-secondary mb-1">
                   Son Kullanma (gün) — boş: sonsuz
                 </label>
                 <input
@@ -224,7 +224,7 @@ export default function ApiSettingsPage() {
             <div className="flex justify-end gap-2 mt-6">
               <button
                 onClick={() => setShowCreate(false)}
-                className="px-4 py-2 text-sm border rounded hover:bg-gray-50"
+                className="px-4 py-2 text-sm border rounded hover:bg-canvas"
               >
                 İptal
               </button>
@@ -242,42 +242,42 @@ export default function ApiSettingsPage() {
 
       {/* Keys list */}
       {keys.length === 0 ? (
-        <div className="text-center py-14 bg-white rounded-xl border">
+        <div className="text-center py-14 bg-raised rounded-xl border">
           <p className="text-4xl mb-3">🔑</p>
-          <p className="text-gray-500 text-sm">Henüz API anahtarı yok.</p>
+          <p className="text-content-muted text-sm">Henüz API anahtarı yok.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {keys.map((k) => (
-            <div key={k.id} className={`bg-white rounded-xl border p-4 ${!k.is_active ? "opacity-60" : ""}`}>
+            <div key={k.id} className={`bg-raised rounded-xl border p-4 ${!k.is_active ? "opacity-60" : ""}`}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-gray-900">{k.name}</span>
+                    <span className="font-medium text-content-primary">{k.name}</span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full ${
                         k.is_active
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-500"
+                          ? "bg-status-success-bg text-status-success-content"
+                          : "bg-sunken text-content-muted"
                       }`}
                     >
                       {k.is_active ? "Aktif" : "İptal"}
                     </span>
                   </div>
-                  <code className="text-xs text-gray-500 font-mono">{k.key_prefix}…</code>
+                  <code className="text-xs text-content-muted font-mono">{k.key_prefix}…</code>
                   <div className="flex flex-wrap gap-1 mt-2">
                     {k.scopes.length === 0 ? (
-                      <span className="text-xs text-gray-400 italic">İzin yok</span>
+                      <span className="text-xs text-content-muted italic">İzin yok</span>
                     ) : (
                       k.scopes.map((s) => (
-                        <span key={s} className="text-xs bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-mono">
+                        <span key={s} className="text-xs bg-status-info-bg text-status-info-content px-1.5 py-0.5 rounded font-mono">
                           {s}
                         </span>
                       ))
                     )}
                   </div>
                 </div>
-                <div className="text-right text-xs text-gray-400 whitespace-nowrap">
+                <div className="text-right text-xs text-content-muted whitespace-nowrap">
                   <p>Oluşturuldu: {formatDate(k.created_at, lang)}</p>
                   <p>Son kul.: {formatDate(k.last_used_at, lang)}</p>
                   <p>Geçerlilik: {k.expires_at ? formatDate(k.expires_at, lang) : "Sonsuz"}</p>
@@ -287,7 +287,7 @@ export default function ApiSettingsPage() {
               {/* Scope editor */}
               {editingId === k.id ? (
                 <div className="mt-3 pt-3 border-t">
-                  <p className="text-xs font-medium text-gray-600 mb-2">İzinleri Düzenle</p>
+                  <p className="text-xs font-medium text-content-secondary mb-2">İzinleri Düzenle</p>
                   <div className="grid grid-cols-2 gap-2 mb-3">
                     {scopes.map((s) => (
                       <label key={s.value} className="flex items-center gap-2 cursor-pointer">
@@ -303,7 +303,7 @@ export default function ApiSettingsPage() {
                           }
                           className="rounded"
                         />
-                        <span className="text-xs font-mono text-indigo-700">{s.value}</span>
+                        <span className="text-xs font-mono text-status-info-content">{s.value}</span>
                       </label>
                     ))}
                   </div>
@@ -316,7 +316,7 @@ export default function ApiSettingsPage() {
                     </button>
                     <button
                       onClick={() => setEditingId(null)}
-                      className="px-3 py-1.5 text-xs border rounded hover:bg-gray-50"
+                      className="px-3 py-1.5 text-xs border rounded hover:bg-canvas"
                     >
                       İptal
                     </button>
@@ -328,13 +328,13 @@ export default function ApiSettingsPage() {
                     <>
                       <button
                         onClick={() => { setEditingId(k.id); setEditScopes(k.scopes); }}
-                        className="text-xs text-blue-600 hover:underline"
+                        className="text-xs text-status-info-content hover:underline"
                       >
                         İzinleri Düzenle
                       </button>
                       <button
                         onClick={() => handleRevoke(k.id)}
-                        className="text-xs text-red-500 hover:underline"
+                        className="text-xs text-status-danger-content hover:underline"
                       >
                         İptal Et
                       </button>

@@ -79,12 +79,12 @@ function ForgotPasswordContent() {
     return (
       <div className="flex min-h-[80vh] items-center justify-center py-12">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card max-w-md w-full p-10 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-status-success-bg text-status-success-content">
             <CheckCircle2 className="h-8 w-8" />
           </div>
-          <h2 className="mb-2 text-xl font-bold text-gray-900">{copy.sentTitle}</h2>
-          <p className="mb-6 text-sm text-gray-500">
-            {copy.sentBody} <strong className="text-gray-700">{email}</strong> {copy.sentBody2}
+          <h2 className="mb-2 text-xl font-bold text-content-primary">{copy.sentTitle}</h2>
+          <p className="mb-6 text-sm text-content-muted">
+            {copy.sentBody} <strong className="text-content-secondary">{email}</strong> {copy.sentBody2}
           </p>
           <Link href={backHref} className="btn-secondary w-full justify-center">{copy.backToLogin}</Link>
         </motion.div>
@@ -96,14 +96,14 @@ function ForgotPasswordContent() {
     <div className="flex min-h-[80vh] items-center justify-center py-12">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="card w-full max-w-md p-10">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">{copy.title}</h1>
-          <p className="mt-1.5 text-sm text-gray-500">{copy.subtitle}</p>
+          <h1 className="text-2xl font-bold text-content-primary">{copy.title}</h1>
+          <p className="mt-1.5 text-sm text-content-muted">{copy.subtitle}</p>
         </div>
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
             <label className="label">{copy.email}</label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
               <input className="input-field pl-10" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={copy.emailPlaceholder} required autoComplete="email" />
             </div>
           </div>
@@ -118,7 +118,7 @@ function ForgotPasswordContent() {
             {loading ? copy.sending : <><ArrowRight className="h-4 w-4" /> {copy.submit}</>}
           </button>
         </form>
-        <div className="mt-6 text-center text-sm text-gray-500">
+        <div className="mt-6 text-center text-sm text-content-muted">
           <Link href={backHref} className="font-semibold text-brand-600 hover:text-brand-700">{copy.backToLogin}</Link>
         </div>
       </motion.div>

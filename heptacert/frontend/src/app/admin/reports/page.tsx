@@ -216,7 +216,7 @@ export default function ScheduledReportsPage() {
     }
   }
 
-  if (loading) return <div className="p-8 text-gray-500">{copy.loading}</div>;
+  if (loading) return <div className="p-8 text-content-muted">{copy.loading}</div>;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -232,7 +232,7 @@ export default function ScheduledReportsPage() {
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+        <div className="mb-4 p-3 bg-status-danger-bg border border-status-danger-border text-status-danger-content rounded text-sm">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">{copy.errorClose}</button>
         </div>
@@ -241,14 +241,14 @@ export default function ScheduledReportsPage() {
       {/* Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+          <div className="bg-raised rounded-xl shadow-xl w-full max-w-lg p-6">
             <h2 className="text-lg font-semibold mb-4">
               {editingId !== null ? copy.formTitleEdit : copy.formTitleCreate}
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelReportName}</label>
+                <label className="block text-sm font-medium text-content-secondary mb-1">{copy.labelReportName}</label>
                 <input
                   type="text"
                   value={form.name}
@@ -259,7 +259,7 @@ export default function ScheduledReportsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelReportType}</label>
+                <label className="block text-sm font-medium text-content-secondary mb-1">{copy.labelReportType}</label>
                 <select
                   value={form.report_type}
                   onChange={(e) => setForm({ ...form, report_type: e.target.value })}
@@ -273,7 +273,7 @@ export default function ScheduledReportsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelFrequency}</label>
+                <label className="block text-sm font-medium text-content-secondary mb-1">{copy.labelFrequency}</label>
                 <select
                   value={form.frequency}
                   onChange={(e) => setForm({ ...form, frequency: e.target.value })}
@@ -286,7 +286,7 @@ export default function ScheduledReportsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-content-secondary mb-1">
                   {copy.labelRecipients}
                 </label>
                 <textarea
@@ -306,14 +306,14 @@ export default function ScheduledReportsPage() {
                   onChange={(e) => setForm({ ...form, active: e.target.checked })}
                   className="rounded"
                 />
-                <label htmlFor="active-toggle" className="text-sm text-gray-700">{copy.labelActive}</label>
+                <label htmlFor="active-toggle" className="text-sm text-content-secondary">{copy.labelActive}</label>
               </div>
             </div>
 
             <div className="flex justify-end gap-2 mt-6">
               <button
                 onClick={() => setShowForm(false)}
-                className="px-4 py-2 text-sm border rounded hover:bg-gray-50"
+                className="px-4 py-2 text-sm border rounded hover:bg-canvas"
               >
                 {copy.btnCancel}
               </button>
@@ -332,11 +332,11 @@ export default function ScheduledReportsPage() {
       {/* Delete confirm */}
       {deleteId !== null && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
+          <div className="bg-raised rounded-xl shadow-xl p-6 max-w-sm w-full">
             <h3 className="text-base font-semibold mb-3">{copy.deleteTitle}</h3>
-            <p className="text-sm text-gray-600 mb-5">{copy.deleteConfirm}</p>
+            <p className="text-sm text-content-secondary mb-5">{copy.deleteConfirm}</p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteId(null)} className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50">
+              <button onClick={() => setDeleteId(null)} className="px-3 py-1.5 text-sm border rounded hover:bg-canvas">
                 {copy.btnCancel}
               </button>
               <button
@@ -352,56 +352,56 @@ export default function ScheduledReportsPage() {
 
       {/* Table */}
       {reports.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-content-muted">
           <p className="text-4xl mb-3">📊</p>
           <p className="text-sm">{copy.emptyTitle}</p>
-          <button onClick={openCreate} className="mt-3 text-blue-600 text-sm underline">
+          <button onClick={openCreate} className="mt-3 text-status-info-content text-sm underline">
             {copy.emptyAction}
           </button>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-canvas">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.tableColName}</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.tableColType}</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.tableColFrequency}</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.tableColRecipients}</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.tableColLastRun}</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.tableColNextRun}</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.tableColStatus}</th>
+                <th className="text-left px-4 py-3 font-medium text-content-secondary">{copy.tableColName}</th>
+                <th className="text-left px-4 py-3 font-medium text-content-secondary">{copy.tableColType}</th>
+                <th className="text-left px-4 py-3 font-medium text-content-secondary">{copy.tableColFrequency}</th>
+                <th className="text-left px-4 py-3 font-medium text-content-secondary">{copy.tableColRecipients}</th>
+                <th className="text-left px-4 py-3 font-medium text-content-secondary">{copy.tableColLastRun}</th>
+                <th className="text-left px-4 py-3 font-medium text-content-secondary">{copy.tableColNextRun}</th>
+                <th className="text-left px-4 py-3 font-medium text-content-secondary">{copy.tableColStatus}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y">
               {reports.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50">
+                <tr key={r.id} className="hover:bg-canvas">
                   <td className="px-4 py-3 font-medium">{r.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{r.report_type_label}</td>
+                  <td className="px-4 py-3 text-content-secondary">{r.report_type_label}</td>
                   <td className="px-4 py-3 capitalize">
                     {copy.frequencies.find((f) => f.value === r.frequency)?.label ?? r.frequency}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-4 py-3 text-content-secondary">
                     {r.recipients.length === 0 ? (
-                      <span className="text-gray-400 italic">—</span>
+                      <span className="text-content-muted italic">—</span>
                     ) : (
                       <span title={r.recipients.join("\n")}>
                         {r.recipients[0]}
                         {r.recipients.length > 1 && (
-                          <span className="ml-1 text-xs text-gray-400">+{r.recipients.length - 1}</span>
+                          <span className="ml-1 text-xs text-content-muted">+{r.recipients.length - 1}</span>
                         )}
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(r.last_run_at, lang)}</td>
-                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{formatDate(r.next_run_at, lang)}</td>
+                  <td className="px-4 py-3 text-content-secondary whitespace-nowrap">{formatDate(r.last_run_at, lang)}</td>
+                  <td className="px-4 py-3 text-content-secondary whitespace-nowrap">{formatDate(r.next_run_at, lang)}</td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                         r.active
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-600"
+                          ? "bg-status-success-bg text-status-success-content"
+                          : "bg-sunken text-content-secondary"
                       }`}
                     >
                       {r.active ? copy.statusActive : copy.statusInactive}
@@ -410,13 +410,13 @@ export default function ScheduledReportsPage() {
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     <button
                       onClick={() => openEdit(r)}
-                      className="text-blue-600 hover:underline text-xs mr-3"
+                      className="text-status-info-content hover:underline text-xs mr-3"
                     >
                       {copy.btnEdit}
                     </button>
                     <button
                       onClick={() => setDeleteId(r.id)}
-                      className="text-red-500 hover:underline text-xs"
+                      className="text-status-danger-content hover:underline text-xs"
                     >
                       {copy.btnDeleteRow}
                     </button>

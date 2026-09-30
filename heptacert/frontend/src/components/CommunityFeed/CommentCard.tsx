@@ -39,8 +39,8 @@ export default function CommentCard({
     <div
       className={`relative flex gap-3 transition-colors ${
         isReply
-          ? 'ml-6 mt-3 border-l-2 border-gray-200 pl-4'
-          : 'rounded-xl border border-gray-200 bg-white p-4 shadow-sm mt-4'
+          ? 'ml-6 mt-3 border-l-2 border-outline-subtle pl-4'
+          : 'rounded-xl border border-outline-subtle bg-raised p-4 shadow-sm mt-4'
       }`}
     >
       {/* Avatar Column */}
@@ -50,10 +50,10 @@ export default function CommentCard({
           <img
             src={authorAvatar}
             alt={authorName}
-            className="h-8 w-8 rounded-full object-cover border border-gray-100 bg-gray-50"
+            className="h-8 w-8 rounded-full object-cover border border-outline-subtle bg-canvas"
           />
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-slate-50 text-xs font-semibold text-slate-500">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-outline-subtle bg-canvas text-xs font-semibold text-content-muted">
             {authorName.charAt(0).toUpperCase()}
           </div>
         )}
@@ -63,55 +63,55 @@ export default function CommentCard({
       <div className="min-w-0 flex-1">
         {/* Header */}
         <div className="flex items-center gap-2 mb-1">
-          <p className="text-sm font-semibold text-gray-900 truncate">
+          <p className="text-sm font-semibold text-content-primary truncate">
             {authorName}
           </p>
-          <span className="text-11 text-gray-400">•</span>
-          <p className="text-xs text-gray-500 truncate">{timestamp}</p>
+          <span className="text-11 text-content-muted">•</span>
+          <p className="text-xs text-content-muted truncate">{timestamp}</p>
         </div>
 
         {/* Body */}
-        <p className="mb-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+        <p className="mb-3 text-sm text-content-secondary leading-relaxed whitespace-pre-wrap break-words">
           {body}
         </p>
 
         {/* Actions Bar */}
         <div className="flex items-center gap-4">
           {/* Voting Pill Group */}
-          <div className="inline-flex items-center rounded-full bg-gray-50 border border-gray-200/60 p-0.5">
+          <div className="inline-flex items-center rounded-full bg-canvas border border-outline-subtle/60 p-0.5">
             <button
               onClick={onUpvote}
               disabled={isLoading}
               className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                 userVote === 'upvote'
-                  ? 'bg-emerald-100/50 text-emerald-700'
-                  : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-900'
+                  ? 'bg-status-success-bg/50 text-status-success-content'
+                  : 'text-content-muted hover:bg-sunken/50 hover:text-content-primary'
               } disabled:opacity-50`}
               title="Upvote"
             >
               <ThumbsUp
                 className={`h-3.5 w-3.5 ${
-                  userVote === 'upvote' ? 'fill-emerald-200 text-emerald-600' : ''
+                  userVote === 'upvote' ? 'fill-status-success-content text-status-success-content' : ''
                 }`}
               />
               <span>{upvoteCount}</span>
             </button>
 
-            <div className="h-3 w-px bg-gray-300 mx-0.5" />
+            <div className="h-3 w-px bg-sunken mx-0.5" />
 
             <button
               onClick={onDownvote}
               disabled={isLoading}
               className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                 userVote === 'downvote'
-                  ? 'bg-rose-100/50 text-rose-700'
-                  : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-900'
+                  ? 'bg-status-danger-bg/50 text-status-danger-content'
+                  : 'text-content-muted hover:bg-sunken/50 hover:text-content-primary'
               } disabled:opacity-50`}
               title="Downvote"
             >
               <ThumbsDown
                 className={`h-3.5 w-3.5 ${
-                  userVote === 'downvote' ? 'fill-rose-200 text-rose-600' : ''
+                  userVote === 'downvote' ? 'fill-status-danger-content text-status-danger-content' : ''
                 }`}
               />
               <span>{downvoteCount}</span>
@@ -123,7 +123,7 @@ export default function CommentCard({
             <button
               onClick={onReply}
               disabled={isLoading}
-              className="flex items-center gap-1.5 text-xs font-medium text-gray-500 transition-colors hover:text-gray-900 disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs font-medium text-content-muted transition-colors hover:text-content-primary disabled:opacity-50"
             >
               <MessageCircle className="h-3.5 w-3.5" />
               Yanıtla

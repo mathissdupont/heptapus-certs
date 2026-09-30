@@ -824,16 +824,16 @@ export default function AdminAttendeesPage() {
 
           {/* ASENKRON İŞ BİLDİRİM ŞERİDİ */}
           {certResult && (
-            <div className="rounded-xl border border-blue-100 bg-blue-50/40 px-4 py-3 text-xs font-semibold text-blue-700 animate-in fade-in duration-200">
+            <div className="rounded-xl border border-status-info-border bg-status-info-bg/40 px-4 py-3 text-xs font-semibold text-status-info-content animate-in fade-in duration-200">
               {certResult}
             </div>
           )}
 
           {/* Cloud integrations */}
           <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex flex-col justify-between sm:flex-row sm:items-center gap-4">
+            <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card flex flex-col justify-between sm:flex-row sm:items-center gap-4">
               <div className="flex items-start gap-3 min-w-0">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600 shadow-card">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-status-success-border bg-status-success-bg text-status-success-content shadow-card">
                   <FileSpreadsheet className="h-4 w-4 stroke-[2]" />
                 </div>
                 <div className="min-w-0 space-y-0.5">
@@ -844,7 +844,7 @@ export default function AdminAttendeesPage() {
                     {sheetsLoading ? (
                       <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> {copy.googleChecking}</span>
                     ) : sheetsStatus?.google_email ? (
-                      <span className="rounded-md bg-emerald-50 border border-emerald-100/50 px-1.5 py-0.5 text-emerald-700">{sheetsStatus.google_email}</span>
+                      <span className="rounded-md bg-status-success-bg border border-status-success-border/50 px-1.5 py-0.5 text-status-success-content">{sheetsStatus.google_email}</span>
                     ) : (
                       <span className="text-surface-300">{copy.googleInactive}</span>
                     )}
@@ -858,7 +858,7 @@ export default function AdminAttendeesPage() {
               {/* Google Buton Kontrolleri */}
               <div className="shrink-0 flex items-center justify-end w-full sm:w-auto">
                 {!sheetsStatus?.google_configured ? (
-                  <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-11 font-semibold text-amber-700">{copy.googleOAuthMissing}</div>
+                  <div className="rounded-lg border border-status-warning-border bg-status-warning-bg/50 px-2.5 py-1.5 text-11 font-semibold text-status-warning-content">{copy.googleOAuthMissing}</div>
                 ) : !sheetsStatus?.google_connected ? (
                   <button
                     type="button"
@@ -871,13 +871,13 @@ export default function AdminAttendeesPage() {
                   </button>
                 ) : sheetsStatus.enabled && sheetsStatus.spreadsheet_url ? (
                   <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                    <a href={sheetsStatus.spreadsheet_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50">
+                    <a href={sheetsStatus.spreadsheet_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-raised px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50">
                       <ExternalLink className="h-3 w-3" /> {copy.googleOpenSheet}
                     </a>
-                    <button type="button" onClick={handleSyncGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
+                    <button type="button" onClick={handleSyncGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-raised px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
                       {sheetsAction === "sync" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} {copy.googleSync}
                     </button>
-                    <button type="button" onClick={handleDisconnectGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2.5 text-11 font-semibold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
+                    <button type="button" onClick={handleDisconnectGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-status-danger-border bg-raised px-2.5 text-11 font-semibold text-status-danger-content shadow-card hover:bg-status-danger-bg disabled:opacity-40">
                       <Unplug className="h-3 w-3" /> {copy.googleDisconnect}
                     </button>
                   </div>
@@ -889,9 +889,9 @@ export default function AdminAttendeesPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex flex-col justify-between sm:flex-row sm:items-center gap-4">
+            <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card flex flex-col justify-between sm:flex-row sm:items-center gap-4">
               <div className="flex items-start gap-3 min-w-0">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-100 bg-sky-50 text-sky-600 shadow-card">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-status-info-border bg-status-info-bg text-status-info-content shadow-card">
                   <FileSpreadsheet className="h-4 w-4 stroke-[2]" />
                 </div>
                 <div className="min-w-0 space-y-0.5">
@@ -901,7 +901,7 @@ export default function AdminAttendeesPage() {
                     {excelLoading ? (
                       <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> {copy.microsoftChecking}</span>
                     ) : excelStatus?.microsoft_email ? (
-                      <span className="rounded-md bg-sky-50 border border-sky-100/50 px-1.5 py-0.5 text-sky-700">{excelStatus.microsoft_email}</span>
+                      <span className="rounded-md bg-status-info-bg border border-status-info-border/50 px-1.5 py-0.5 text-status-info-content">{excelStatus.microsoft_email}</span>
                     ) : (
                       <span className="text-surface-300">{copy.microsoftInactive}</span>
                     )}
@@ -914,7 +914,7 @@ export default function AdminAttendeesPage() {
 
               <div className="shrink-0 flex items-center justify-end w-full sm:w-auto">
                 {!excelStatus?.ms365_configured ? (
-                  <div className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5 text-11 font-semibold text-amber-700">{copy.microsoftOAuthMissing}</div>
+                  <div className="rounded-lg border border-status-warning-border bg-status-warning-bg/50 px-2.5 py-1.5 text-11 font-semibold text-status-warning-content">{copy.microsoftOAuthMissing}</div>
                 ) : !excelStatus?.ms365_connected ? (
                   <button
                     type="button"
@@ -927,13 +927,13 @@ export default function AdminAttendeesPage() {
                   </button>
                 ) : excelStatus.enabled && excelStatus.workbook_url ? (
                   <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                    <a href={excelStatus.workbook_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50">
+                    <a href={excelStatus.workbook_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-raised px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50">
                       <ExternalLink className="h-3 w-3" /> {copy.microsoftOpenWorkbook}
                     </a>
-                    <button type="button" onClick={handleSyncMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
+                    <button type="button" onClick={handleSyncMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-raised px-2.5 text-11 font-semibold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
                       {excelAction === "sync" ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} {copy.microsoftSync}
                     </button>
-                    <button type="button" onClick={handleDisconnectMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-red-100 bg-white px-2.5 text-11 font-semibold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
+                    <button type="button" onClick={handleDisconnectMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-status-danger-border bg-raised px-2.5 text-11 font-semibold text-status-danger-content shadow-card hover:bg-status-danger-bg disabled:opacity-40">
                       <Unplug className="h-3 w-3" /> {copy.microsoftDisconnect}
                     </button>
                   </div>
@@ -963,7 +963,7 @@ export default function AdminAttendeesPage() {
                     type="button"
                     onClick={() => setTab(item.id)}
                     className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                      isAct ? "bg-white text-surface-900 shadow-card border border-surface-200" : "text-surface-500 hover:text-surface-900 hover:bg-white/60"
+                      isAct ? "bg-raised text-surface-900 shadow-card border border-surface-200" : "text-surface-500 hover:text-surface-900 hover:bg-raised/60"
                     }`}
                   >
                     <Icon className={`h-3.5 w-3.5 shrink-0 ${isAct ? "text-surface-700" : "text-surface-400"}`} />
@@ -991,7 +991,7 @@ export default function AdminAttendeesPage() {
                 />
               </form>
 
-              {listError && <div className="rounded-xl border border-red-100 bg-red-50/40 p-3 text-xs font-semibold text-red-600">{listError}</div>}
+              {listError && <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3 text-xs font-semibold text-status-danger-content">{listError}</div>}
 
               {/* Liste Sonuç Ana Veri Tablosu */}
               {loadingList ? (
@@ -1001,12 +1001,12 @@ export default function AdminAttendeesPage() {
                   icon={<Users className="h-5 w-5 stroke-[1.8]" />}
                   title={copy.emptyTitle}
                   description={search.trim() ? copy.emptyDescSearch : copy.emptyDescDefault}
-                  className="border-surface-200 bg-white py-12"
+                  className="border-surface-200 bg-raised py-12"
                 />
               ) : (
                 <div className="space-y-2">
                   <span className="text-11 font-bold text-surface-400 tracking-wide uppercase px-0.5">{copy.totalAttendees(total)}</span>
-                  <div className="w-full overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
+                  <div className="w-full overflow-hidden rounded-xl border border-surface-200 bg-raised shadow-card">
                     <div className="overflow-x-auto scrollbar-none">
                       <table className="w-full text-left border-collapse">
                         <thead>
@@ -1026,11 +1026,11 @@ export default function AdminAttendeesPage() {
                                 <button type="button" onClick={() => setSelectedAttendee(a)} className="text-left font-bold text-surface-900 hover:text-surface-900 transition-colors">
                                   {a.name}
                                 </button>
-                                <span className={`ml-2 text-11 font-bold border rounded px-1.5 py-0.5 uppercase tracking-tight ${a.source === "self_register" ? "border-blue-100 bg-blue-50/50 text-blue-600" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
+                                <span className={`ml-2 text-11 font-bold border rounded px-1.5 py-0.5 uppercase tracking-tight ${a.source === "self_register" ? "border-status-info-border bg-status-info-bg/50 text-status-info-content" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
                                   {a.source === "self_register" ? copy.sourceOwn : copy.sourceImport}
                                 </span>
                                 {a.public_member_name && (
-                                  <span className="ml-2 inline-flex items-center rounded bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-11 font-bold text-emerald-700 font-mono">
+                                  <span className="ml-2 inline-flex items-center rounded bg-status-success-bg border border-status-success-border px-1.5 py-0.5 text-11 font-bold text-status-success-content font-mono">
                                     ÜYE: {a.public_member_name}
                                   </span>
                                 )}
@@ -1046,29 +1046,29 @@ export default function AdminAttendeesPage() {
                               </td>
                               <td className="px-5 py-3 text-xs font-medium text-surface-400 font-mono hidden sm:table-cell tracking-tight">{a.email}</td>
                               <td className="px-5 py-3 text-center text-xs font-medium">
-                                <span className={a.sessions_attended >= minSessions ? "text-emerald-500 font-bold" : "text-surface-400"}>{a.sessions_attended}</span>
+                                <span className={a.sessions_attended >= minSessions ? "text-status-success-content font-bold" : "text-surface-400"}>{a.sessions_attended}</span>
                                 <span className="text-surface-300">/{minSessions}</span>
                               </td>
                               <td className="px-5 py-3 text-center">
-                                {a.has_certificate ? <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto stroke-[2.5]" /> : <span className="text-surface-200 text-xs">—</span>}
+                                {a.has_certificate ? <CheckCircle2 className="w-4 h-4 text-status-success-content mx-auto stroke-[2.5]" /> : <span className="text-surface-200 text-xs">—</span>}
                               </td>
                               <td className="px-5 py-3 text-center hidden lg:table-cell">
                                 <button
                                   type="button"
                                   onClick={() => void handleCopySurveyLink(a.id)}
                                   disabled={copyingSurveyId === a.id}
-                                  className="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-2.5 text-11 font-bold text-surface-700 shadow-card transition hover:bg-surface-50 disabled:opacity-50"
+                                  className="inline-flex h-7 items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-raised px-2.5 text-11 font-bold text-surface-700 shadow-card transition hover:bg-surface-50 disabled:opacity-50"
                                 >
-                                  {copyingSurveyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : copiedSurveyId === a.id ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Link2 className="w-3 h-3 text-surface-400" />}
+                                  {copyingSurveyId === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : copiedSurveyId === a.id ? <CheckCircle2 className="w-3 h-3 text-status-success-content" /> : <Link2 className="w-3 h-3 text-surface-400" />}
                                   <span>{copiedSurveyId === a.id ? copy.surveyLinkCopied : copy.surveyLink}</span>
                                 </button>
                               </td>
                               <td className="px-5 py-3 text-right">
                                 <div className="flex items-center justify-end gap-1">
-                                  <button type="button" onClick={() => void handleCopySurveyLink(a.id)} disabled={copyingSurveyId === a.id} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-white px-2 py-1 text-11 font-semibold text-surface-500 hover:bg-surface-50 lg:hidden">
+                                  <button type="button" onClick={() => void handleCopySurveyLink(a.id)} disabled={copyingSurveyId === a.id} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-raised px-2 py-1 text-11 font-semibold text-surface-500 hover:bg-surface-50 lg:hidden">
                                     <span>{copiedSurveyId === a.id ? copy.surveyLinkCopied : copy.surveyLinkShort}</span>
                                   </button>
-                                  <button type="button" onClick={() => handleDelete(a.id)} disabled={deletingId === a.id} className="p-1.5 rounded-lg text-surface-400 hover:bg-red-50 hover:text-red-500 transition-all active:scale-90">
+                                  <button type="button" onClick={() => handleDelete(a.id)} disabled={deletingId === a.id} className="p-1.5 rounded-lg text-surface-400 hover:bg-status-danger-bg hover:text-status-danger-content transition-all active:scale-90">
                                     {deletingId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />}
                                   </button>
                                 </div>
@@ -1083,9 +1083,9 @@ export default function AdminAttendeesPage() {
                   {/* Satır Sayfalama Düzeni */}
                   {totalPages > 1 && (
                     <div className="mt-4 flex items-center justify-center gap-3 text-xs text-surface-400 font-semibold tracking-tight">
-                      <button onClick={() => loadAttendees(page - 1)} disabled={page === 1} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-card">{copy.prevPage}</button>
+                      <button onClick={() => loadAttendees(page - 1)} disabled={page === 1} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-surface-100 bg-raised text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-card">{copy.prevPage}</button>
                       <span>{page} / {totalPages}</span>
-                      <button onClick={() => loadAttendees(page + 1)} disabled={page === totalPages} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-card">{copy.nextPage}</button>
+                      <button onClick={() => loadAttendees(page + 1)} disabled={page === totalPages} className="flex h-7 px-2.5 items-center justify-center rounded-lg border border-surface-100 bg-raised text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-card">{copy.nextPage}</button>
                     </div>
                   )}
                 </div>
@@ -1097,7 +1097,7 @@ export default function AdminAttendeesPage() {
           {tab === "answers" && (
             <div className="grid gap-4 lg:grid-cols-[300px_1fr] items-start w-full">
               {/* Sol Taraf: Soru Seçim Paneli */}
-              <div className="rounded-xl border border-surface-200 bg-white p-4 shadow-card space-y-4">
+              <div className="rounded-xl border border-surface-200 bg-raised p-4 shadow-card space-y-4">
                 <div className="flex items-start justify-between gap-3 border-b border-surface-100 pb-2.5">
                   <div className="min-w-0">
                     <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 flex items-center gap-1.5">
@@ -1110,7 +1110,7 @@ export default function AdminAttendeesPage() {
                   </button>
                 </div>
 
-                <div className="rounded-xl border border-emerald-100 bg-emerald-50/20 p-3 text-11 font-medium text-emerald-800 leading-normal">
+                <div className="rounded-xl border border-status-success-border bg-status-success-bg/20 p-3 text-11 font-medium text-status-success-content leading-normal">
                   {copy.sheetsHint}
                 </div>
 
@@ -1126,12 +1126,12 @@ export default function AdminAttendeesPage() {
                         className={`w-full rounded-xl border p-3 text-left transition-all ${
                           selectedQuestion?.id === field.id
                             ? "border-surface-800 bg-surface-900 text-white shadow-card"
-                            : "border-transparent bg-white text-surface-700 hover:bg-surface-50"
+                            : "border-transparent bg-raised text-surface-700 hover:bg-surface-50"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2.5">
                           <p className="text-xs font-bold truncate tracking-tight">{field.label}</p>
-                          <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-11 font-bold font-mono ${selectedQuestion?.id === field.id ? "bg-white/20 text-white" : "bg-surface-50 border border-surface-100 text-surface-400"}`}>
+                          <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-11 font-bold font-mono ${selectedQuestion?.id === field.id ? "bg-raised/20 text-white" : "bg-surface-50 border border-surface-100 text-surface-400"}`}>
                             {answeredCount}/{answerAttendees.length}
                           </span>
                         </div>
@@ -1145,14 +1145,14 @@ export default function AdminAttendeesPage() {
               </div>
 
               {/* Sağ Taraf: Katılımcı Cevap Satırları Akışı */}
-              <div className="rounded-xl border border-surface-200 bg-white shadow-card">
-                <div className="border-b border-surface-100 px-5 py-4 bg-white">
+              <div className="rounded-xl border border-surface-200 bg-raised shadow-card">
+                <div className="border-b border-surface-100 px-5 py-4 bg-raised">
                   <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{copy.selectedQuestionLabel}</p>
                   <h3 className="mt-1 text-sm font-bold tracking-tight text-surface-900">{selectedQuestion?.label || copy.selectQuestion}</h3>
                   <p className="text-11 font-medium text-surface-400">{copy.answersDistribution(answerAttendees.length)}</p>
                 </div>
 
-                {answersError && <div className="m-4 rounded-xl border border-red-100 bg-red-50/40 p-3 text-xs font-semibold text-red-600">{answersError}</div>}
+                {answersError && <div className="m-4 rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3 text-xs font-semibold text-status-danger-content">{answersError}</div>}
 
                 {loadingAnswers ? (
                   <div className="flex items-center justify-center py-14"><Loader2 className="h-6 h-6 animate-spin text-surface-400 stroke-[2.5]" /></div>
@@ -1161,7 +1161,7 @@ export default function AdminAttendeesPage() {
                 ) : selectedQuestionAnswers.length === 0 ? (
                   <div className="py-14 text-center text-xs font-semibold text-surface-400 tracking-tight">{copy.noAnswersFound}</div>
                 ) : (
-                  <div className="divide-y divide-surface-100 bg-white">
+                  <div className="divide-y divide-surface-100 bg-raised">
                     {selectedQuestionAnswers.map(({ attendee, value }) => {
                       const hasAnswer = Array.isArray(value) ? value.length > 0 : value != null && value !== "";
                       return (
@@ -1198,7 +1198,7 @@ export default function AdminAttendeesPage() {
                 </button>
               </div>
 
-              {matrixError && <div className="rounded-xl border border-red-100 bg-red-50/40 p-3 text-xs font-semibold text-red-600">{matrixError}</div>}
+              {matrixError && <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3 text-xs font-semibold text-status-danger-content">{matrixError}</div>}
 
               {loadingMatrix ? (
                 <div className="flex justify-center py-14"><Loader2 className="w-6 h-6 animate-spin text-surface-400 stroke-[2.5]" /></div>
@@ -1206,15 +1206,15 @@ export default function AdminAttendeesPage() {
                 <>
                   {/* Mikro Sayaç Matris Hücreleri */}
                   <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                    <div className="bg-white rounded-xl border border-surface-200 p-3 text-center shadow-card">
+                    <div className="bg-raised rounded-xl border border-surface-200 p-3 text-center shadow-card">
                       <p className="text-xl font-bold tracking-tight text-surface-900 tabular-nums">{matrix.rows.length}</p>
                       <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.matrixTotalPool}</p>
                     </div>
-                    <div className="bg-white rounded-xl border border-emerald-200/60 bg-emerald-50/10 p-3 text-center shadow-card">
-                      <p className="text-xl font-bold tracking-tight text-emerald-600 tabular-nums">{matrix.rows.filter((r) => r.meets_threshold).length}</p>
+                    <div className="bg-raised rounded-xl border border-status-success-border/60 bg-status-success-bg/10 p-3 text-center shadow-card">
+                      <p className="text-xl font-bold tracking-tight text-status-success-content tabular-nums">{matrix.rows.filter((r) => r.meets_threshold).length}</p>
                       <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.matrixPassedThreshold}</p>
                     </div>
-                    <div className="bg-white rounded-xl border border-surface-800 bg-white p-3 text-center shadow-card">
+                    <div className="bg-raised rounded-xl border border-surface-800 bg-raised p-3 text-center shadow-card">
                       <p className="text-xl font-bold tracking-tight text-surface-900 tabular-nums">{matrix.rows.filter((r) => r.has_certificate).length}</p>
                       <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.matrixCertified}</p>
                     </div>
@@ -1222,7 +1222,7 @@ export default function AdminAttendeesPage() {
 
                   {/* Koşullu Hızlı Sertifika Bildirim Kapsülü */}
                   {eligibleCount > 0 && (
-                    <div className="flex flex-col gap-3 rounded-xl border border-amber-200/70 bg-amber-50/20 px-4 py-3 text-xs text-amber-800 sm:flex-row sm:items-center sm:justify-between animate-in fade-in duration-150">
+                    <div className="flex flex-col gap-3 rounded-xl border border-status-warning-border/70 bg-status-warning-bg/20 px-4 py-3 text-xs text-status-warning-content sm:flex-row sm:items-center sm:justify-between animate-in fade-in duration-150">
                       <span className="font-semibold">{copy.matrixEligibleNotice(eligibleCount)}</span>
                       <button
                         type="button"
@@ -1242,7 +1242,7 @@ export default function AdminAttendeesPage() {
                       <p className="text-xs font-semibold">{copy.matrixEmptyTitle}</p>
                     </div>
                   ) : (
-                    <div className="overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
+                    <div className="overflow-hidden rounded-xl border border-surface-200 bg-raised shadow-card">
                       <div className="overflow-x-auto scrollbar-none">
                         <table className="text-left border-collapse w-full">
                           <thead>
@@ -1257,14 +1257,14 @@ export default function AdminAttendeesPage() {
                               <th className="text-center px-4 py-3 text-11 font-bold uppercase tracking-wider text-surface-400 select-none">{copy.matrixThStatus}</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-surface-100 bg-white">
+                          <tbody className="divide-y divide-surface-100 bg-raised">
                             {matrix.rows.map((row) => (
-                              <tr key={row.attendee_id} className={`transition-colors hover:bg-surface-50/20 ${row.meets_threshold ? "bg-emerald-50/10" : ""}`}>
+                              <tr key={row.attendee_id} className={`transition-colors hover:bg-surface-50/20 ${row.meets_threshold ? "bg-status-success-bg/10" : ""}`}>
                                 <td className="px-4 py-3 text-xs font-bold text-surface-900 tracking-tight whitespace-nowrap">{row.name}</td>
                                 {matrix.sessions.map((s) => (
                                   <td key={s.id} className="text-center px-2 py-3">
                                     {row.checkins[String(s.id)] ? (
-                                      <CheckSquare className="w-4 h-4 text-emerald-500 mx-auto stroke-[2.2]" />
+                                      <CheckSquare className="w-4 h-4 text-status-success-content mx-auto stroke-[2.2]" />
                                     ) : (
                                       <XSquare className="w-4 h-4 text-surface-100 mx-auto stroke-[1.8]" />
                                     )}
@@ -1279,7 +1279,7 @@ export default function AdminAttendeesPage() {
                                       <Award className="w-3 h-3" /> {copy.matrixStatusCertified}
                                     </span>
                                   ) : row.meets_threshold ? (
-                                    <span className="inline-flex items-center gap-1 rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-11 font-bold text-emerald-700 shadow-card">
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-status-success-border bg-status-success-bg px-2 py-0.5 text-11 font-bold text-status-success-content shadow-card">
                                       {copy.matrixStatusEligible}
                                     </span>
                                   ) : (
@@ -1324,7 +1324,7 @@ export default function AdminAttendeesPage() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-800/10 backdrop-blur-sm" onClick={() => setSelectedAttendee(null)} />
 
             {/* Çekmece Gövdesi */}
-            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 220 }} className="relative h-full w-full max-w-sm overflow-y-auto border-l border-surface-200 bg-white/95 backdrop-blur-xl p-5 sm:p-6 shadow-2xl flex flex-col justify-between scrollbar-none">
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 220 }} className="relative h-full w-full max-w-sm overflow-y-auto border-l border-surface-200 bg-raised/95 backdrop-blur-xl p-5 sm:p-6 shadow-2xl flex flex-col justify-between scrollbar-none">
               <div className="space-y-5">
                 {/* Üst Bilgi Başlığı */}
                 <div className="flex items-start justify-between gap-3 border-b border-surface-100 pb-3">
@@ -1350,7 +1350,7 @@ export default function AdminAttendeesPage() {
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
                     <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.drawerCertStatus}</p>
-                    <p className={`mt-1 text-xs font-bold ${selectedAttendee.has_certificate ? "text-indigo-600" : "text-surface-400"}`}>{selectedAttendee.has_certificate ? copy.drawerCertGenerated : copy.drawerCertNotGenerated}</p>
+                    <p className={`mt-1 text-xs font-bold ${selectedAttendee.has_certificate ? "text-status-info-content" : "text-surface-400"}`}>{selectedAttendee.has_certificate ? copy.drawerCertGenerated : copy.drawerCertNotGenerated}</p>
                   </div>
                   <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-3">
                     <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{copy.drawerRegisteredAt}</p>
@@ -1360,8 +1360,8 @@ export default function AdminAttendeesPage() {
 
                 {/* Bağlı Üye Statüsü */}
                 {selectedAttendee.public_member_name && (
-                  <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-3.5 space-y-1 text-xs font-medium">
-                    <p className="text-11 font-bold uppercase tracking-wider text-emerald-700">{copy.drawerMemberConnection}</p>
+                  <div className="rounded-xl border border-status-success-border bg-status-success-bg/30 p-3.5 space-y-1 text-xs font-medium">
+                    <p className="text-11 font-bold uppercase tracking-wider text-status-success-content">{copy.drawerMemberConnection}</p>
                     <p className="text-surface-900 font-bold tracking-tight">{selectedAttendee.public_member_name}</p>
                     <p className="text-11 text-surface-400 font-mono truncate">{selectedAttendee.public_member_email}</p>
                   </div>
@@ -1369,7 +1369,7 @@ export default function AdminAttendeesPage() {
 
                 {/* Form Özel Cevap Listesi (Dynamic Fields) */}
                 {registrationFields.length > 0 && (
-                  <div className="rounded-xl border border-surface-100 bg-white p-3.5 space-y-3 shadow-inner">
+                  <div className="rounded-xl border border-surface-100 bg-raised p-3.5 space-y-3 shadow-inner">
                     <p className="text-xs font-bold text-surface-900 tracking-tight">{copy.drawerFormAnswers}</p>
                     <div className="space-y-2 max-h-[220px] overflow-y-auto scrollbar-none">
                       {registrationFields.map((field) => {
@@ -1411,7 +1411,7 @@ export default function AdminAttendeesPage() {
 
               {/* Hızlı Profil Aksiyon Butonları */}
               <div className="space-y-2 pt-4 border-t border-surface-100">
-                <button type="button" onClick={() => void handleCopySurveyLink(selectedAttendee.id)} className="w-full inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white text-xs font-semibold text-surface-700 shadow-card transition hover:bg-surface-50">
+                <button type="button" onClick={() => void handleCopySurveyLink(selectedAttendee.id)} className="w-full inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-raised text-xs font-semibold text-surface-700 shadow-card transition hover:bg-surface-50">
                   <Link2 className="h-3.5 w-3.5 text-surface-400 stroke-[2]" /> <span>{copy.drawerSurveyLink}</span>
                 </button>
                 <button
@@ -1420,7 +1420,7 @@ export default function AdminAttendeesPage() {
                     setSelectedAttendee(null);
                     void handleDelete(selectedAttendee.id);
                   }}
-                  className="w-full inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-red-100 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                  className="w-full inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-status-danger-border bg-status-danger-bg px-4 py-2 text-xs font-semibold text-status-danger-content transition hover:bg-status-danger-bg"
                 >
                   <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" /> <span>{copy.drawerDeleteAttendee}</span>
                 </button>

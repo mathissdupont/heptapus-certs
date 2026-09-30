@@ -13,8 +13,9 @@
 - **Decisions (approved by the user 2026-09-19):**
   - **D1 = (a)** — revive `feat/i18n-public-ssr`; the new landing is the first real
     `[locale]` page (nine languages, per-language search visibility).
-  - **D2 = (a)** — real dark theme, token-first and phased; toggle hidden until every
-    surface is migrated. ADR-0022 is Accepted.
+  - **D2 = (a)** — real dark theme, token-first and phased. The semantic migration
+    reached zero light-only color violations and the toggle shipped on 2026-09-30.
+    ADR-0022 is Accepted.
   - **Translation supply** — no paid service. Default: the assistant doing a phase
     translates the keys that phase adds, into every catalog. Optional automation: DeepL
     API Free (`scripts/i18n-translate.mjs` on the branch already routes `:fx` keys to
@@ -37,7 +38,8 @@
      independently verifiable wave.
   3. Define the non-hook translator contract needed by `lib/assistant/eventDraft.ts` and
      `lib/assistant/wizard.ts` before migrating either plain module.
-  4. Keep transactional routes unprefixed, the theme toggle hidden, and LMS archived.
+  4. Keep transactional routes unprefixed, keep the shipped theme controls available,
+     and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
   hiding the real gap. The current ratchet records **496 legacy TR/EN binary branches**;
   those branches send the other seven languages to English. The latest precise per-file
@@ -74,8 +76,8 @@
    `/pricing`, `/organizations`) move.
 4. **White-label hosts** keep serving the organization page at `/`; never redirect them
    into a locale prefix.
-5. **No half-themed surfaces.** The theme toggle stays hidden until Phase 7 completes; a
-   surface is migrated to semantic tokens completely or not at all.
+5. **No half-themed surfaces.** The shipped theme controls depend on semantic roles; new
+   or changed surfaces must stay token-pure and work in light, dark and system modes.
 6. **Picker value contracts are fixed:** `YYYY-MM-DD`, `HH:mm`, `YYYY-MM-DDTHH:mm` (naive
    local). Replacing a native input must not change what is sent to the backend.
 7. **Compare branches with three dots:** `git diff main...feat/i18n-public-ssr`. The
@@ -130,6 +132,29 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-30 — dark mode shipped; fixed-light color debt reaches zero
+
+- Migrated all **3,324** remaining `bg-white` / `gray-*` / `slate-*` light-only utility
+  uses (including `zinc-*` peers) to semantic canvas, raised, sunken, content, outline
+  and status roles. Added explicit inverse-surface roles for deliberately dark canvases.
+  The `light-only-color` ratchet is now **0** and static raw-color debt fell **76 → 57**;
+  the remaining raw colors belong mainly to user-authored certificate/game artwork and
+  other content palettes, not page chrome.
+- Removed the `NEXT_PUBLIC_THEME_TOGGLE_ENABLED` rollout gate. The pre-paint initializer
+  now always honors the saved `system` / `light` / `dark` preference, and the control is
+  visible in the authenticated shell, locale-prefixed public header and admin login.
+- Localized the full admin-login flow in all nine languages (**910 keys × 9**), including
+  credential errors, Google/magic-link actions and 2FA states. The login screen now also
+  exposes both language and theme controls; the TR/EN branch ratchet improved
+  **483 → 482**.
+- Evidence: UI contracts, TypeScript and **91/91** frontend tests pass. The production
+  build still generates **132/132** static pages. Headless Chrome with a dark OS
+  preference was visually checked at 1440×1000 on `/en` and `/admin/login`; both render
+  dark before paint without horizontal overflow. Public and admin auth controls remain
+  reachable with keyboard labels.
+- Next: continue catalog migration through event settings, attendee/certificate and
+  e-mail surfaces, then remaining admin/superadmin and public-secondary copy.
 
 ### 2026-09-30 — admin shell and dashboard speak all nine languages
 

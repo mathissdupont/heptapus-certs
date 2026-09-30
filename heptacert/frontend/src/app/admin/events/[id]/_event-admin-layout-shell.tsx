@@ -60,7 +60,7 @@ export function EventAdminLayoutShell({ eventId, children }: EventAdminLayoutShe
   useEffect(() => {
     let cancelled = false;
     setChecking(true);
-    
+
     async function checkAccess() {
       try {
         const access = await getEventAccess(Number(eventId));
@@ -76,10 +76,10 @@ export function EventAdminLayoutShell({ eventId, children }: EventAdminLayoutShe
         if (!cancelled) router.replace("/admin/events");
       }
     }
-    
+
     setAllowedRouteKey(null);
     void checkAccess();
-    
+
     return () => {
       cancelled = true;
     };

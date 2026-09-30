@@ -32,36 +32,36 @@ export default function MesafeliSatisPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <div className="mb-8 flex items-center gap-2 text-sm text-gray-400">
+      <div className="mb-8 flex items-center gap-2 text-sm text-content-muted">
         <Link href="/" className="transition-colors hover:text-brand-600">{isTr ? "Ana Sayfa" : "Home"}</Link>
         <span>/</span>
-        <span className="font-medium text-gray-600">{isTr ? "Mesafeli Satış Sözleşmesi" : "Distance Sales Agreement"}</span>
+        <span className="font-medium text-content-secondary">{isTr ? "Mesafeli Satış Sözleşmesi" : "Distance Sales Agreement"}</span>
       </div>
 
-      <div className="space-y-8 rounded-2xl border border-gray-100 bg-white p-8 shadow-card md:p-12">
+      <div className="space-y-8 rounded-2xl border border-outline-subtle bg-raised p-8 shadow-card md:p-12">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-brand-600">{isTr ? "Hukuki Belge" : "Legal Document"}</p>
-          <h1 className="text-3xl font-extrabold text-gray-900">{isTr ? "Mesafeli Satış Sözleşmesi" : "Distance Sales Agreement"}</h1>
-          <p className="mt-2 text-sm text-gray-500">{isTr ? "Son güncelleme: 14 Mayıs 2026" : "Last updated: May 14, 2026"}</p>
+          <h1 className="text-3xl font-extrabold text-content-primary">{isTr ? "Mesafeli Satış Sözleşmesi" : "Distance Sales Agreement"}</h1>
+          <p className="mt-2 text-sm text-content-muted">{isTr ? "Son güncelleme: 14 Mayıs 2026" : "Last updated: May 14, 2026"}</p>
         </div>
 
         {sections.map(([title, body]) => (
           <section key={title} className="space-y-3">
-            <h2 className="text-lg font-bold text-gray-800">{title}</h2>
-            <p className="text-sm leading-relaxed text-gray-600">{body}</p>
+            <h2 className="text-lg font-bold text-content-primary">{title}</h2>
+            <p className="text-sm leading-relaxed text-content-secondary">{body}</p>
           </section>
         ))}
 
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-outline-subtle bg-canvas p-5">
           <div>
-            <p className="text-xs text-gray-500">{isTr ? "Sözleşme soruları için" : "For agreement questions"}</p>
+            <p className="text-xs text-content-muted">{isTr ? "Sözleşme soruları için" : "For agreement questions"}</p>
             <a href="mailto:contact@heptapusgroup.com" className="text-sm font-semibold text-brand-600 hover:underline">contact@heptapusgroup.com</a>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/iade" className="text-sm text-gray-500 transition-colors hover:text-brand-600">{isTr ? "İade Politikası" : "Refund Policy"}</Link>
-            <Link href="/kvkk" className="text-sm text-gray-500 transition-colors hover:text-brand-600">{isTr ? "KVKK" : "Privacy Notice"}</Link>
-            <Link href="/gizlilik" className="text-sm text-gray-500 transition-colors hover:text-brand-600">{isTr ? "Gizlilik Politikası" : "Privacy Policy"}</Link>
-            <Link href="/acik-riza" className="text-sm text-gray-500 transition-colors hover:text-brand-600">{isTr ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
+            <Link href="/iade" className="text-sm text-content-muted transition-colors hover:text-brand-600">{isTr ? "İade Politikası" : "Refund Policy"}</Link>
+            <Link href="/kvkk" className="text-sm text-content-muted transition-colors hover:text-brand-600">{isTr ? "KVKK" : "Privacy Notice"}</Link>
+            <Link href="/gizlilik" className="text-sm text-content-muted transition-colors hover:text-brand-600">{isTr ? "Gizlilik Politikası" : "Privacy Policy"}</Link>
+            <Link href="/acik-riza" className="text-sm text-content-muted transition-colors hover:text-brand-600">{isTr ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
           </div>
         </div>
       </div>

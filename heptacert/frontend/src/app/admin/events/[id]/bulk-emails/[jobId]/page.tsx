@@ -99,7 +99,7 @@ export default function EmailJobDetailsPage() {
 
   if (isNaN(eventId) || isNaN(jobId)) {
     return (
-      <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2 antialiased">
+      <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content flex items-center gap-2 antialiased">
         <AlertCircle className="h-4 w-4" />
         <span>{copy.invalidParam}</span>
       </div>
@@ -117,14 +117,14 @@ export default function EmailJobDetailsPage() {
   if (error) {
     return (
       <div className="w-full max-w-2xl mx-auto p-4 antialiased">
-        <div className="flex items-start gap-3.5 bg-red-50/40 border border-red-100 rounded-2xl p-5">
-          <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0 stroke-[2]" />
+        <div className="flex items-start gap-3.5 bg-status-danger-bg/40 border border-status-danger-border rounded-2xl p-5">
+          <AlertCircle className="h-5 w-5 text-status-danger-content mt-0.5 flex-shrink-0 stroke-[2]" />
           <div className="flex-1 space-y-1">
-            <h3 className="font-bold text-sm text-red-950">{copy.loadErrorTitle}</h3>
-            <p className="text-red-700 text-xs font-medium leading-relaxed">{error}</p>
+            <h3 className="font-bold text-sm text-status-danger-content">{copy.loadErrorTitle}</h3>
+            <p className="text-status-danger-content text-xs font-medium leading-relaxed">{error}</p>
             <button
               onClick={fetchJobDetails}
-              className="inline-flex pt-2 text-xs font-semibold text-red-600 hover:text-red-700 transition-colors"
+              className="inline-flex pt-2 text-xs font-semibold text-status-danger-content hover:text-status-danger-content transition-colors"
             >
               {copy.retry}
             </button>
@@ -144,10 +144,10 @@ export default function EmailJobDetailsPage() {
       : 0;
 
   const statusConfig = {
-    pending: { bg: "border-amber-100 bg-amber-50/30", text: "text-amber-700", icon: Clock, label: copy.statusPending },
-    in_progress: { bg: "border-blue-100 bg-blue-50/30", text: "text-blue-700", icon: Clock, label: copy.statusInProgress },
-    completed: { bg: "border-emerald-100 bg-emerald-50/20", text: "text-emerald-700", icon: Check, label: copy.statusCompleted },
-    failed: { bg: "border-red-100 bg-red-50/20", text: "text-red-600", icon: X, label: copy.statusFailed },
+    pending: { bg: "border-status-warning-border bg-status-warning-bg/30", text: "text-status-warning-content", icon: Clock, label: copy.statusPending },
+    in_progress: { bg: "border-status-info-border bg-status-info-bg/30", text: "text-status-info-content", icon: Clock, label: copy.statusInProgress },
+    completed: { bg: "border-status-success-border bg-status-success-bg/20", text: "text-status-success-content", icon: Check, label: copy.statusCompleted },
+    failed: { bg: "border-status-danger-border bg-status-danger-bg/20", text: "text-status-danger-content", icon: X, label: copy.statusFailed },
   } as Record<string, any>;
 
   const config = statusConfig[job.status] || statusConfig.pending;
@@ -187,7 +187,7 @@ export default function EmailJobDetailsPage() {
       {/* 2. STATÜ ROZET ALANI (Apple Soft Badge Panel) */}
       <div className={`rounded-2xl border p-4 shadow-sm transition-all duration-300 ${config.bg}`}>
         <div className="flex items-center gap-3.5">
-          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-sm bg-white`}>
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-sm bg-raised`}>
             <StatusIcon className={`h-4 w-4 ${config.text} stroke-[2.5]`} />
           </div>
           <div className="min-w-0 space-y-0.5">
@@ -200,28 +200,28 @@ export default function EmailJobDetailsPage() {
       {/* 3. İSTATİSTİK SAYAÇ IZGARASI (Stats Grid) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
         {/* Toplam Alıcı */}
-        <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
+        <div className="bg-raised rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
           <p className="text-11 font-bold uppercase tracking-widest text-surface-400 truncate">{copy.totalRecipients}</p>
           <p className="text-2xl font-bold tracking-tight text-surface-900 font-mono tabular-nums">{job.total_recipients}</p>
           <p className="text-11 font-medium text-surface-400 pt-1 leading-none">{copy.targetAudience}</p>
         </div>
 
         {/* Başarıyla Gönderilen */}
-        <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
+        <div className="bg-raised rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
           <p className="text-11 font-bold uppercase tracking-widest text-surface-400 truncate">{copy.successfulSend}</p>
-          <p className="text-2xl font-bold tracking-tight text-emerald-600 font-mono tabular-nums">{job.sent_count}</p>
-          <p className="text-11 font-bold text-emerald-500 pt-1 leading-none">%{successRate} {copy.delivered}</p>
+          <p className="text-2xl font-bold tracking-tight text-status-success-content font-mono tabular-nums">{job.sent_count}</p>
+          <p className="text-11 font-bold text-status-success-content pt-1 leading-none">%{successRate} {copy.delivered}</p>
         </div>
 
         {/* Hata Alıp Başarısız Olan */}
-        <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
+        <div className="bg-raised rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
           <p className="text-11 font-bold uppercase tracking-widest text-surface-400 truncate">{copy.errorFailed}</p>
-          <p className="text-2xl font-bold tracking-tight text-red-600 font-mono tabular-nums">{job.failed_count}</p>
-          <p className="text-11 font-medium text-red-400 pt-1 leading-none">{copy.smtpRejection}</p>
+          <p className="text-2xl font-bold tracking-tight text-status-danger-content font-mono tabular-nums">{job.failed_count}</p>
+          <p className="text-11 font-medium text-status-danger-content pt-1 leading-none">{copy.smtpRejection}</p>
         </div>
 
         {/* Kalan Bekleyen Alıcı */}
-        <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
+        <div className="bg-raised rounded-2xl border border-surface-200 p-5 shadow-sm space-y-1">
           <p className="text-11 font-bold uppercase tracking-widest text-surface-400 truncate">{copy.queueRemaining}</p>
           <p className="text-2xl font-bold tracking-tight text-surface-900 font-mono tabular-nums">
             {Math.max(0, job.total_recipients - job.sent_count - job.failed_count)}
@@ -231,7 +231,7 @@ export default function EmailJobDetailsPage() {
       </div>
 
       {/* 4. APPLE PROGRESS BAR PANELİ */}
-      <div className="bg-white rounded-2xl border border-surface-200 p-5 shadow-sm space-y-4">
+      <div className="bg-raised rounded-2xl border border-surface-200 p-5 shadow-sm space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.queueProgress}</h3>
 
         {/* İnce Şık Siyah İlerleme Çubuğu */}
@@ -253,14 +253,14 @@ export default function EmailJobDetailsPage() {
       </div>
 
       {/* 5. DİKEY ZAMAN ÇİZELGESİ (Timeline Flow) */}
-      <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
+      <div className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm space-y-4">
         <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.timeline}</h3>
         <div className="relative pl-4 before:absolute before:bottom-1 before:left-1 before:top-1 before:w-[1px] before:bg-surface-100">
           <div className="space-y-4.5">
 
             {/* Adım 1: Görev Oluşturma */}
             <div className="relative group flex items-start gap-3">
-              <div className="absolute -left-[19.5px] top-1 flex h-2 w-2 items-center justify-center rounded-full bg-white ring-4 ring-white border border-gray-400" />
+              <div className="absolute -left-[19.5px] top-1 flex h-2 w-2 items-center justify-center rounded-full bg-raised ring-4 ring-white border border-outline-strong" />
               <div className="min-w-0 flex-1 space-y-0.5 text-xs">
                 <p className="font-bold text-surface-900 tracking-tight">{copy.jobQueued}</p>
                 <p className="font-medium text-surface-400 font-mono">{new Date(job.created_at).toLocaleString(localeTag(lang), { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>
@@ -270,7 +270,7 @@ export default function EmailJobDetailsPage() {
             {/* Adım 2: Son Güncelleme Akışı */}
             {job.status !== "pending" && (
               <div className="relative group flex items-start gap-3">
-                <div className="absolute -left-[19.5px] top-1 flex h-2 w-2 items-center justify-center rounded-full bg-white ring-4 ring-white border border-gray-950 bg-surface-900 shadow-sm" />
+                <div className="absolute -left-[19.5px] top-1 flex h-2 w-2 items-center justify-center rounded-full bg-raised ring-4 ring-white border border-outline-strong bg-surface-900 shadow-sm" />
                 <div className="min-w-0 flex-1 space-y-0.5 text-xs">
                   <p className="font-bold text-surface-900 tracking-tight">{copy.lastQueueActivity}</p>
                   <p className="font-medium text-surface-400 font-mono">{new Date(job.updated_at).toLocaleString(localeTag(lang), { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short", year: "numeric" })}</p>

@@ -24,7 +24,7 @@ export default function EmailTemplatePreviewPage() {
   const eventId = parseInt(params.id as string);
   const templateId = parseInt(params.templateId as string || '0');
   if (isNaN(eventId) || isNaN(templateId)) {
-    return <div className="p-4 text-red-600">Geçersiz parametre</div>;
+    return <div className="p-4 text-status-danger-content">Geçersiz parametre</div>;
   }
 
   const [template, setTemplate] = useState<EmailTemplate | null>(null);
@@ -58,7 +58,7 @@ export default function EmailTemplatePreviewPage() {
     setGenerating(true);
     try {
       const res = await apiFetch(
-        `/admin/events/${eventId}/email-templates/${templateId}/preview`,
+ `/admin/events/${eventId}/email-templates/${templateId}/preview`,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -87,7 +87,7 @@ export default function EmailTemplatePreviewPage() {
   }
 
   if (!template) {
-    return <div className="p-8 text-center text-red-600">Şablon bulunamadı</div>;
+    return <div className="p-8 text-center text-status-danger-content">Şablon bulunamadı</div>;
   }
 
   return (
@@ -98,7 +98,7 @@ export default function EmailTemplatePreviewPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Settings Panel */}
           <div className="lg:col-span-1">
-            <div className="bg-white shadow rounded-lg p-6 sticky top-8">
+            <div className="bg-raised shadow rounded-lg p-6 sticky top-8">
               <h2 className="text-lg font-semibold mb-4">Şablon: {template.name}</h2>
 
               {/* Language Selection */}
@@ -165,7 +165,7 @@ export default function EmailTemplatePreviewPage() {
 
           {/* Preview Panel */}
           <div className="lg:col-span-2">
-            <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="bg-raised shadow rounded-lg overflow-hidden">
               {preview ? (
                 <>
                   {/* Email Header */}
@@ -179,7 +179,7 @@ export default function EmailTemplatePreviewPage() {
                     <iframe
                       title="Email önizleme"
                       sandbox=""
-                      className="min-h-[420px] w-full rounded border border-surface-200 bg-white"
+                      className="min-h-[420px] w-full rounded border border-surface-200 bg-raised"
                       srcDoc={preview.body_html}
                     />
                   </div>
@@ -190,7 +190,7 @@ export default function EmailTemplatePreviewPage() {
                       <summary className="font-medium text-surface-900 mb-2">
                         HTML Kodunu Göster
                       </summary>
-                      <pre className="bg-surface-800 text-gray-100 p-4 rounded-lg overflow-auto text-xs font-mono">
+                      <pre className="bg-surface-800 text-inverse-content p-4 rounded-lg overflow-auto text-xs font-mono">
                         {preview.body_html}
                       </pre>
                     </details>
@@ -204,9 +204,9 @@ export default function EmailTemplatePreviewPage() {
             </div>
 
             {/* Additional Variables Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-              <h3 className="font-medium text-blue-900 mb-2">Mevcut Değişkenler</h3>
-              <code className="text-sm text-blue-800 block space-y-1">
+            <div className="bg-status-info-bg border border-status-info-border rounded-lg p-4 mt-6">
+              <h3 className="font-medium text-status-info-content mb-2">Mevcut Değişkenler</h3>
+              <code className="text-sm text-status-info-content block space-y-1">
                 <div>{'{{attendee_name}}'} - Katılımcı adı</div>
                 <div>{'{{attendee_email}}'} - Katılımcı e-postası</div>
                 <div>{'{{event_name}}'} - Etkinlik adı</div>

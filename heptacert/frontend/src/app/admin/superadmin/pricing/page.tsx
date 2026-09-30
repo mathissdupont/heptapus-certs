@@ -30,10 +30,10 @@ type PricingTier = {
 };
 
 const TONES = [
-  "border-brand-200 bg-brand-50/40",
-  "border-violet-200 bg-violet-50/40",
-  "border-rose-200 bg-rose-50/40",
-  "border-amber-200 bg-amber-50/40",
+ "border-brand-200 bg-brand-50/40",
+ "border-status-info-border bg-status-info-bg/40",
+ "border-status-danger-border bg-status-danger-bg/40",
+ "border-status-warning-border bg-status-warning-bg/40",
 ];
 
 export default function SuperadminPricingPage() {
@@ -204,7 +204,7 @@ export default function SuperadminPricingPage() {
           <section key={tier.id} className={`card border-2 p-5 ${TONES[index % TONES.length]}`}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase text-surface-600 shadow-soft">{tier.id}</span>
+                <span className="rounded-full bg-raised px-3 py-1 text-xs font-semibold uppercase text-surface-600 shadow-soft">{tier.id}</span>
                 <h2 className="mt-3 text-lg font-semibold text-surface-900">{lang === "tr" ? tier.name_tr : tier.name_en}</h2>
               </div>
               <div className="text-right text-xs text-surface-500">

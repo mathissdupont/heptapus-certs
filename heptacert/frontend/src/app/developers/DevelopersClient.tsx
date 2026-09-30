@@ -106,11 +106,11 @@ const FAQ: FaqItem[] = [
 ];
 
 const METHOD_COLORS: Record<string, string> = {
-  GET:    "bg-blue-50 text-blue-700",
-  POST:   "bg-green-50 text-green-700",
-  PATCH:  "bg-yellow-50 text-yellow-800",
-  DELETE: "bg-red-50 text-red-700",
-  PUT:    "bg-purple-50 text-purple-700",
+  GET: "bg-status-info-bg text-status-info-content",
+  POST: "bg-status-success-bg text-status-success-content",
+  PATCH: "bg-status-warning-bg text-status-warning-content",
+  DELETE: "bg-status-danger-bg text-status-danger-content",
+  PUT: "bg-status-info-bg text-status-info-content",
 };
 
 const RATE_LIMITS = [
@@ -165,7 +165,7 @@ export default function DevelopersClient() {
   return (
     <div className="min-h-screen bg-surface-50">
       {/* Page header */}
-      <div className="bg-white border-b border-surface-200 px-4 py-10">
+      <div className="bg-raised border-b border-surface-200 px-4 py-10">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-3xl font-bold text-surface-900 mb-1">Developer Portal</h1>
           <p className="text-surface-500 text-sm mb-6">{copy.subtitle}</p>
@@ -181,13 +181,13 @@ export default function DevelopersClient() {
         {/* Auth */}
         <section aria-labelledby="auth-heading">
           <h2 id="auth-heading" className="text-base font-semibold text-surface-900 mb-3">{copy.authHeading}</h2>
-          <div className="bg-white rounded-xl border border-surface-200 p-5">
+          <div className="bg-raised rounded-xl border border-surface-200 p-5">
             <p className="text-sm text-surface-600 mb-3">
               {copy.authDesc}{" "}
               <code className="font-mono bg-surface-100 px-1.5 py-0.5 rounded text-xs">Authorization</code>{" "}
               {copy.authDesc2}
             </p>
-            <pre className="bg-surface-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">
+            <pre className="bg-surface-900 text-status-success-content text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">
 {`curl https://heptacert.com/api/admin/events \\
   -H "Authorization: Bearer hc_YOUR_API_KEY"`}
             </pre>
@@ -197,7 +197,7 @@ export default function DevelopersClient() {
         {/* Rate Limits */}
         <section aria-labelledby="rate-heading">
           <h2 id="rate-heading" className="text-base font-semibold text-surface-900 mb-3">{copy.rateLimitHeading}</h2>
-          <div className="bg-white rounded-xl border border-surface-200 overflow-hidden">
+          <div className="bg-raised rounded-xl border border-surface-200 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-surface-50 border-b border-surface-100">
                 <tr>
@@ -235,7 +235,7 @@ export default function DevelopersClient() {
                 <p className="text-xs font-semibold text-surface-500 uppercase tracking-wide mb-1.5 pl-1">
                   {lang === "tr" ? group.groupTr : group.groupEn}
                 </p>
-                <div className="bg-white rounded-xl border border-surface-200 overflow-hidden">
+                <div className="bg-raised rounded-xl border border-surface-200 overflow-hidden">
                   <table className="w-full text-sm">
                     <tbody className="divide-y divide-surface-100">
                       {group.items.map((ep, i) => (
@@ -269,19 +269,19 @@ export default function DevelopersClient() {
         {/* Code example */}
         <section aria-labelledby="example-heading">
           <h2 id="example-heading" className="text-base font-semibold text-surface-900 mb-3">{copy.exampleHeading}</h2>
-          <div className="bg-white rounded-xl border border-surface-200 p-5">
-            <pre className="bg-surface-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">
+          <div className="bg-raised rounded-xl border border-surface-200 p-5">
+            <pre className="bg-surface-900 text-status-success-content text-xs p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">
 {`curl "https://heptacert.com/api/admin/events/123/certificates?limit=50" \\
   -H "Authorization: Bearer hc_YOUR_API_KEY"
 
 ${copy.codeComment}
 [
   {
-    "id": 9001,
-    "public_id": "abc123",
-    "attendee_name": "Ahmet Yılmaz",
-    "issued_at": "2026-06-01T10:00:00Z",
-    "cert_url": "https://heptacert.com/verify/550e8400-e29b-41d4-a716-446655440000"
+ "id": 9001,
+ "public_id": "abc123",
+ "attendee_name": "Ahmet Yılmaz",
+ "issued_at": "2026-06-01T10:00:00Z",
+ "cert_url": "https://heptacert.com/verify/550e8400-e29b-41d4-a716-446655440000"
   }
 ]`}
             </pre>
@@ -293,7 +293,7 @@ ${copy.codeComment}
           <h2 id="faq-heading" className="text-base font-semibold text-surface-900 mb-3">{copy.faqHeading}</h2>
           <div className="space-y-2">
             {FAQ.map((item, i) => (
-              <div key={i} className="bg-white rounded-xl border border-surface-200 p-5">
+              <div key={i} className="bg-raised rounded-xl border border-surface-200 p-5">
                 <h3 className="font-semibold text-surface-900 mb-1.5 text-sm">
                   {lang === "tr" ? item.qTr : item.qEn}
                 </h3>

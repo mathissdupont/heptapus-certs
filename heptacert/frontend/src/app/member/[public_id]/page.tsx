@@ -251,22 +251,22 @@ export default function PublicMemberProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400 mb-4" />
-        <p className="text-sm font-medium text-gray-500">{copy.loading}</p>
+      <div className="min-h-screen bg-canvas flex flex-col items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-content-muted mb-4" />
+        <p className="text-sm font-medium text-content-muted">{copy.loading}</p>
       </div>
     );
   }
 
   if (error || !member) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-4">
-        <div className="text-center max-w-md w-full bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
-          <h1 className="text-lg font-bold text-gray-900 mb-2">{copy.error}</h1>
-          <p className="text-gray-500 text-sm mb-6">{error}</p>
+      <div className="min-h-screen bg-canvas flex items-center justify-center p-4">
+        <div className="text-center max-w-md w-full bg-raised rounded-2xl border border-outline-subtle p-8 shadow-sm">
+          <h1 className="text-lg font-bold text-content-primary mb-2">{copy.error}</h1>
+          <p className="text-content-muted text-sm mb-6">{error}</p>
           <Link
             href="/discover"
-            className="inline-flex items-center justify-center gap-2 w-full px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 transition text-sm font-medium"
+            className="inline-flex items-center justify-center gap-2 w-full px-4 py-2 bg-canvas border border-outline-subtle text-content-secondary rounded-lg hover:bg-sunken transition text-sm font-medium"
           >
             <ArrowLeft className="h-4 w-4" />
             {copy.back}
@@ -277,14 +277,14 @@ export default function PublicMemberProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-16">
-      
+    <div className="min-h-screen bg-canvas pb-16">
+
       {/* Sticky Clean Header */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
+      <div className="sticky top-0 z-40 bg-raised/80 backdrop-blur-md border-b border-outline-subtle px-4 sm:px-6 py-3 sm:py-4">
         <div className="max-w-4xl mx-auto flex items-center">
           <Link
             href="/discover"
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-medium text-content-muted hover:text-content-primary transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">{copy.back}</span>
@@ -293,19 +293,19 @@ export default function PublicMemberProfilePage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8">
-        
+
         {/* MAIN PROFILE CARD */}
-        <article className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+        <article className="bg-raised rounded-2xl shadow-sm border border-outline-subtle overflow-hidden mb-8">
           {/* Cover Area */}
-          <div className="h-28 sm:h-36 bg-gradient-to-r from-gray-100 to-gray-50 border-b border-gray-100" />
+          <div className="h-28 sm:h-36 bg-gradient-to-r from-sunken to-canvas border-b border-outline-subtle" />
 
           <div className="px-5 sm:px-8 pb-6 sm:pb-8">
             {/* Avatar & Actions Row */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 sm:-mt-16 mb-4 sm:mb-6">
-              
+
               {/* Avatar */}
               <div className="relative flex-shrink-0">
-                <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full border-4 border-white bg-gray-50 shadow-sm flex items-center justify-center overflow-hidden">
+                <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full border-4 border-white bg-canvas shadow-sm flex items-center justify-center overflow-hidden">
                   {member.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -314,7 +314,7 @@ export default function PublicMemberProfilePage() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="text-3xl sm:text-4xl font-bold text-gray-400">
+                    <span className="text-3xl sm:text-4xl font-bold text-content-muted">
                       {member.display_name.charAt(0).toUpperCase()}
                     </span>
                   )}
@@ -328,11 +328,11 @@ export default function PublicMemberProfilePage() {
                     <FollowButton memberId={member.public_id} isFollowing={!!connectionStats?.is_following} />
                   </div>
                 )}
-                
+
                 {member.contact_email && (
                   <a
                     href={`mailto:${member.contact_email}`}
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition font-medium text-sm shadow-sm"
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-inverse-surface text-white rounded-lg hover:bg-inverse-surface transition font-medium text-sm shadow-sm"
                   >
                     <Mail className="h-4 w-4" />
                     {copy.contact}
@@ -344,7 +344,7 @@ export default function PublicMemberProfilePage() {
                     href={websiteHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium text-sm border border-gray-200 shadow-sm"
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-raised text-content-secondary rounded-lg hover:bg-canvas transition font-medium text-sm border border-outline-subtle shadow-sm"
                   >
                     <Globe className="h-4 w-4" />
                     <span className="hidden sm:inline">{copy.visitWebsite}</span>
@@ -356,21 +356,21 @@ export default function PublicMemberProfilePage() {
 
             {/* Profile Info */}
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+              <h1 className="text-2xl sm:text-3xl font-bold text-content-primary truncate">
                 {member.display_name}
               </h1>
 
               {/* Headline & Location */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-gray-600">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-content-secondary">
                 {member.headline && (
                   <div className="flex items-center gap-1.5">
-                    <Briefcase className="h-4 w-4 text-gray-400" />
+                    <Briefcase className="h-4 w-4 text-content-muted" />
                     <span className="font-medium truncate">{member.headline}</span>
                   </div>
                 )}
                 {member.location && (
                   <div className="flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <MapPin className="h-4 w-4 text-content-muted" />
                     <span className="truncate">{member.location}</span>
                   </div>
                 )}
@@ -378,77 +378,77 @@ export default function PublicMemberProfilePage() {
 
               {/* Bio */}
               {member.bio && (
-                <p className="mt-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-words max-w-2xl">
+                <p className="mt-4 text-sm text-content-secondary leading-relaxed whitespace-pre-wrap break-words max-w-2xl">
                   {member.bio}
                 </p>
               )}
 
               {/* Text-Based Clean Stats (Replacing Bulky Gray Boxes) */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-6 pt-5 border-t border-gray-100">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mt-6 pt-5 border-t border-outline-subtle">
                 <div className="flex items-center gap-1.5">
                   {hideFollowersList ? (
-                    <span className="text-sm text-gray-500">
-                      <span className="font-bold text-gray-900">{connectionStats?.follower_count ?? 0}</span> {copy.followers}
+                    <span className="text-sm text-content-muted">
+                      <span className="font-bold text-content-primary">{connectionStats?.follower_count ?? 0}</span> {copy.followers}
                     </span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => openConnectionsModal("followers")}
-                      className="text-sm text-gray-500 hover:text-gray-800 transition-colors"
+                      className="text-sm text-content-muted hover:text-content-primary transition-colors"
                     >
-                      <span className="font-bold text-gray-900">{connectionStats?.follower_count ?? 0}</span> {copy.followers}
+                      <span className="font-bold text-content-primary">{connectionStats?.follower_count ?? 0}</span> {copy.followers}
                     </button>
                   )}
                 </div>
                 <div className="flex items-center gap-1.5">
                   {hideFollowingList ? (
-                    <span className="text-sm text-gray-500">
-                      <span className="font-bold text-gray-900">{connectionStats?.following_count ?? 0}</span> {copy.following}
+                    <span className="text-sm text-content-muted">
+                      <span className="font-bold text-content-primary">{connectionStats?.following_count ?? 0}</span> {copy.following}
                     </span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => openConnectionsModal("following")}
-                      className="text-sm text-gray-500 hover:text-gray-800 transition-colors"
+                      className="text-sm text-content-muted hover:text-content-primary transition-colors"
                     >
-                      <span className="font-bold text-gray-900">{connectionStats?.following_count ?? 0}</span> {copy.following}
+                      <span className="font-bold text-content-primary">{connectionStats?.following_count ?? 0}</span> {copy.following}
                     </button>
                   )}
                 </div>
-                <div className="h-4 w-px bg-gray-200 hidden sm:block" />
+                <div className="h-4 w-px bg-sunken hidden sm:block" />
                 <div className="flex items-center gap-1.5">
-                  <BadgeCheck className="h-4 w-4 text-gray-400" />
-                  <span className="font-bold text-gray-900">{member.certificates?.length ?? 0}</span>
-                  <span className="text-sm text-gray-500">{copy.certificates}</span>
+                  <BadgeCheck className="h-4 w-4 text-content-muted" />
+                  <span className="font-bold text-content-primary">{member.certificates?.length ?? 0}</span>
+                  <span className="text-sm text-content-muted">{copy.certificates}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <CalendarDays className="h-4 w-4 text-gray-400" />
-                  <span className="font-bold text-gray-900">{member.event_count}</span>
-                  <span className="text-sm text-gray-500">{copy.events}</span>
+                  <CalendarDays className="h-4 w-4 text-content-muted" />
+                  <span className="font-bold text-content-primary">{member.event_count}</span>
+                  <span className="text-sm text-content-muted">{copy.events}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <MessageSquare className="h-4 w-4 text-gray-400" />
-                  <span className="font-bold text-gray-900">{member.comment_count}</span>
-                  <span className="text-sm text-gray-500">{copy.comments}</span>
+                  <MessageSquare className="h-4 w-4 text-content-muted" />
+                  <span className="font-bold text-content-primary">{member.comment_count}</span>
+                  <span className="text-sm text-content-muted">{copy.comments}</span>
                 </div>
               </div>
             </div>
           </div>
         </article>
 
-        <section className="bg-white rounded-2xl border border-gray-200 p-5 sm:p-6 shadow-sm mb-8">
+        <section className="bg-raised rounded-2xl border border-outline-subtle p-5 sm:p-6 shadow-sm mb-8">
           <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-              <BadgeCheck className="h-4 w-4 text-gray-400" />
+            <h2 className="text-base font-bold text-content-primary flex items-center gap-2">
+              <BadgeCheck className="h-4 w-4 text-content-muted" />
               {copy.certificates}
             </h2>
-            <span className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs font-semibold text-gray-500">
+            <span className="rounded-full border border-outline-subtle bg-canvas px-2.5 py-1 text-xs font-semibold text-content-muted">
               {(member.certificates?.length ?? 0).toLocaleString(localeTag(lang))}
             </span>
           </div>
 
           {member.certificates_hidden ? (
-            <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+            <p className="rounded-xl border border-dashed border-outline-subtle bg-canvas px-4 py-6 text-center text-sm text-content-muted">
               {copy.hiddenCertificates}
             </p>
           ) : member.certificates?.length ? (
@@ -458,17 +458,17 @@ export default function PublicMemberProfilePage() {
                   cert.status === "active" ? copy.active : cert.status === "revoked" ? copy.revoked : copy.expired;
                 const statusClass =
                   cert.status === "active"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    ? "border-status-success-border bg-status-success-bg text-status-success-content"
                     : cert.status === "revoked"
-                      ? "border-rose-200 bg-rose-50 text-rose-700"
-                      : "border-amber-200 bg-amber-50 text-amber-700";
+                      ? "border-status-danger-border bg-status-danger-bg text-status-danger-content"
+                      : "border-status-warning-border bg-status-warning-bg text-status-warning-content";
 
                 return (
-                  <article key={cert.uuid} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+                  <article key={cert.uuid} className="rounded-xl border border-outline-subtle bg-canvas/50 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h3 className="truncate text-sm font-bold text-gray-900">{cert.event_name}</h3>
-                        <p className="mt-1 text-xs text-gray-500">
+                        <h3 className="truncate text-sm font-bold text-content-primary">{cert.event_name}</h3>
+                        <p className="mt-1 text-xs text-content-muted">
                           {cert.issued_at
                             ? new Date(cert.issued_at).toLocaleDateString(localeTag(lang), {
                                 day: "numeric",
@@ -484,14 +484,14 @@ export default function PublicMemberProfilePage() {
                     </div>
 
                     {cert.public_id && (
-                      <div className="mt-3 text-11 text-gray-500">
-                        {copy.certificateCode}: <code className="font-mono text-gray-700">{cert.public_id}</code>
+                      <div className="mt-3 text-11 text-content-muted">
+                        {copy.certificateCode}: <code className="font-mono text-content-secondary">{cert.public_id}</code>
                       </div>
                     )}
 
                     <Link
                       href={`/verify/${cert.uuid}`}
-                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-outline-subtle bg-raised px-3 py-2 text-sm font-semibold text-content-secondary transition hover:bg-sunken"
                     >
                       <ExternalLink className="h-4 w-4" />
                       {copy.verifyCertificate}
@@ -501,43 +501,43 @@ export default function PublicMemberProfilePage() {
               })}
             </div>
           ) : (
-            <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+            <p className="rounded-xl border border-dashed border-outline-subtle bg-canvas px-4 py-6 text-center text-sm text-content-muted">
               {copy.noCertificates}
             </p>
           )}
         </section>
 
         <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <section className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
-              <Users className="h-4 w-4 text-gray-400" />
+          <section className="bg-raised rounded-2xl border border-outline-subtle p-5 shadow-sm">
+            <h2 className="text-base font-bold text-content-primary mb-2 flex items-center gap-2">
+              <Users className="h-4 w-4 text-content-muted" />
               {copy.followers}
             </h2>
             {hideFollowersList ? (
-              <p className="text-sm text-gray-500">{copy.hiddenFollowers}</p>
+              <p className="text-sm text-content-muted">{copy.hiddenFollowers}</p>
             ) : (
               <button
                 type="button"
                 onClick={() => openConnectionsModal("followers")}
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-sm text-content-secondary hover:text-content-primary transition-colors"
               >
                 {copy.showFollowers}
               </button>
             )}
           </section>
 
-          <section className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
-              <Users className="h-4 w-4 text-gray-400" />
+          <section className="bg-raised rounded-2xl border border-outline-subtle p-5 shadow-sm">
+            <h2 className="text-base font-bold text-content-primary mb-2 flex items-center gap-2">
+              <Users className="h-4 w-4 text-content-muted" />
               {copy.following}
             </h2>
             {hideFollowingList ? (
-              <p className="text-sm text-gray-500">{copy.hiddenFollowing}</p>
+              <p className="text-sm text-content-muted">{copy.hiddenFollowing}</p>
             ) : (
               <button
                 type="button"
                 onClick={() => openConnectionsModal("following")}
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-sm text-content-secondary hover:text-content-primary transition-colors"
               >
                 {copy.showFollowing}
               </button>
@@ -548,7 +548,7 @@ export default function PublicMemberProfilePage() {
         {/* RECOMMENDED MEMBERS */}
         {recommended.length > 0 && (
           <div>
-            <h2 className="text-base font-bold text-gray-900 mb-4 px-1 flex items-center gap-2">
+            <h2 className="text-base font-bold text-content-primary mb-4 px-1 flex items-center gap-2">
               {copy.recommended}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -556,11 +556,11 @@ export default function PublicMemberProfilePage() {
                 <Link
                   key={rec.public_id}
                   href={`/member/${rec.public_id}`}
-                  className="group flex flex-col bg-white rounded-xl shadow-sm border border-gray-200 hover:border-gray-300 transition-colors overflow-hidden min-w-0"
+                  className="group flex flex-col bg-raised rounded-xl shadow-sm border border-outline-subtle hover:border-outline-strong transition-colors overflow-hidden min-w-0"
                 >
                   <div className="p-4 flex items-start gap-3 min-w-0">
                     {/* Small Circular Avatar */}
-                    <div className="h-12 w-12 flex-shrink-0 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden mt-0.5">
+                    <div className="h-12 w-12 flex-shrink-0 rounded-full bg-canvas border border-outline-subtle flex items-center justify-center overflow-hidden mt-0.5">
                       {rec.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -569,23 +569,23 @@ export default function PublicMemberProfilePage() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <span className="text-base font-semibold text-gray-400">
+                        <span className="text-base font-semibold text-content-muted">
                           {rec.display_name.charAt(0).toUpperCase()}
                         </span>
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 text-sm truncate group-hover:text-blue-600 transition-colors">
+                      <h3 className="font-semibold text-content-primary text-sm truncate group-hover:text-status-info-content transition-colors">
                         {rec.display_name}
                       </h3>
-                      
-                      <p className="text-xs text-gray-500 truncate mt-0.5">
+
+                      <p className="text-xs text-content-muted truncate mt-0.5">
                         {rec.headline || "Üye"}
                       </p>
 
                       <div className="flex items-center gap-1.5 mt-2">
-                        <div className="flex items-center gap-1 text-11 font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 truncate">
+                        <div className="flex items-center gap-1 text-11 font-medium text-content-muted bg-canvas px-1.5 py-0.5 rounded border border-outline-subtle truncate">
                           <CalendarDays className="h-3 w-3" />
                           <span className="truncate">{rec.event_count} Etkinlik</span>
                         </div>
@@ -608,15 +608,15 @@ export default function PublicMemberProfilePage() {
             className="absolute inset-0 bg-black/40"
             onClick={() => setConnectionsModal(null)}
           />
-          <div className="relative z-10 w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-              <h3 className="text-base font-semibold text-gray-900">
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-outline-subtle bg-raised shadow-xl">
+            <div className="flex items-center justify-between border-b border-outline-subtle px-4 py-3">
+              <h3 className="text-base font-semibold text-content-primary">
                 {connectionsModal === "followers" ? copy.followers : copy.following}
               </h3>
               <button
                 type="button"
                 onClick={() => setConnectionsModal(null)}
-                className="rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                className="rounded-md p-1 text-content-muted hover:bg-sunken hover:text-content-secondary"
                 aria-label={copy.close}
               >
                 <X className="h-4 w-4" />
@@ -625,14 +625,14 @@ export default function PublicMemberProfilePage() {
 
             <div className="max-h-[70vh] overflow-y-auto p-3">
               {loadingConnections ? (
-                <div className="py-8 text-center text-sm text-gray-500">
+                <div className="py-8 text-center text-sm text-content-muted">
                   <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
                   {copy.loading}
                 </div>
               ) : connectionsError ? (
-                <div className="py-6 text-center text-sm text-red-600">{connectionsError}</div>
+                <div className="py-6 text-center text-sm text-status-danger-content">{connectionsError}</div>
               ) : (connectionsModal === "followers" ? followers : following).length === 0 ? (
-                <div className="py-6 text-center text-sm text-gray-500">
+                <div className="py-6 text-center text-sm text-content-muted">
                   {connectionsModal === "followers" ? copy.noFollowers : copy.noFollowing}
                 </div>
               ) : (
@@ -641,18 +641,18 @@ export default function PublicMemberProfilePage() {
                     <Link
                       key={f.public_id}
                       href={`/member/${f.public_id}`}
-                      className="flex items-center gap-3 rounded-lg p-2 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 rounded-lg p-2 hover:bg-canvas transition-colors"
                       onClick={() => setConnectionsModal(null)}
                     >
-                      <div className="h-9 w-9 flex-shrink-0 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">
+                      <div className="h-9 w-9 flex-shrink-0 rounded-full bg-sunken border border-outline-subtle flex items-center justify-center overflow-hidden">
                         {f.avatar_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={f.avatar_url} alt={f.display_name} className="h-full w-full object-cover" />
                         ) : (
-                          <span className="text-xs font-semibold text-gray-500">{f.display_name.charAt(0).toUpperCase()}</span>
+                          <span className="text-xs font-semibold text-content-muted">{f.display_name.charAt(0).toUpperCase()}</span>
                         )}
                       </div>
-                      <p className="truncate text-sm font-semibold text-gray-900">{f.display_name}</p>
+                      <p className="truncate text-sm font-semibold text-content-primary">{f.display_name}</p>
                     </Link>
                   ))}
                 </div>

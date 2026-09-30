@@ -115,18 +115,18 @@ export default function PublicFormPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <Loader2 className="h-6 w-6 animate-spin text-content-muted" />
       </div>
     );
   }
 
   if (error && !meta) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6">
+      <div className="flex min-h-screen items-center justify-center bg-canvas p-6">
         <div className="text-center space-y-3">
-          <AlertCircle className="h-10 w-10 text-red-400 mx-auto" />
-          <p className="text-gray-600">{error}</p>
+          <AlertCircle className="h-10 w-10 text-status-danger-content mx-auto" />
+          <p className="text-content-secondary">{error}</p>
         </div>
       </div>
     );
@@ -134,11 +134,11 @@ export default function PublicFormPage() {
 
   if (submitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 p-6">
+      <div className="flex min-h-screen items-center justify-center bg-canvas p-6">
         <div className="text-center space-y-4 max-w-sm">
-          <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
-          <h2 className="text-lg font-semibold text-gray-900">Teşekkürler!</h2>
-          <p className="text-sm text-gray-500">Formunuz başarıyla gönderildi.</p>
+          <CheckCircle2 className="h-12 w-12 text-status-success-content mx-auto" />
+          <h2 className="text-lg font-semibold text-content-primary">Teşekkürler!</h2>
+          <p className="text-sm text-content-muted">Formunuz başarıyla gönderildi.</p>
         </div>
       </div>
     );
@@ -147,14 +147,14 @@ export default function PublicFormPage() {
   if (!meta) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-canvas to-status-info-bg flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-raised rounded-2xl shadow-lg p-8 space-y-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{meta.name}</h1>
+          <h1 className="text-xl font-bold text-content-primary">{meta.name}</h1>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
+          <div className="flex items-center gap-2 rounded-xl bg-status-danger-bg border border-status-danger-border px-4 py-3 text-sm text-status-danger-content">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             {error}
           </div>
@@ -163,16 +163,16 @@ export default function PublicFormPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {meta.fields_json.map((field) => (
             <div key={field.name} className="space-y-1">
-              <label className="block text-xs font-medium text-gray-700">
+              <label className="block text-xs font-medium text-content-secondary">
                 {field.label}
-                {field.required && <span className="text-red-500 ml-1">*</span>}
+                {field.required && <span className="text-status-danger-content ml-1">*</span>}
               </label>
 
               {field.field_type === "textarea" ? (
                 <textarea
                   rows={3}
-                  className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                    fieldErrors[field.name] ? "border-red-300" : "border-gray-200"
+                  className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border ${
+                    fieldErrors[field.name] ? "border-status-danger-border" : "border-outline-subtle"
                   }`}
                   placeholder={field.placeholder ?? ""}
                   value={values[field.name] ?? ""}
@@ -180,8 +180,8 @@ export default function PublicFormPage() {
                 />
               ) : field.field_type === "dropdown" ? (
                 <select
-                  className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                    fieldErrors[field.name] ? "border-red-300" : "border-gray-200"
+                  className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border ${
+                    fieldErrors[field.name] ? "border-status-danger-border" : "border-outline-subtle"
                   }`}
                   value={values[field.name] ?? ""}
                   onChange={(e) => setValue(field.name, e.target.value)}
@@ -190,7 +190,7 @@ export default function PublicFormPage() {
                   {field.options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               ) : field.field_type === "checkbox" ? (
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <label className="flex items-center gap-2 text-sm text-content-secondary cursor-pointer">
                   <input
                     type="checkbox"
                     className="rounded"
@@ -202,8 +202,8 @@ export default function PublicFormPage() {
               ) : (
                 <input
                   type={field.field_type}
-                  className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                    fieldErrors[field.name] ? "border-red-300" : "border-gray-200"
+                  className={`w-full rounded-xl border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border ${
+                    fieldErrors[field.name] ? "border-status-danger-border" : "border-outline-subtle"
                   }`}
                   placeholder={field.placeholder ?? ""}
                   value={values[field.name] ?? ""}
@@ -212,7 +212,7 @@ export default function PublicFormPage() {
               )}
 
               {fieldErrors[field.name] && (
-                <p className="text-xs text-red-500">{fieldErrors[field.name]}</p>
+                <p className="text-xs text-status-danger-content">{fieldErrors[field.name]}</p>
               )}
             </div>
           ))}

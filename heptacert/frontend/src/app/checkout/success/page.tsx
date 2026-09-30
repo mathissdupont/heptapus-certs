@@ -39,11 +39,11 @@ function CheckoutSuccessContent() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center px-4 py-10 sm:px-6">
       <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="card w-full overflow-hidden p-8 text-center sm:p-10">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100"><CheckCircle2 className="h-10 w-10 text-emerald-600" /></div>
-        <h1 className="mt-6 text-3xl font-black tracking-tight text-slate-950">{copy.title}</h1>
-        <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-500">{copy.body}</p>
-        {orderId && <div className="mt-6 inline-flex rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-600">{copy.order}: #{orderId}</div>}
-        <p className="mt-4 text-xs text-slate-400">{secs}</p>
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-status-success-bg"><CheckCircle2 className="h-10 w-10 text-status-success-content" /></div>
+        <h1 className="mt-6 text-3xl font-black tracking-tight text-content-primary">{copy.title}</h1>
+        <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-content-muted">{copy.body}</p>
+        {orderId && <div className="mt-6 inline-flex rounded-2xl border border-outline-subtle bg-canvas px-4 py-3 text-sm font-medium text-content-secondary">{copy.order}: #{orderId}</div>}
+        <p className="mt-4 text-xs text-content-muted">{secs}</p>
         <Link href="/admin/events" className="btn-primary mt-6 justify-center">{copy.cta}</Link>
         <Image src="/logo.png" alt="HeptaCert" width={160} height={44} className="mx-auto mt-8 h-10 w-auto" unoptimized />
       </motion.div>

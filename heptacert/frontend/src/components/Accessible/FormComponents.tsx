@@ -23,15 +23,15 @@ export function FormField({
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="font-medium text-gray-700 dark:text-gray-300">
+      <label className="font-medium text-content-secondary ">
         {label}
-        {required && <span className="ml-1 text-red-600 dark:text-red-400" aria-label="required">*</span>}
+        {required && <span className="ml-1 text-status-danger-content " aria-label="required">*</span>}
       </label>
 
       <div className="relative">{children}</div>
 
       {hint && (
-        <p id={hintId} className="text-sm text-gray-500 dark:text-gray-400">
+        <p id={hintId} className="text-sm text-content-muted ">
           {hint}
         </p>
       )}
@@ -39,7 +39,7 @@ export function FormField({
       {error && (
         <div
           id={errorId}
-          className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400"
+          className="flex items-center gap-2 text-sm text-status-danger-content "
           role="alert"
         >
           <AlertCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
@@ -75,12 +75,12 @@ export function SuccessMessage({
 }) {
   return (
     <div className="success-banner items-center" role="status" aria-live="polite">
-      <CheckCircle className="h-5 w-5 flex-shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-      <span className="flex-1 text-emerald-800 dark:text-emerald-200">{message}</span>
+      <CheckCircle className="h-5 w-5 flex-shrink-0 text-status-success-content " aria-hidden="true" />
+      <span className="flex-1 text-status-success-content ">{message}</span>
       {onDismiss && (
         <button
           onClick={onDismiss}
-          className="rounded-lg p-1 text-emerald-600 transition hover:bg-emerald-100 hover:text-emerald-800"
+          className="rounded-lg p-1 text-status-success-content transition hover:bg-status-success-bg hover:text-status-success-content"
           aria-label="Dismiss message"
         >
           <X className="h-4 w-4" />
@@ -99,12 +99,12 @@ export function ErrorMessage({
 }) {
   return (
     <div className="error-banner items-center" role="alert" aria-live="assertive">
-      <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
-      <span className="flex-1 text-red-800 dark:text-red-200">{message}</span>
+      <AlertCircle className="h-5 w-5 flex-shrink-0 text-status-danger-content " aria-hidden="true" />
+      <span className="flex-1 text-status-danger-content ">{message}</span>
       {onDismiss && (
         <button
           onClick={onDismiss}
-          className="rounded-lg p-1 text-red-600 transition hover:bg-red-100 hover:text-red-800"
+          className="rounded-lg p-1 text-status-danger-content transition hover:bg-status-danger-bg hover:text-status-danger-content"
           aria-label="Dismiss error"
         >
           <X className="h-4 w-4" />

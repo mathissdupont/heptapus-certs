@@ -258,7 +258,7 @@ export default function PublicQuizPage() {
   if (phase === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-content-muted" />
       </div>
     );
   }
@@ -267,9 +267,9 @@ export default function PublicQuizPage() {
     return (
       <div className="flex min-h-screen items-center justify-center p-8">
         <div className="text-center max-w-sm">
-          <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-          <p className="text-gray-700 font-medium">{copy.noQuiz}</p>
-          <button onClick={() => router.back()} className="mt-4 text-sm text-indigo-600 hover:underline">{copy.back}</button>
+          <AlertCircle className="h-10 w-10 text-status-danger-content mx-auto mb-3" />
+          <p className="text-content-secondary font-medium">{copy.noQuiz}</p>
+          <button onClick={() => router.back()} className="mt-4 text-sm text-status-info-content hover:underline">{copy.back}</button>
         </div>
       </div>
     );
@@ -279,10 +279,10 @@ export default function PublicQuizPage() {
     return (
       <div className="flex min-h-screen items-center justify-center p-8">
         <div className="text-center max-w-sm">
-          <XCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-          <p className="text-gray-800 font-semibold mb-1">{copy.maxAttempts}</p>
-          <p className="text-sm text-gray-500">{copy.maxAttemptsDesc}</p>
-          <button onClick={() => router.back()} className="mt-4 text-sm text-indigo-600 hover:underline">{copy.back}</button>
+          <XCircle className="h-10 w-10 text-status-danger-content mx-auto mb-3" />
+          <p className="text-content-primary font-semibold mb-1">{copy.maxAttempts}</p>
+          <p className="text-sm text-content-muted">{copy.maxAttemptsDesc}</p>
+          <button onClick={() => router.back()} className="mt-4 text-sm text-status-info-content hover:underline">{copy.back}</button>
         </div>
       </div>
     );
@@ -290,25 +290,25 @@ export default function PublicQuizPage() {
 
   if (phase === "anon-form" && quiz) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-8 bg-gray-50">
-        <div className="bg-white rounded-3xl shadow-lg p-8 max-w-sm w-full space-y-5">
-          <h2 className="text-xl font-bold text-gray-900 text-center">{quiz.title}</h2>
+      <div className="flex min-h-screen items-center justify-center p-8 bg-canvas">
+        <div className="bg-raised rounded-3xl shadow-lg p-8 max-w-sm w-full space-y-5">
+          <h2 className="text-xl font-bold text-content-primary text-center">{quiz.title}</h2>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">{copy.nameLabel}</label>
+              <label className="block text-xs font-medium text-content-secondary mb-1">{copy.nameLabel}</label>
               <input
                 type="text"
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 placeholder={copy.namePlaceholder}
                 value={anonName}
                 onChange={(e) => setAnonName(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">{copy.emailLabel}</label>
+              <label className="block text-xs font-medium text-content-secondary mb-1">{copy.emailLabel}</label>
               <input
                 type="email"
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 placeholder={copy.emailPlaceholder}
                 value={anonEmail}
                 onChange={(e) => setAnonEmail(e.target.value)}
@@ -329,43 +329,43 @@ export default function PublicQuizPage() {
 
   if (phase === "intro" && quiz) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-8 bg-gray-50">
-        <div className="bg-white rounded-3xl shadow-lg p-8 max-w-md w-full space-y-6">
+      <div className="flex min-h-screen items-center justify-center p-8 bg-canvas">
+        <div className="bg-raised rounded-3xl shadow-lg p-8 max-w-md w-full space-y-6">
           <div className="text-center space-y-2">
             <div className="text-4xl">📝</div>
-            <h1 className="text-2xl font-bold text-gray-900">{quiz.title}</h1>
-            {quiz.description && <p className="text-sm text-gray-500">{quiz.description}</p>}
+            <h1 className="text-2xl font-bold text-content-primary">{quiz.title}</h1>
+            {quiz.description && <p className="text-sm text-content-muted">{quiz.description}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-xl bg-gray-50 px-4 py-3 text-center">
-              <div className="font-semibold text-gray-900">{quiz.questions.length}</div>
-              <div className="text-gray-500 text-xs mt-0.5">{copy.questions}</div>
+            <div className="rounded-xl bg-canvas px-4 py-3 text-center">
+              <div className="font-semibold text-content-primary">{quiz.questions.length}</div>
+              <div className="text-content-muted text-xs mt-0.5">{copy.questions}</div>
             </div>
-            <div className="rounded-xl bg-gray-50 px-4 py-3 text-center">
-              <div className="font-semibold text-gray-900">%{quiz.passing_score}</div>
-              <div className="text-gray-500 text-xs mt-0.5">{copy.passingScore}</div>
+            <div className="rounded-xl bg-canvas px-4 py-3 text-center">
+              <div className="font-semibold text-content-primary">%{quiz.passing_score}</div>
+              <div className="text-content-muted text-xs mt-0.5">{copy.passingScore}</div>
             </div>
-            <div className="rounded-xl bg-gray-50 px-4 py-3 text-center">
-              <div className="font-semibold text-gray-900">
+            <div className="rounded-xl bg-canvas px-4 py-3 text-center">
+              <div className="font-semibold text-content-primary">
                 {quiz.time_limit_minutes ? `${quiz.time_limit_minutes} ${copy.minutes}` : copy.unlimited}
               </div>
-              <div className="text-gray-500 text-xs mt-0.5">{copy.timeLimit}</div>
+              <div className="text-content-muted text-xs mt-0.5">{copy.timeLimit}</div>
             </div>
-            <div className="rounded-xl bg-gray-50 px-4 py-3 text-center">
-              <div className="font-semibold text-gray-900">
+            <div className="rounded-xl bg-canvas px-4 py-3 text-center">
+              <div className="font-semibold text-content-primary">
                 {quiz.max_attempts - quiz.my_attempt_count}/{quiz.max_attempts}
               </div>
-              <div className="text-gray-500 text-xs mt-0.5">{copy.remainingAttempts}</div>
+              <div className="text-content-muted text-xs mt-0.5">{copy.remainingAttempts}</div>
             </div>
           </div>
           {quiz.my_last_attempt && (
-            <div className={`rounded-xl px-4 py-3 text-sm text-center ${quiz.my_last_attempt.passed ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>
+            <div className={`rounded-xl px-4 py-3 text-sm text-center ${quiz.my_last_attempt.passed ? "bg-status-success-bg text-status-success-content" : "bg-status-warning-bg text-status-warning-content"}`}>
               {copy.lastAttempt(quiz.my_last_attempt.score)}{" "}
               {quiz.my_last_attempt.passed ? `✅ ${copy.passed}` : copy.retryHint}
             </div>
           )}
           {quiz.required_for_cert && (
-            <p className="text-xs text-center text-gray-400">{copy.certNote}</p>
+            <p className="text-xs text-center text-content-muted">{copy.certNote}</p>
           )}
           <button
             onClick={handleStartClick}
@@ -384,22 +384,22 @@ export default function PublicQuizPage() {
     const isLast = currentQ === quiz.questions.length - 1;
 
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-canvas flex flex-col">
         {/* Top bar */}
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-4">
+        <div className="sticky top-0 z-10 bg-raised border-b border-outline-subtle px-4 py-3 flex items-center gap-4">
           <div className="flex-1">
-            <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+            <div className="h-1.5 rounded-full bg-sunken overflow-hidden">
               <div
                 className="h-full bg-indigo-500 rounded-full transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
           </div>
-          <span className="text-xs text-gray-500 font-medium whitespace-nowrap">
+          <span className="text-xs text-content-muted font-medium whitespace-nowrap">
             {currentQ + 1} / {quiz.questions.length}
           </span>
           {timeLeft !== null && (
-            <div className={`flex items-center gap-1 text-sm font-mono font-medium ${timeLeft < 60 ? "text-red-600" : "text-gray-600"}`}>
+            <div className={`flex items-center gap-1 text-sm font-mono font-medium ${timeLeft < 60 ? "text-status-danger-content" : "text-content-secondary"}`}>
               <Clock className="h-3.5 w-3.5" />
               {formatTime(timeLeft)}
             </div>
@@ -408,12 +408,12 @@ export default function PublicQuizPage() {
 
         {/* Question */}
         <div className="flex-1 flex items-start justify-center p-6">
-          <div className="bg-white rounded-3xl shadow-sm p-8 max-w-xl w-full space-y-6">
+          <div className="bg-raised rounded-3xl shadow-sm p-8 max-w-xl w-full space-y-6">
             <div className="flex items-start gap-3">
-              <span className="text-xs font-bold text-indigo-400 bg-indigo-50 rounded-lg px-2 py-1 flex-shrink-0">
+              <span className="text-xs font-bold text-status-info-content bg-status-info-bg rounded-lg px-2 py-1 flex-shrink-0">
                 {currentQ + 1}
               </span>
-              <p className="text-gray-900 font-medium leading-relaxed">{q.question_text}</p>
+              <p className="text-content-primary font-medium leading-relaxed">{q.question_text}</p>
             </div>
 
             {/* MCQ / true_false */}
@@ -429,8 +429,8 @@ export default function PublicQuizPage() {
                       }
                       className={`w-full text-left rounded-xl border px-4 py-3 text-sm transition ${
                         selected
-                          ? "border-indigo-500 bg-indigo-50 text-indigo-800 font-medium"
-                          : "border-gray-200 hover:border-indigo-300 hover:bg-gray-50"
+                          ? "border-status-info-border bg-status-info-bg text-status-info-content font-medium"
+                          : "border-outline-subtle hover:border-status-info-border hover:bg-canvas"
                       }`}
                     >
                       {c.choice_text}
@@ -444,7 +444,7 @@ export default function PublicQuizPage() {
             {q.question_type === "open_text" && (
               <textarea
                 rows={4}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 placeholder={lang === "tr" ? "Cevabınızı buraya yazın..." : "Type your answer here..."}
                 value={answers[q.id]?.open_text_answer ?? ""}
                 onChange={(e) =>
@@ -458,7 +458,7 @@ export default function PublicQuizPage() {
               {currentQ > 0 && (
                 <button
                   onClick={() => setCurrentQ((n) => n - 1)}
-                  className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm text-gray-600 hover:bg-gray-50"
+                  className="flex-1 rounded-xl border border-outline-subtle py-2.5 text-sm text-content-secondary hover:bg-canvas"
                 >
                   {copy.prev}
                 </button>
@@ -491,26 +491,26 @@ export default function PublicQuizPage() {
     const passed = result.passed;
     const attemptsLeft = quiz.max_attempts - quiz.my_attempt_count;
     return (
-      <div className="flex min-h-screen items-center justify-center p-8 bg-gray-50">
-        <div className="bg-white rounded-3xl shadow-lg p-10 max-w-sm w-full text-center space-y-5">
-          <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${passed ? "bg-green-100" : "bg-red-100"}`}>
+      <div className="flex min-h-screen items-center justify-center p-8 bg-canvas">
+        <div className="bg-raised rounded-3xl shadow-lg p-10 max-w-sm w-full text-center space-y-5">
+          <div className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${passed ? "bg-status-success-bg" : "bg-status-danger-bg"}`}>
             {passed ? (
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <CheckCircle2 className="h-8 w-8 text-status-success-content" />
             ) : (
-              <XCircle className="h-8 w-8 text-red-500" />
+              <XCircle className="h-8 w-8 text-status-danger-content" />
             )}
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{passed ? copy.congrats : copy.failTitle}</h2>
-            <p className="text-gray-500 text-sm mt-1">
+            <h2 className="text-2xl font-bold text-content-primary">{passed ? copy.congrats : copy.failTitle}</h2>
+            <p className="text-content-muted text-sm mt-1">
               {passed ? copy.completedDesc : copy.failDesc(result.passing_score)}
             </p>
           </div>
-          <div className={`text-5xl font-bold ${passed ? "text-green-600" : "text-red-500"}`}>
+          <div className={`text-5xl font-bold ${passed ? "text-status-success-content" : "text-status-danger-content"}`}>
             %{result.score}
           </div>
           {passed && result.cert_will_be_issued && (
-            <div className="rounded-xl bg-green-50 px-4 py-3 flex items-center gap-2 text-sm text-green-700">
+            <div className="rounded-xl bg-status-success-bg px-4 py-3 flex items-center gap-2 text-sm text-status-success-content">
               <Award className="h-4 w-4 flex-shrink-0" />
               {copy.certIssuing}
             </div>
@@ -518,7 +518,7 @@ export default function PublicQuizPage() {
           <div className="flex flex-col gap-2">
             <button
               onClick={() => router.push(`/events/${eventId}`)}
-              className="w-full rounded-xl border border-gray-200 py-2.5 text-sm text-gray-600 hover:bg-gray-50"
+              className="w-full rounded-xl border border-outline-subtle py-2.5 text-sm text-content-secondary hover:bg-canvas"
             >
               {copy.backToEvent}
             </button>

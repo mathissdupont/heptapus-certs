@@ -136,7 +136,7 @@ export default function LeadFormsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-gray-900 text-white text-sm rounded-xl px-4 py-2.5 shadow-lg">
+        <div className="fixed top-4 right-4 z-50 bg-inverse-surface text-white text-sm rounded-xl px-4 py-2.5 shadow-lg">
           {toast}
         </div>
       )}
@@ -144,10 +144,10 @@ export default function LeadFormsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <ClipboardList className="h-6 w-6 text-indigo-600" />
+          <ClipboardList className="h-6 w-6 text-status-info-content" />
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">{copy.pageTitle}</h1>
-            <p className="text-sm text-gray-500">{copy.pageSubtitle}</p>
+            <h1 className="text-xl font-semibold text-content-primary">{copy.pageTitle}</h1>
+            <p className="text-sm text-content-muted">{copy.pageSubtitle}</p>
           </div>
         </div>
         <button
@@ -160,12 +160,12 @@ export default function LeadFormsPage() {
 
       {/* Create form */}
       {showForm && (
-        <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-5 space-y-3">
-          <p className="text-sm font-medium text-indigo-800">{copy.newLeadForm}</p>
+        <div className="rounded-2xl border border-status-info-border bg-status-info-bg p-5 space-y-3">
+          <p className="text-sm font-medium text-status-info-content">{copy.newLeadForm}</p>
           <div className="flex gap-3">
             <input
               autoFocus
-              className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
               placeholder={copy.formNamePlaceholder}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -180,7 +180,7 @@ export default function LeadFormsPage() {
             </button>
             <button
               onClick={() => { setShowForm(false); setNewName(""); }}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500"
+              className="rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm text-content-muted"
             >
               {copy.cancel}
             </button>
@@ -191,10 +191,10 @@ export default function LeadFormsPage() {
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+          <Loader2 className="h-5 w-5 animate-spin text-content-muted" />
         </div>
       ) : forms.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-content-muted">
           <ClipboardList className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">{copy.noForms}</p>
           <p className="text-xs mt-1">{copy.noFormsHint}</p>
@@ -202,25 +202,25 @@ export default function LeadFormsPage() {
       ) : (
         <div className="space-y-3">
           {forms.map((form) => (
-            <div key={form.id} className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5 flex items-center gap-4">
+            <div key={form.id} className="rounded-2xl border border-outline-subtle bg-raised shadow-sm p-5 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <Link
                     href={`/admin/lead-forms/${form.id}`}
-                    className="font-medium text-gray-900 hover:text-indigo-600 truncate"
+                    className="font-medium text-content-primary hover:text-status-info-content truncate"
                   >
                     {form.name}
                   </Link>
                   <span className={`text-xs rounded-full px-2 py-0.5 font-medium flex-shrink-0 ${
-                    form.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                    form.active ? "bg-status-success-bg text-status-success-content" : "bg-sunken text-content-muted"
                   }`}>
                     {form.active ? copy.active : copy.passive}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-400">
+                <div className="flex items-center gap-4 mt-1.5 text-xs text-content-muted">
                   <span>{copy.fieldCount(form.fields_json.length)}</span>
                   <span>{copy.submissionCount(form.submission_count)}</span>
-                  <span className="font-mono text-gray-300">/public/forms/{form.slug}</span>
+                  <span className="font-mono text-content-muted">/public/forms/{form.slug}</span>
                 </div>
               </div>
 
@@ -229,36 +229,36 @@ export default function LeadFormsPage() {
                   href={`/public/forms/${form.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50"
+                  className="rounded-lg border border-outline-subtle p-1.5 text-content-muted hover:bg-canvas"
                   title={copy.preview}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </a>
                 <button
                   onClick={() => copyEmbedCode(form.slug)}
-                  className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50"
+                  className="rounded-lg border border-outline-subtle p-1.5 text-content-muted hover:bg-canvas"
                   title={copy.copyEmbed}
                 >
                   <Copy className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => handleToggleActive(form)}
-                  className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50"
+                  className="rounded-lg border border-outline-subtle p-1.5 text-content-muted hover:bg-canvas"
                   title={form.active ? copy.deactivate : copy.activate}
                 >
                   {form.active
-                    ? <ToggleRight className="h-4 w-4 text-green-500" />
+                    ? <ToggleRight className="h-4 w-4 text-status-success-content" />
                     : <ToggleLeft className="h-4 w-4" />}
                 </button>
                 <Link
                   href={`/admin/lead-forms/${form.id}`}
-                  className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+                  className="flex items-center gap-1 rounded-lg border border-outline-subtle px-3 py-1.5 text-xs text-content-secondary hover:bg-canvas"
                 >
                   {copy.edit} <ChevronRight className="h-3 w-3" />
                 </Link>
                 <button
                   onClick={() => handleDelete(form.id)}
-                  className="rounded-lg border border-gray-200 p-1.5 text-red-400 hover:bg-red-50"
+                  className="rounded-lg border border-outline-subtle p-1.5 text-status-danger-content hover:bg-status-danger-bg"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

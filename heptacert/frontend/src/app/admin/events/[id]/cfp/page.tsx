@@ -132,7 +132,7 @@ export default function CfpAdminPage() {
                 key={s}
                 onClick={() => setFilter(s)}
                 className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                  filter === s ? "border-surface-900 bg-surface-900 text-white" : "border-surface-200 bg-white text-surface-600 hover:bg-surface-50"
+                  filter === s ? "border-surface-900 bg-surface-900 text-white" : "border-surface-200 bg-raised text-surface-600 hover:bg-surface-50"
                 }`}
               >
                 {s === "all" ? t("cfp_filter_all") : t(`cfp_status_${s}` as any)}
@@ -174,10 +174,10 @@ export default function CfpAdminPage() {
 function StatusBadge({ status }: { status: string }) {
   const t = useT();
   const tone: Record<string, string> = {
-    submitted: "bg-sky-50 text-sky-700 border-sky-200",
-    under_review: "bg-amber-50 text-amber-700 border-amber-200",
-    accepted: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    rejected: "bg-red-50 text-red-700 border-red-200",
+    submitted: "bg-status-info-bg text-status-info-content border-status-info-border",
+    under_review: "bg-status-warning-bg text-status-warning-content border-status-warning-border",
+    accepted: "bg-status-success-bg text-status-success-content border-status-success-border",
+    rejected: "bg-status-danger-bg text-status-danger-content border-status-danger-border",
     withdrawn: "bg-surface-100 text-surface-500 border-surface-200",
   };
   return (
@@ -274,7 +274,7 @@ function CfpSettingsPanel({ eventId, config, onSaved }: { eventId: number; confi
                 title={t("cfp_criterion_max")}
                 className="input-field w-24"
               />
-              <button onClick={() => removeCriterion(idx)} className="p-2 rounded-lg text-surface-400 hover:bg-red-50 hover:text-red-600">
+              <button onClick={() => removeCriterion(idx)} className="p-2 rounded-lg text-surface-400 hover:bg-status-danger-bg hover:text-status-danger-content">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -366,7 +366,7 @@ function SubmissionCard({
             <span className="font-semibold text-surface-900">{sub.title}</span>
             <StatusBadge status={sub.status} />
             {sub.session_id != null && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-11 font-semibold text-emerald-700">
+              <span className="inline-flex items-center gap-1 rounded-full bg-status-success-bg px-2 py-0.5 text-11 font-semibold text-status-success-content">
                 <CalendarPlus className="h-3 w-3" /> {t("cfp_session_linked")}
               </span>
             )}
@@ -375,7 +375,7 @@ function SubmissionCard({
             <span>{sub.speaker_name}</span>
             {sub.track && <span>· {sub.track}</span>}
             {sub.average_score != null && (
-              <span className="inline-flex items-center gap-1 text-amber-600 font-medium">
+              <span className="inline-flex items-center gap-1 text-status-warning-content font-medium">
                 <Star className="h-3.5 w-3.5" /> {t("cfp_avg_score")}: {sub.average_score}
               </span>
             )}
@@ -453,7 +453,7 @@ function SubmissionCard({
                     <button
                       key={rev.user_id}
                       onClick={() => setAssignSel((prev) => (on ? prev.filter((x) => x !== rev.user_id) : [...prev, rev.user_id]))}
-                      className={`rounded-full border px-3 py-1 text-11 font-semibold transition-colors ${on ? "border-surface-900 bg-surface-900 text-white" : "border-surface-200 bg-white text-surface-600 hover:bg-surface-50"}`}
+                      className={`rounded-full border px-3 py-1 text-11 font-semibold transition-colors ${on ? "border-surface-900 bg-surface-900 text-white" : "border-surface-200 bg-raised text-surface-600 hover:bg-surface-50"}`}
                     >
                       {rev.name || rev.email || `#${rev.user_id}`}
                     </button>
@@ -483,10 +483,10 @@ function SubmissionCard({
                 </div>
               )}
               <div className="flex justify-end gap-2">
-                <button onClick={() => decide("rejected")} disabled={busy} className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
+                <button onClick={() => decide("rejected")} disabled={busy} className="inline-flex items-center gap-1 rounded-lg border border-status-danger-border bg-raised px-3 py-1.5 text-xs font-semibold text-status-danger-content hover:bg-status-danger-bg disabled:opacity-50">
                   <X className="h-3.5 w-3.5" /> {t("cfp_reject")}
                 </button>
-                <button onClick={() => decide("accepted")} disabled={busy} className="inline-flex items-center gap-1 rounded-lg border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
+                <button onClick={() => decide("accepted")} disabled={busy} className="inline-flex items-center gap-1 rounded-lg border border-status-success-border bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
                   <Check className="h-3.5 w-3.5" /> {t("cfp_accept")}
                 </button>
               </div>

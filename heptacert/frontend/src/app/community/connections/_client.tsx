@@ -66,8 +66,8 @@ export function ConnectionsClient() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600">Loading connections...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-status-info-content mx-auto mb-4" />
+          <p className="text-content-secondary">Loading connections...</p>
         </div>
       </div>
     );
@@ -75,14 +75,14 @@ export function ConnectionsClient() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4">
+      <div className="min-h-screen bg-canvas py-12 px-4">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="bg-status-danger-bg border border-status-danger-border rounded-lg p-6">
             <div className="flex gap-3">
-              <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="h-6 w-6 text-status-danger-content flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-red-900">Error</h3>
-                <p className="text-red-700 mt-1">{error}</p>
+                <h3 className="font-semibold text-status-danger-content">Error</h3>
+                <p className="text-status-danger-content mt-1">{error}</p>
                 <button
                   onClick={() => window.location.reload()}
                   className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
@@ -103,33 +103,33 @@ export function ConnectionsClient() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-canvas to-sunken py-12 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-2">
-            <Users className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Connections</h1>
+            <Users className="h-8 w-8 text-status-info-content" />
+            <h1 className="text-3xl font-bold text-content-primary">Connections</h1>
           </div>
-          <p className="text-gray-600">Manage your network and discover new members</p>
+          <p className="text-content-secondary">Manage your network and discover new members</p>
         </div>
 
         {/* Connection Stats Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="bg-raised rounded-lg shadow-md p-6 mb-8">
           <div className="grid grid-cols-2 gap-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{followerCount}</div>
-              <p className="text-gray-600 mt-1">Followers</p>
+              <div className="text-3xl font-bold text-status-info-content">{followerCount}</div>
+              <p className="text-content-secondary mt-1">Followers</p>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{followingCount}</div>
-              <p className="text-gray-600 mt-1">Following</p>
+              <div className="text-3xl font-bold text-status-info-content">{followingCount}</div>
+              <p className="text-content-secondary mt-1">Following</p>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-t-lg shadow-md border-b border-gray-200">
+        <div className="bg-raised rounded-t-lg shadow-md border-b border-outline-subtle">
           <div className="flex">
             {tabs.map((tab) => (
               <button
@@ -137,13 +137,13 @@ export function ConnectionsClient() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 px-6 py-4 font-medium transition-colors flex items-center justify-center gap-2 ${
                   activeTab === tab.id
-                    ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "text-status-info-content border-b-2 border-status-info-border"
+                    : "text-content-secondary hover:text-content-primary"
                 }`}
               >
                 {tab.icon}
                 {tab.label}
-                <span className="ml-1 text-sm bg-gray-100 px-2.5 py-0.5 rounded-full">
+                <span className="ml-1 text-sm bg-sunken px-2.5 py-0.5 rounded-full">
                   {tab.count}
                 </span>
               </button>
@@ -152,19 +152,19 @@ export function ConnectionsClient() {
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-b-lg shadow-md">
+        <div className="bg-raised rounded-b-lg shadow-md">
           {activeTab === "followers" && (
             <div className="divide-y">
               {followers.length === 0 ? (
                 <div className="p-12 text-center">
-                  <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">No followers yet</p>
+                  <Heart className="h-12 w-12 text-content-muted mx-auto mb-4" />
+                  <p className="text-content-muted">No followers yet</p>
                 </div>
               ) : (
                 followers.map((follower) => (
                   <div
                     key={follower.id}
-                    className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    className="p-4 flex items-center justify-between hover:bg-canvas transition-colors"
                   >
                     <div
                       className="flex-1 cursor-pointer"
@@ -181,11 +181,11 @@ export function ConnectionsClient() {
                           />
                         )}
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-content-primary">
                             {follower.display_name}
                           </p>
                           {follower.headline && (
-                            <p className="text-sm text-gray-600">{follower.headline}</p>
+                            <p className="text-sm text-content-secondary">{follower.headline}</p>
                           )}
                         </div>
                       </div>
@@ -205,14 +205,14 @@ export function ConnectionsClient() {
             <div className="divide-y">
               {following.length === 0 ? (
                 <div className="p-12 text-center">
-                  <UserPlus className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">You're not following anyone yet</p>
+                  <UserPlus className="h-12 w-12 text-content-muted mx-auto mb-4" />
+                  <p className="text-content-muted">You're not following anyone yet</p>
                 </div>
               ) : (
                 following.map((followedMember) => (
                   <div
                     key={followedMember.id}
-                    className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    className="p-4 flex items-center justify-between hover:bg-canvas transition-colors"
                   >
                     <div
                       className="flex-1 cursor-pointer"
@@ -229,11 +229,11 @@ export function ConnectionsClient() {
                           />
                         )}
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-content-primary">
                             {followedMember.display_name}
                           </p>
                           {followedMember.headline && (
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-content-secondary">
                               {followedMember.headline}
                             </p>
                           )}

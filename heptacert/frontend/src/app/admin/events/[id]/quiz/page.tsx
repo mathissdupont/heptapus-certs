@@ -464,7 +464,7 @@ export default function QuizBuilderPage() {
                   <span className="badge-neutral">{question.question_type === "mcq" ? copy.mcq : question.question_type === "true_false" ? copy.trueFalseShort : copy.openText}</span>
                   <span className="text-xs font-semibold text-brand-700">{question.points}{copy.pointsShort}</span>
                   {question.collapsed ? <ChevronDown className="h-4 w-4 text-surface-400" /> : <ChevronUp className="h-4 w-4 text-surface-400" />}
-                  <button type="button" onClick={(e) => { e.stopPropagation(); removeQuestion(questionIndex); }} className="text-red-400 hover:text-red-600">
+                  <button type="button" onClick={(e) => { e.stopPropagation(); removeQuestion(questionIndex); }} className="text-status-danger-content hover:text-status-danger-content">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -519,7 +519,7 @@ export default function QuizBuilderPage() {
                               onChange={(e) => updateChoice(questionIndex, choiceIndex, { choice_text: e.target.value })}
                             />
                             {question.question_type === "mcq" && question.choices.length > 2 && (
-                              <button type="button" onClick={() => removeChoice(questionIndex, choiceIndex)} className="text-surface-300 hover:text-red-500">
+                              <button type="button" onClick={() => removeChoice(questionIndex, choiceIndex)} className="text-surface-300 hover:text-status-danger-content">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             )}
@@ -538,7 +538,7 @@ export default function QuizBuilderPage() {
               </div>
             ))}
 
-            <button type="button" onClick={addQuestion} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-surface-200 py-4 text-sm font-medium text-surface-500 transition hover:border-surface-300 hover:bg-white hover:text-surface-900">
+            <button type="button" onClick={addQuestion} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-surface-200 py-4 text-sm font-medium text-surface-500 transition hover:border-surface-300 hover:bg-raised hover:text-surface-900">
               <Plus className="h-4 w-4" /> {copy.addQuestion}
             </button>
           </div>
@@ -595,7 +595,7 @@ export default function QuizBuilderPage() {
                         <td className="table-td">{attempt.attempt_number}. {copy.attemptSuffix}</td>
                         <td className="table-td">
                           {attempt.cert_issued ? (
-                            <span className="text-xs font-semibold text-emerald-600">{copy.certIssued}</span>
+                            <span className="text-xs font-semibold text-status-success-content">{copy.certIssued}</span>
                           ) : attempt.passed ? (
                             <button type="button" disabled={issuingCert === attempt.id} onClick={() => void handleIssueCert(attempt.id)} className="btn-ghost text-xs text-brand-700">
                               {issuingCert === attempt.id ? copy.certCreating : copy.issueCert}

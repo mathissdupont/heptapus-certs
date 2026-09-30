@@ -99,14 +99,14 @@ export default function LiveEngagementPage() {
     catch (e: any) { setError(e?.message || t("live_action_failed")); }
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-content-muted" /></div>;
 
   if (!enabled) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center text-gray-500">
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center text-content-muted">
         <Radio className="mx-auto mb-3 h-10 w-10 opacity-40" />
         <p>{t("live_disabled")}</p>
-        <Link href={`/events/${eventId}`} className="mt-4 inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
+        <Link href={`/events/${eventId}`} className="mt-4 inline-flex items-center gap-1 text-sm text-content-secondary hover:text-content-primary">
           <ArrowLeft className="h-4 w-4" /> {lang === "tr" ? "Etkinliğe dön" : "Back to event"}
         </Link>
       </div>
@@ -115,19 +115,19 @@ export default function LiveEngagementPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
-      <Link href={`/events/${eventId}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+      <Link href={`/events/${eventId}`} className="inline-flex items-center gap-1 text-sm text-content-muted hover:text-content-primary">
         <ArrowLeft className="h-4 w-4" /> {lang === "tr" ? "Etkinliğe dön" : "Back to event"}
       </Link>
-      <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-        <Radio className="h-6 w-6 text-rose-500" /> {t("live_title")}
+      <h1 className="flex items-center gap-2 text-2xl font-bold text-content-primary">
+        <Radio className="h-6 w-6 text-status-danger-content" /> {t("live_title")}
       </h1>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-status-danger-border bg-status-danger-bg px-4 py-2 text-sm text-status-danger-content">{error}</div>}
 
       {!loggedIn ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
-          <p className="text-sm text-gray-600">{t("live_login_required")}</p>
-          <Link href={`/login?mode=member&next=${encodeURIComponent(`/events/${eventId}/live`)}`} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">
+        <div className="rounded-xl border border-outline-subtle bg-raised p-8 text-center">
+          <p className="text-sm text-content-secondary">{t("live_login_required")}</p>
+          <Link href={`/login?mode=member&next=${encodeURIComponent(`/events/${eventId}/live`)}`} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-inverse-surface px-4 py-2 text-sm font-semibold text-white hover:bg-inverse-surface">
             {t("live_login_cta")}
           </Link>
         </div>
@@ -135,18 +135,18 @@ export default function LiveEngagementPage() {
         <>
           {/* Polls */}
           <section className="space-y-3">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900"><BarChart3 className="h-5 w-5 text-gray-400" /> {t("live_polls")}</h2>
+            <h2 className="flex items-center gap-2 text-lg font-bold text-content-primary"><BarChart3 className="h-5 w-5 text-content-muted" /> {t("live_polls")}</h2>
             {polls.filter((p) => p.status !== "draft").length === 0 ? (
-              <p className="text-sm text-gray-500">{t("live_no_polls")}</p>
+              <p className="text-sm text-content-muted">{t("live_no_polls")}</p>
             ) : (
               polls.filter((p) => p.status !== "draft").map((p) => {
                 const voted = Boolean(p.my_vote);
                 const showResults = voted || p.status === "closed";
                 return (
-                  <div key={p.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                  <div key={p.id} className="rounded-xl border border-outline-subtle bg-raised p-4">
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="font-semibold text-gray-900">{p.prompt}</p>
-                      <span className={`rounded-full px-2 py-0.5 text-11 font-semibold ${p.status === "open" ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                      <p className="font-semibold text-content-primary">{p.prompt}</p>
+                      <span className={`rounded-full px-2 py-0.5 text-11 font-semibold ${p.status === "open" ? "bg-status-success-bg text-status-success-content" : "bg-sunken text-content-muted"}`}>
                         {p.status === "open" ? t("live_poll_open") : t("live_poll_closed")}
                       </span>
                     </div>
@@ -155,21 +155,21 @@ export default function LiveEngagementPage() {
                         const pct = p.total_votes > 0 ? Math.round((o.votes / p.total_votes) * 100) : 0;
                         const mine = p.my_vote === o.id;
                         return showResults ? (
-                          <div key={o.id} className="relative overflow-hidden rounded-lg border border-gray-200">
-                            <div className="absolute inset-y-0 left-0 bg-rose-100" style={{ width: `${pct}%` }} />
+                          <div key={o.id} className="relative overflow-hidden rounded-lg border border-outline-subtle">
+                            <div className="absolute inset-y-0 left-0 bg-status-danger-bg" style={{ width: `${pct}%` }} />
                             <div className="relative flex items-center justify-between px-3 py-1.5 text-sm">
-                              <span className={mine ? "font-semibold text-gray-900" : "text-gray-700"}>{o.label} {mine && "✓"}</span>
-                              <span className="text-gray-500">{pct}%</span>
+                              <span className={mine ? "font-semibold text-content-primary" : "text-content-secondary"}>{o.label} {mine && "✓"}</span>
+                              <span className="text-content-muted">{pct}%</span>
                             </div>
                           </div>
                         ) : (
-                          <button key={o.id} onClick={() => vote(p.id, o.id)} disabled={p.status !== "open"} className="block w-full rounded-lg border border-gray-200 px-3 py-1.5 text-left text-sm text-gray-700 hover:border-gray-900 hover:bg-gray-50 disabled:opacity-50">
+                          <button key={o.id} onClick={() => vote(p.id, o.id)} disabled={p.status !== "open"} className="block w-full rounded-lg border border-outline-subtle px-3 py-1.5 text-left text-sm text-content-secondary hover:border-outline-strong hover:bg-canvas disabled:opacity-50">
                             {o.label}
                           </button>
                         );
                       })}
                     </div>
-                    <p className="mt-2 text-11 text-gray-400">{t("live_total_votes", { count: p.total_votes })}{voted ? ` · ${t("live_voted")}` : ""}</p>
+                    <p className="mt-2 text-11 text-content-muted">{t("live_total_votes", { count: p.total_votes })}{voted ? ` · ${t("live_voted")}` : ""}</p>
                   </div>
                 );
               })
@@ -178,28 +178,28 @@ export default function LiveEngagementPage() {
 
           {/* Q&A */}
           <section className="space-y-3">
-            <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900"><MessageCircleQuestion className="h-5 w-5 text-gray-400" /> {t("live_qa")}</h2>
+            <h2 className="flex items-center gap-2 text-lg font-bold text-content-primary"><MessageCircleQuestion className="h-5 w-5 text-content-muted" /> {t("live_qa")}</h2>
             <form onSubmit={ask} className="flex gap-2">
-              <input value={text} onChange={(e) => setText(e.target.value)} placeholder={t("live_ask_placeholder")} maxLength={1000} className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-              <button type="submit" disabled={asking || !text.trim()} className="inline-flex items-center gap-1 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50">
+              <input value={text} onChange={(e) => setText(e.target.value)} placeholder={t("live_ask_placeholder")} maxLength={1000} className="flex-1 rounded-lg border border-outline-strong px-3 py-2 text-sm" />
+              <button type="submit" disabled={asking || !text.trim()} className="inline-flex items-center gap-1 rounded-lg bg-inverse-surface px-4 py-2 text-sm font-semibold text-white hover:bg-inverse-surface disabled:opacity-50">
                 {asking ? <Loader2 className="h-4 w-4 animate-spin" /> : t("live_ask")}
               </button>
             </form>
             {questions.length === 0 ? (
-              <p className="text-sm text-gray-500">{t("live_no_questions")}</p>
+              <p className="text-sm text-content-muted">{t("live_no_questions")}</p>
             ) : (
               <div className="space-y-2">
                 {questions.map((q) => (
-                  <div key={q.id} className={`flex items-start gap-3 rounded-xl border p-3 ${q.status === "answered" ? "border-emerald-200 bg-emerald-50/40" : "border-gray-200 bg-white"}`}>
-                    <button onClick={() => upvote(q.id)} className={`flex shrink-0 flex-col items-center rounded-lg border px-2 py-1 ${q.my_vote ? "border-rose-300 bg-rose-50 text-rose-600" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+                  <div key={q.id} className={`flex items-start gap-3 rounded-xl border p-3 ${q.status === "answered" ? "border-status-success-border bg-status-success-bg/40" : "border-outline-subtle bg-raised"}`}>
+                    <button onClick={() => upvote(q.id)} className={`flex shrink-0 flex-col items-center rounded-lg border px-2 py-1 ${q.my_vote ? "border-status-danger-border bg-status-danger-bg text-status-danger-content" : "border-outline-subtle text-content-muted hover:bg-canvas"}`}>
                       <ChevronUp className="h-4 w-4" />
                       <span className="text-xs font-bold">{q.upvotes}</span>
                     </button>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm text-gray-800">{q.text}</p>
-                      <p className="mt-0.5 text-11 text-gray-400">
+                      <p className="text-sm text-content-primary">{q.text}</p>
+                      <p className="mt-0.5 text-11 text-content-muted">
                         {q.author_name && `${t("live_by")}: ${q.author_name}`}
-                        {q.status === "answered" && <span className="ml-2 inline-flex items-center gap-1 text-emerald-600"><CheckCircle2 className="h-3 w-3" /> {t("live_answered")}</span>}
+                        {q.status === "answered" && <span className="ml-2 inline-flex items-center gap-1 text-status-success-content"><CheckCircle2 className="h-3 w-3" /> {t("live_answered")}</span>}
                       </p>
                     </div>
                   </div>

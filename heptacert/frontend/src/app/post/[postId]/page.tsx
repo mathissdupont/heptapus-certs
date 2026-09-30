@@ -43,7 +43,7 @@ function formatTimeAgo(dateString: string, lang: Lang) {
   const date = new Date(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
+
   if (diffInSeconds < 60) return lang === "tr" ? "Az önce" : "Just now";
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) return lang === "tr" ? `${diffInMinutes}d` : `${diffInMinutes}m`;
@@ -186,7 +186,7 @@ export default function PostDetailPage() {
       const newComment = await createCommunityPostComment(postId, commentText.trim());
       setComments([...comments, newComment]);
       setCommentText("");
-      
+
       // Update comment count on post
       if (post) {
         setPost({
@@ -254,11 +254,11 @@ export default function PostDetailPage() {
   if (loading) {
     return (
       <div className="mx-auto min-h-screen max-w-2xl px-4 sm:px-6 py-10">
-        <Link href="/discover" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6">
+        <Link href="/discover" className="inline-flex items-center gap-2 text-status-info-content hover:text-status-info-content mb-6">
           <ArrowLeft className="h-4 w-4" />
           {copy.back}
         </Link>
-        <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+        <div className="flex flex-col items-center justify-center py-20 text-content-muted">
           <Loader2 className="mb-3 h-6 w-6 animate-spin" />
           <span className="text-sm font-medium">{copy.loading}</span>
         </div>
@@ -269,11 +269,11 @@ export default function PostDetailPage() {
   if (error || !post) {
     return (
       <div className="mx-auto min-h-screen max-w-2xl px-4 sm:px-6 py-10">
-        <Link href="/discover" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6">
+        <Link href="/discover" className="inline-flex items-center gap-2 text-status-info-content hover:text-status-info-content mb-6">
           <ArrowLeft className="h-4 w-4" />
           {copy.back}
         </Link>
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-status-danger-border bg-status-danger-bg px-4 py-3 text-sm text-status-danger-content">
           {error || copy.error}
         </div>
       </div>
@@ -283,17 +283,17 @@ export default function PostDetailPage() {
   return (
     <div className="mx-auto min-h-screen max-w-2xl px-4 sm:px-6 py-10">
       {/* Back Button */}
-      <Link href="/discover" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6">
+      <Link href="/discover" className="inline-flex items-center gap-2 text-status-info-content hover:text-status-info-content mb-6">
         <ArrowLeft className="h-4 w-4" />
         {copy.back}
       </Link>
 
       {/* Post */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+      <div className="bg-raised rounded-xl shadow-sm border border-outline-subtle overflow-hidden mb-8">
         <div className="p-6">
           {/* Header */}
           <div className="flex items-start gap-4 mb-4">
-            <div className="h-12 w-12 rounded-full bg-slate-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="h-12 w-12 rounded-full bg-sunken border border-outline-subtle flex items-center justify-center overflow-hidden flex-shrink-0">
               {post.author_avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -302,7 +302,7 @@ export default function PostDetailPage() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <span className="text-sm font-semibold text-slate-500">
+                <span className="text-sm font-semibold text-content-muted">
                   {post.author_name.charAt(0).toUpperCase()}
                 </span>
               )}
@@ -312,17 +312,17 @@ export default function PostDetailPage() {
                 {post.author_public_id && post.author_type === "member" ? (
                   <Link
                     href={`/member/${post.author_public_id}`}
-                    className="text-base font-semibold text-gray-900 hover:text-blue-600 transition"
+                    className="text-base font-semibold text-content-primary hover:text-status-info-content transition"
                   >
                     {post.author_name}
                   </Link>
                 ) : (
-                  <p className="text-base font-semibold text-gray-900">
+                  <p className="text-base font-semibold text-content-primary">
                     {post.author_name}
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-0.5">
+              <div className="flex items-center gap-1.5 text-sm text-content-muted mt-0.5">
                 <span>{post.organization_name || "Üye"}</span>
                 <span>•</span>
                 <span>{formatTimeAgo(post.created_at, lang)}</span>
@@ -332,7 +332,7 @@ export default function PostDetailPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleToggleHistory}
-                  className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                  className="inline-flex items-center gap-1 rounded-md border border-outline-subtle px-2.5 py-1.5 text-xs font-medium text-content-secondary hover:bg-canvas"
                 >
                   <History className="h-3.5 w-3.5" />
                   {copy.editHistory}
@@ -340,7 +340,7 @@ export default function PostDetailPage() {
                 {!editing ? (
                   <button
                     onClick={handleStartEdit}
-                    className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    className="inline-flex items-center gap-1 rounded-md border border-outline-subtle px-2.5 py-1.5 text-xs font-medium text-content-secondary hover:bg-canvas"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                     {copy.edit}
@@ -348,7 +348,7 @@ export default function PostDetailPage() {
                 ) : (
                   <button
                     onClick={() => setEditing(false)}
-                    className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    className="inline-flex items-center gap-1 rounded-md border border-outline-subtle px-2.5 py-1.5 text-xs font-medium text-content-secondary hover:bg-canvas"
                   >
                     <X className="h-3.5 w-3.5" />
                     {copy.cancel}
@@ -357,7 +357,7 @@ export default function PostDetailPage() {
                 <button
                   onClick={handleDeletePost}
                   disabled={deletingPost}
-                  className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded-md border border-status-danger-border px-2.5 py-1.5 text-xs font-medium text-status-danger-content hover:bg-status-danger-bg disabled:opacity-50"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   {deletingPost ? copy.deleting : copy.delete}
@@ -373,12 +373,12 @@ export default function PostDetailPage() {
                 value={editText}
                 onChange={(e) => setEditText(e.target.value)}
                 rows={5}
-                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-y"
+                className="w-full rounded-lg border border-outline-subtle bg-raised px-3 py-2 text-sm text-content-primary placeholder-content-faint focus:border-status-info-border focus:outline-none focus:ring-1 focus:ring-status-info-border resize-y"
               />
               <div className="mt-2 flex justify-end gap-2">
                 <button
                   onClick={() => setEditing(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg border border-gray-200 transition"
+                  className="px-4 py-2 text-sm font-medium text-content-secondary hover:bg-canvas rounded-lg border border-outline-subtle transition"
                 >
                   {copy.cancel}
                 </button>
@@ -392,31 +392,31 @@ export default function PostDetailPage() {
               </div>
             </div>
           ) : (
-            <p className="text-base text-gray-800 leading-relaxed mb-6 whitespace-pre-wrap">
+            <p className="text-base text-content-primary leading-relaxed mb-6 whitespace-pre-wrap">
               {post.body}
             </p>
           )}
 
           {showHistory && (
-            <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <h3 className="mb-3 text-sm font-semibold text-gray-900">{copy.editHistory}</h3>
+            <div className="mb-6 rounded-lg border border-outline-subtle bg-canvas p-4">
+              <h3 className="mb-3 text-sm font-semibold text-content-primary">{copy.editHistory}</h3>
               {historyLoading ? (
-                <div className="text-sm text-gray-500">{copy.loading}</div>
+                <div className="text-sm text-content-muted">{copy.loading}</div>
               ) : editHistory.length === 0 ? (
-                <div className="text-sm text-gray-500">{lang === "tr" ? "Henüz düzenleme yok" : "No edits yet"}</div>
+                <div className="text-sm text-content-muted">{lang === "tr" ? "Henüz düzenleme yok" : "No edits yet"}</div>
               ) : (
                 <div className="space-y-3">
                   {editHistory.map((item, idx) => (
-                    <div key={`${item.edited_at}-${idx}`} className="rounded-md border border-gray-200 bg-white p-3">
-                      <div className="mb-2 text-xs text-gray-500">{formatTimeAgo(item.edited_at, lang)}</div>
+                    <div key={`${item.edited_at}-${idx}`} className="rounded-md border border-outline-subtle bg-raised p-3">
+                      <div className="mb-2 text-xs text-content-muted">{formatTimeAgo(item.edited_at, lang)}</div>
                       <div className="grid gap-2 md:grid-cols-2">
                         <div>
-                          <div className="mb-1 text-xs font-semibold text-gray-600">{lang === "tr" ? "Eski" : "Old"}</div>
-                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{item.old_body}</p>
+                          <div className="mb-1 text-xs font-semibold text-content-secondary">{lang === "tr" ? "Eski" : "Old"}</div>
+                          <p className="text-sm text-content-secondary whitespace-pre-wrap">{item.old_body}</p>
                         </div>
                         <div>
-                          <div className="mb-1 text-xs font-semibold text-gray-600">{lang === "tr" ? "Yeni" : "New"}</div>
-                          <p className="text-sm text-gray-900 whitespace-pre-wrap">{item.new_body}</p>
+                          <div className="mb-1 text-xs font-semibold text-content-secondary">{lang === "tr" ? "Yeni" : "New"}</div>
+                          <p className="text-sm text-content-primary whitespace-pre-wrap">{item.new_body}</p>
                         </div>
                       </div>
                     </div>
@@ -427,21 +427,21 @@ export default function PostDetailPage() {
           )}
 
           {/* Engagement */}
-          <div className="flex items-center gap-6 pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-6 pt-4 border-t border-outline-subtle">
             <button
               onClick={handleToggleLike}
               disabled={busyLike}
               className={`flex items-center gap-2 text-sm font-medium transition-colors ${
                 post.liked_by_me
-                  ? "text-rose-600"
-                  : "text-gray-500 hover:text-gray-900"
+                  ? "text-status-danger-content"
+                  : "text-content-muted hover:text-content-primary"
               } disabled:opacity-50`}
             >
               <Heart className={`h-5 w-5 ${post.liked_by_me ? "fill-current" : ""}`} />
               <span>{formatNumber(post.like_count)}</span>
             </button>
 
-            <div className="flex items-center gap-2 text-sm font-medium text-gray-500">
+            <div className="flex items-center gap-2 text-sm font-medium text-content-muted">
               <MessageCircle className="h-5 w-5" />
               <span>{formatNumber(post.comment_count)}</span>
             </div>
@@ -450,16 +450,16 @@ export default function PostDetailPage() {
       </div>
 
       {/* Comments Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="border-b border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-raised rounded-xl shadow-sm border border-outline-subtle overflow-hidden">
+        <div className="border-b border-outline-subtle p-6">
+          <h2 className="text-lg font-semibold text-content-primary mb-4">
             {lang === "tr" ? "Yorumlar" : "Comments"}
           </h2>
 
           {/* Comment Form */}
           {viewer ? (
             <div className="flex gap-3">
-              <div className="h-10 w-10 rounded-full bg-slate-100 border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div className="h-10 w-10 rounded-full bg-sunken border border-outline-subtle flex items-center justify-center flex-shrink-0 overflow-hidden">
                 {viewer.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -468,7 +468,7 @@ export default function PostDetailPage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="text-sm font-semibold text-slate-500">
+                  <span className="text-sm font-semibold text-content-muted">
                     {viewer.display_name.charAt(0).toUpperCase()}
                   </span>
                 )}
@@ -479,12 +479,12 @@ export default function PostDetailPage() {
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder={copy.commentPlaceholder}
                   rows={3}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+                  className="w-full rounded-lg border border-outline-subtle bg-raised px-3 py-2 text-sm text-content-primary placeholder-content-faint focus:border-status-info-border focus:outline-none focus:ring-1 focus:ring-status-info-border resize-none"
                 />
                 <div className="flex justify-end gap-2 mt-2">
                   <button
                     onClick={() => setCommentText("")}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg border border-gray-200 transition"
+                    className="px-4 py-2 text-sm font-medium text-content-secondary hover:bg-canvas rounded-lg border border-outline-subtle transition"
                   >
                     {copy.cancel}
                   </button>
@@ -500,10 +500,10 @@ export default function PostDetailPage() {
               </div>
             </div>
           ) : (
-            <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-center">
+            <div className="rounded-lg bg-status-info-bg border border-status-info-border px-4 py-3 text-center">
               <button
                 onClick={() => (window.location.href = "/login?mode=member")}
-                className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                className="text-sm font-medium text-status-info-content hover:text-status-info-content"
               >
                 {copy.loginRequired}
               </button>
@@ -512,20 +512,20 @@ export default function PostDetailPage() {
         </div>
 
         {/* Comments List */}
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-outline-subtle">
           {loadingComments ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              <Loader2 className="h-5 w-5 animate-spin text-content-muted" />
             </div>
           ) : comments.length === 0 ? (
-            <div className="p-6 text-center text-gray-500 text-sm">
+            <div className="p-6 text-center text-content-muted text-sm">
               {copy.noComments}
             </div>
           ) : (
             comments.map((comment) => (
               <div key={comment.id} className="p-4">
                 <div className="flex gap-3">
-                  <div className="h-8 w-8 rounded-full bg-slate-100 border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <div className="h-8 w-8 rounded-full bg-sunken border border-outline-subtle flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {comment.member_avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -534,21 +534,21 @@ export default function PostDetailPage() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <span className="text-xs font-semibold text-slate-500">
+                      <span className="text-xs font-semibold text-content-muted">
                         {comment.member_name.charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-content-primary">
                         {comment.member_name}
                       </p>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-content-muted">
                         {formatTimeAgo(comment.created_at, lang)}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    <p className="mt-1 text-sm text-content-secondary leading-relaxed whitespace-pre-wrap">
                       {comment.body}
                     </p>
                   </div>

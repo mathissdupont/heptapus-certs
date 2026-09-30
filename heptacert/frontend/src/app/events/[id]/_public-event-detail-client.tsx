@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
@@ -248,8 +248,8 @@ export default function PublicEventDetailClient() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-        <div className="flex flex-col items-center text-gray-500">
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
+        <div className="flex flex-col items-center text-content-muted">
           <Loader2 className="h-8 w-8 animate-spin mb-4" />
           <p className="text-sm font-medium">{copy.loading}</p>
         </div>
@@ -259,12 +259,12 @@ export default function PublicEventDetailClient() {
 
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center p-6 text-center">
-        <h1 className="text-xl font-semibold text-gray-900 mb-2">{copy.error}</h1>
-        <p className="text-gray-500 text-sm mb-6">{error}</p>
+      <div className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-xl font-semibold text-content-primary mb-2">{copy.error}</h1>
+        <p className="text-content-muted text-sm mb-6">{error}</p>
         <Link
           href={backHref}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-raised border border-outline-subtle text-content-secondary rounded-lg hover:bg-canvas transition text-sm font-medium shadow-sm"
         >
           <ArrowLeft className="h-4 w-4" />
           {backLabel}
@@ -274,13 +274,13 @@ export default function PublicEventDetailClient() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] pb-16">
+    <div className="min-h-screen bg-canvas pb-16">
       {/* Navbar / Header */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-6 py-4">
+      <div className="sticky top-0 z-40 bg-raised/80 backdrop-blur-md border-b border-outline-subtle px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center">
           <Link
             href={backHref}
-            className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition"
+            className="inline-flex items-center gap-2 text-sm font-medium text-content-muted hover:text-content-primary transition"
           >
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
@@ -290,9 +290,9 @@ export default function PublicEventDetailClient() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-8">
         {/* Hero Section */}
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+        <section className="bg-raised rounded-2xl shadow-sm border border-outline-subtle overflow-hidden mb-8">
           {/* Cover Image / Banner */}
-          <div className="relative h-48 sm:h-64 bg-slate-100 border-b border-gray-100 overflow-hidden">
+          <div className="relative h-48 sm:h-64 bg-sunken border-b border-outline-subtle overflow-hidden">
             {event.event_banner_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -301,8 +301,8 @@ export default function PublicEventDetailClient() {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                <CalendarDays className="h-16 w-16 text-gray-300" />
+              <div className="absolute inset-0 flex items-center justify-center bg-canvas">
+                <CalendarDays className="h-16 w-16 text-content-muted" />
               </div>
             )}
           </div>
@@ -311,16 +311,16 @@ export default function PublicEventDetailClient() {
             {/* Status Badges */}
             <div className="flex flex-wrap items-center gap-3 mb-5">
               {event.visibility === "unlisted" && (
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-status-warning-border bg-status-warning-bg px-2.5 py-1 text-xs font-semibold text-status-warning-content">
                   <Lock className="h-3 w-3" />
                   {copy.unlisted}
                 </span>
               )}
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-status-success-border bg-status-success-bg px-2.5 py-1 text-xs font-semibold text-status-success-content">
                 {isTicketedEvent ? <Ticket className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
                 {flowLabel}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-status-info-border bg-status-info-bg px-2.5 py-1 text-xs font-semibold text-status-info-content">
                 <ListChecks className="h-3 w-3" />
                 {requirementLabel}: {event.min_sessions_required}
               </span>
@@ -328,7 +328,7 @@ export default function PublicEventDetailClient() {
 
             {/* Title & Description */}
             <div className="mb-8">
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 tracking-tight">
+              <h1 className="text-3xl sm:text-4xl font-bold text-content-primary mb-4 tracking-tight">
                 {event.name}
               </h1>
 
@@ -338,7 +338,7 @@ export default function PublicEventDetailClient() {
                   href={isWhiteLabel ? "/" : `/organizations/${event.organization_public_id}`}
                   className="inline-flex items-center gap-2.5 mb-6 group"
                 >
-                  <div className="h-8 w-8 rounded-full bg-slate-100 border border-gray-200 overflow-hidden flex items-center justify-center">
+                  <div className="h-8 w-8 rounded-full bg-sunken border border-outline-subtle overflow-hidden flex items-center justify-center">
                     {event.organization_logo ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -347,10 +347,10 @@ export default function PublicEventDetailClient() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <Users className="h-4 w-4 text-gray-400" />
+                      <Users className="h-4 w-4 text-content-muted" />
                     )}
                   </div>
-                  <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors">
+                  <span className="text-sm font-medium text-content-secondary group-hover:text-content-primary transition-colors">
                     {event.organization_name}
                   </span>
                 </Link>
@@ -358,37 +358,37 @@ export default function PublicEventDetailClient() {
 
               {event.event_description && (
                 <div
-                  className="prose prose-sm sm:prose-base max-w-none text-gray-600 leading-relaxed"
+                  className="prose prose-sm sm:prose-base max-w-none text-content-secondary leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: event.event_description }}
                 />
               )}
             </div>
 
             {/* Quick Info Bar */}
-            <div className="flex flex-col sm:flex-row gap-4 py-6 border-y border-gray-100 mb-8">
+            <div className="flex flex-col sm:flex-row gap-4 py-6 border-y border-outline-subtle mb-8">
               <div className="flex items-start gap-3 flex-1">
-                <CalendarDays className="h-5 w-5 text-gray-400 mt-0.5" />
+                <CalendarDays className="h-5 w-5 text-content-muted mt-0.5" />
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tarih</p>
-                  <p className="text-sm font-semibold text-gray-900 mt-0.5">
+                  <p className="text-xs font-medium text-content-muted uppercase tracking-wide">Tarih</p>
+                  <p className="text-sm font-semibold text-content-primary mt-0.5">
                     {formatDate(event.event_date, lang)}
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-3 flex-1">
-                <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
+                <MapPin className="h-5 w-5 text-content-muted mt-0.5" />
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Konum</p>
-                  <p className="text-sm font-semibold text-gray-900 mt-0.5">
+                  <p className="text-xs font-medium text-content-muted uppercase tracking-wide">Konum</p>
+                  <p className="text-sm font-semibold text-content-primary mt-0.5">
                     {event.event_location || "-"}
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-3 flex-1">
-                <Users className="h-5 w-5 text-gray-400 mt-0.5" />
+                <Users className="h-5 w-5 text-content-muted mt-0.5" />
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Oturumlar</p>
-                  <p className="text-sm font-semibold text-gray-900 mt-0.5">
+                  <p className="text-xs font-medium text-content-muted uppercase tracking-wide">Oturumlar</p>
+                  <p className="text-sm font-semibold text-content-primary mt-0.5">
                     {event.sessions.length} {copy.sessions.toLowerCase()}
                   </p>
                 </div>
@@ -398,13 +398,13 @@ export default function PublicEventDetailClient() {
             {/* CTA Buttons */}
             <div className="flex flex-wrap gap-3">
               {event.registration_closed ? (
-                <div className="inline-flex items-center px-6 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-gray-500 text-sm font-medium">
+                <div className="inline-flex items-center px-6 py-2.5 rounded-lg border border-outline-subtle bg-canvas text-content-muted text-sm font-medium">
                   {copy.registrationClosed}
                 </div>
               ) : (
                 <Link
                   href={`/events/${event.public_id}/register`}
-                  className="inline-flex items-center justify-center px-8 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm"
+                  className="inline-flex items-center justify-center px-8 py-2.5 rounded-lg bg-inverse-surface text-white text-sm font-medium hover:bg-inverse-surface transition-colors shadow-sm"
                 >
                   {copy.register}
                 </Link>
@@ -412,7 +412,7 @@ export default function PublicEventDetailClient() {
               {showStatusButton && (
                 <Link
                   href={statusLinkHref}
-                  className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+                  className="inline-flex items-center justify-center px-6 py-2.5 rounded-lg border border-outline-subtle bg-raised text-content-secondary text-sm font-medium hover:bg-canvas transition-colors shadow-sm"
                 >
                   {copy.viewStatus}
                 </Link>
@@ -420,7 +420,7 @@ export default function PublicEventDetailClient() {
               {event.has_active_quiz && (
                 <Link
                   href={`/events/${event.public_id}/quiz`}
-                  className="inline-flex items-center gap-2 justify-center px-6 py-2.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-medium hover:bg-indigo-100 transition-colors shadow-sm"
+                  className="inline-flex items-center gap-2 justify-center px-6 py-2.5 rounded-lg border border-status-info-border bg-status-info-bg text-status-info-content text-sm font-medium hover:bg-status-info-bg transition-colors shadow-sm"
                 >
                   <FileQuestion className="h-4 w-4" />
                   {copy.takeQuiz}
@@ -434,13 +434,13 @@ export default function PublicEventDetailClient() {
         {event.cfp_enabled && (
           <Link
             href={`/events/${eventId}/cfp`}
-            className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50/50 px-6 py-4 transition-colors hover:bg-indigo-50"
+            className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-status-info-border bg-status-info-bg/50 px-6 py-4 transition-colors hover:bg-status-info-bg"
           >
             <span className="flex items-center gap-3">
-              <Megaphone className="h-5 w-5 text-indigo-500" />
-              <span className="text-sm font-semibold text-indigo-900">{t("cfp_public_cta")}</span>
+              <Megaphone className="h-5 w-5 text-status-info-content" />
+              <span className="text-sm font-semibold text-status-info-content">{t("cfp_public_cta")}</span>
             </span>
-            <span className="text-sm font-semibold text-indigo-600">→</span>
+            <span className="text-sm font-semibold text-status-info-content">→</span>
           </Link>
         )}
 
@@ -448,13 +448,13 @@ export default function PublicEventDetailClient() {
         {event.networking_meetings_enabled && (
           <Link
             href={`/events/${eventId}/networking`}
-            className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-teal-200 bg-teal-50/50 px-6 py-4 transition-colors hover:bg-teal-50"
+            className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-status-success-border bg-status-success-bg/50 px-6 py-4 transition-colors hover:bg-status-success-bg"
           >
             <span className="flex items-center gap-3">
-              <Handshake className="h-5 w-5 text-teal-500" />
-              <span className="text-sm font-semibold text-teal-900">{t("net_public_cta")}</span>
+              <Handshake className="h-5 w-5 text-status-success-content" />
+              <span className="text-sm font-semibold text-status-success-content">{t("net_public_cta")}</span>
             </span>
-            <span className="text-sm font-semibold text-teal-600">→</span>
+            <span className="text-sm font-semibold text-status-success-content">→</span>
           </Link>
         )}
 
@@ -462,25 +462,25 @@ export default function PublicEventDetailClient() {
         {event.live_engagement_enabled && (
           <Link
             href={`/events/${eventId}/live`}
-            className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50/50 px-6 py-4 transition-colors hover:bg-rose-50"
+            className="mb-8 flex items-center justify-between gap-3 rounded-2xl border border-status-danger-border bg-status-danger-bg/50 px-6 py-4 transition-colors hover:bg-status-danger-bg"
           >
             <span className="flex items-center gap-3">
-              <Radio className="h-5 w-5 text-rose-500" />
-              <span className="text-sm font-semibold text-rose-900">{t("live_public_cta")}</span>
+              <Radio className="h-5 w-5 text-status-danger-content" />
+              <span className="text-sm font-semibold text-status-danger-content">{t("live_public_cta")}</span>
             </span>
-            <span className="text-sm font-semibold text-rose-600">→</span>
+            <span className="text-sm font-semibold text-status-danger-content">→</span>
           </Link>
         )}
 
         {/* Two Column Grid for Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          
+
           {/* Sessions / Agenda Column */}
-          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+          <section className="bg-raised rounded-2xl shadow-sm border border-outline-subtle p-6 sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
               <div className="flex items-center gap-2">
-                <ListChecks className="h-5 w-5 text-gray-400" />
-                <h2 className="text-lg font-bold text-gray-900">
+                <ListChecks className="h-5 w-5 text-content-muted" />
+                <h2 className="text-lg font-bold text-content-primary">
                   {agendaEnabled ? t("agenda_title") : copy.sessions}
                 </h2>
               </div>
@@ -488,7 +488,7 @@ export default function PublicEventDetailClient() {
                 <a
                   href={publicAgendaIcsUrl(eventId)}
                   title={t("agenda_download_ics")}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-outline-subtle bg-raised px-3 py-1.5 text-xs font-semibold text-content-secondary shadow-sm transition-colors hover:bg-canvas hover:text-content-primary"
                 >
                   <CalendarPlus className="h-3.5 w-3.5" />
                   {t("agenda_add_to_calendar")}
@@ -504,8 +504,8 @@ export default function PublicEventDetailClient() {
                   onClick={() => setSelectedTrack(null)}
                   className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
                     selectedTrack === null
-                      ? "border-gray-900 bg-gray-900 text-white"
-                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                      ? "border-outline-strong bg-inverse-surface text-white"
+                      : "border-outline-subtle bg-raised text-content-secondary hover:bg-canvas"
                   }`}
                 >
                   {t("agenda_all_tracks")}
@@ -517,8 +517,8 @@ export default function PublicEventDetailClient() {
                     onClick={() => setSelectedTrack(track)}
                     className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
                       selectedTrack === track
-                        ? "border-gray-900 bg-gray-900 text-white"
-                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                        ? "border-outline-strong bg-inverse-surface text-white"
+                        : "border-outline-subtle bg-raised text-content-secondary hover:bg-canvas"
                     }`}
                   >
                     {track}
@@ -529,64 +529,64 @@ export default function PublicEventDetailClient() {
 
             <div className="space-y-4">
               {visibleSessions.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center text-sm text-gray-500">
+                <div className="rounded-xl border border-dashed border-outline-strong bg-canvas px-6 py-8 text-center text-sm text-content-muted">
                   {agendaEnabled ? t("agenda_no_sessions") : copy.noSessions}
                 </div>
               ) : (
                 visibleSessions.map((session, index) => (
                   <div
                     key={session.id}
-                    className="rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-300 transition-colors"
+                    className="rounded-xl border border-outline-subtle bg-raised p-5 hover:border-outline-strong transition-colors"
                   >
                     <div className="flex items-center justify-between mb-2 gap-2">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <p className="text-xs font-semibold text-content-muted uppercase tracking-wider">
                         {copy.sessionLabel} {index + 1}
                       </p>
                       {agendaEnabled && session.track && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-11 font-semibold text-indigo-700">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-status-info-bg px-2 py-0.5 text-11 font-semibold text-status-info-content">
                           <Layers className="h-3 w-3" />
                           {session.track}
                         </span>
                       )}
                     </div>
-                    <h3 className="text-base font-semibold text-gray-900 mb-3">
+                    <h3 className="text-base font-semibold text-content-primary mb-3">
                       {session.name}
                     </h3>
-                    <div className="space-y-2 text-sm text-gray-600">
+                    <div className="space-y-2 text-sm text-content-secondary">
                       <div className="flex items-center gap-2">
-                        <CalendarDays className="h-4 w-4 text-gray-400" />
+                        <CalendarDays className="h-4 w-4 text-content-muted" />
                         {formatDate(session.session_date, lang)}
                       </div>
                       {session.session_start && (
                         <div className="flex items-center gap-2">
-                          <Clock3 className="h-4 w-4 text-gray-400" />
+                          <Clock3 className="h-4 w-4 text-content-muted" />
                           {session.session_start}
                           {session.session_end ? `–${session.session_end}` : ""}
                         </div>
                       )}
                       {session.session_location && (
                         <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-gray-400" />
+                          <MapPin className="h-4 w-4 text-content-muted" />
                           {session.session_location}
                         </div>
                       )}
                       {session.speaker_name && (
                         <div className="flex items-center gap-2">
-                          <Mic2 className="h-4 w-4 text-gray-400" />
+                          <Mic2 className="h-4 w-4 text-content-muted" />
                           <span>
-                            <span className="text-gray-400">{t("agenda_speaker_prefix")}: </span>
+                            <span className="text-content-muted">{t("agenda_speaker_prefix")}: </span>
                             {session.speaker_name}
                           </span>
                         </div>
                       )}
                       {session.capacity != null && (
                         <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-gray-400" />
+                          <Users className="h-4 w-4 text-content-muted" />
                           {t("agenda_capacity_label", { count: session.capacity })}
                         </div>
                       )}
                       {session.description && (
-                        <p className="pt-1 text-sm leading-relaxed text-gray-500 whitespace-pre-line">
+                        <p className="pt-1 text-sm leading-relaxed text-content-muted whitespace-pre-line">
                           {session.description}
                         </p>
                       )}
@@ -598,33 +598,33 @@ export default function PublicEventDetailClient() {
           </section>
 
           {/* Registration Fields Column */}
-          <section className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+          <section className="bg-raised rounded-2xl shadow-sm border border-outline-subtle p-6 sm:p-8">
             <div className="flex items-center gap-2 mb-6">
-              <FileText className="h-5 w-5 text-gray-400" />
-              <h2 className="text-lg font-bold text-gray-900">{copy.customFields}</h2>
+              <FileText className="h-5 w-5 text-content-muted" />
+              <h2 className="text-lg font-bold text-content-primary">{copy.customFields}</h2>
             </div>
 
             <div className="space-y-4">
               {event.registration_fields.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-8 text-center text-sm text-gray-500">
+                <div className="rounded-xl border border-dashed border-outline-strong bg-canvas px-6 py-8 text-center text-sm text-content-muted">
                   {copy.defaultFields}
                 </div>
               ) : (
                 event.registration_fields.map((field) => (
                   <div
                     key={field.id}
-                    className="rounded-xl border border-gray-200 bg-white p-4"
+                    className="rounded-xl border border-outline-subtle bg-raised p-4"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                      <h3 className="text-sm font-semibold text-gray-900">{field.label}</h3>
+                      <h3 className="text-sm font-semibold text-content-primary">{field.label}</h3>
                       {field.required && (
-                        <span className="inline-flex items-center rounded-md bg-rose-50 px-2 py-1 text-11 font-medium text-rose-600 border border-rose-100">
+                        <span className="inline-flex items-center rounded-md bg-status-danger-bg px-2 py-1 text-11 font-medium text-status-danger-content border border-status-danger-border">
                           {copy.required}
                         </span>
                       )}
                     </div>
                     {field.helper_text && (
-                      <p className="text-xs text-gray-500">{field.helper_text}</p>
+                      <p className="text-xs text-content-muted">{field.helper_text}</p>
                     )}
                   </div>
                 ))
@@ -636,18 +636,18 @@ export default function PublicEventDetailClient() {
 
         {/* Comments Section */}
         {!isWhiteLabel && (
-        <section className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-6 sm:px-8 border-b border-gray-100 bg-gray-50/50">
-            <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-gray-400" />
+        <section className="bg-raised rounded-2xl shadow-sm border border-outline-subtle overflow-hidden">
+          <div className="px-6 py-6 sm:px-8 border-b border-outline-subtle bg-canvas/50">
+            <h2 className="text-lg font-bold text-content-primary mb-1 flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-content-muted" />
               {copy.commentsTitle}
             </h2>
-            <p className="text-sm text-gray-500">{copy.commentsSubtitle}</p>
+            <p className="text-sm text-content-muted">{copy.commentsSubtitle}</p>
           </div>
 
           <div className="p-6 sm:p-8 space-y-6">
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-3 text-sm text-red-700">
+              <div className="rounded-lg border border-status-danger-border bg-status-danger-bg p-4 flex items-start gap-3 text-sm text-status-danger-content">
                 <ShieldAlert className="h-5 w-5 flex-shrink-0 mt-0.5" />
                 <div>{error}</div>
               </div>
@@ -656,17 +656,17 @@ export default function PublicEventDetailClient() {
             {/* Comment Form */}
             {member ? (
               <form onSubmit={handleCommentSubmit} className="mb-8">
-                <div className="rounded-xl border border-gray-200 bg-white focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-400 transition-all overflow-hidden shadow-sm">
+                <div className="rounded-xl border border-outline-subtle bg-raised focus-within:border-outline-strong focus-within:ring-1 focus-within:ring-outline-strong transition-all overflow-hidden shadow-sm">
                   <textarea
                     value={commentBody}
                     onChange={(e) => setCommentBody(e.target.value)}
                     rows={3}
                     placeholder={copy.commentPlaceholder}
-                    className="w-full resize-none border-none bg-transparent p-4 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-0"
+                    className="w-full resize-none border-none bg-transparent p-4 text-sm text-content-primary placeholder:text-content-muted focus:outline-none focus:ring-0"
                   />
-                  <div className="flex items-center justify-between bg-gray-50 px-4 py-2 border-t border-gray-100">
-                    <p className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
-                      <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center text-11 text-slate-600">
+                  <div className="flex items-center justify-between bg-canvas px-4 py-2 border-t border-outline-subtle">
+                    <p className="text-xs font-medium text-content-muted flex items-center gap-1.5">
+                      <div className="h-5 w-5 rounded-full bg-sunken flex items-center justify-center text-11 text-content-secondary">
                         {member.display_name?.charAt(0).toUpperCase() || member.email.charAt(0).toUpperCase()}
                       </div>
                       {member.display_name || member.email}
@@ -674,7 +674,7 @@ export default function PublicEventDetailClient() {
                     <button
                       type="submit"
                       disabled={commentBusy || !commentBody.trim()}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-slate-800 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-inverse-surface px-4 py-1.5 text-xs font-medium text-white hover:bg-inverse-surface transition-colors disabled:opacity-50"
                     >
                       {commentBusy ? (
                         <>
@@ -692,11 +692,11 @@ export default function PublicEventDetailClient() {
                 </div>
               </form>
             ) : (
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center mb-8">
-                <p className="text-sm text-gray-600 mb-4">{copy.loginPrompt}</p>
+              <div className="rounded-xl border border-outline-subtle bg-canvas p-6 text-center mb-8">
+                <p className="text-sm text-content-secondary mb-4">{copy.loginPrompt}</p>
                 <Link
                   href="/login?mode=member"
-                  className="inline-flex items-center gap-2 rounded-lg bg-white border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-lg bg-raised border border-outline-subtle px-4 py-2 text-sm font-medium text-content-secondary hover:bg-sunken transition-colors shadow-sm"
                 >
                   {copy.loginCta}
                 </Link>
@@ -706,8 +706,8 @@ export default function PublicEventDetailClient() {
             {/* Comments List */}
             {comments.length === 0 ? (
               <div className="text-center py-8">
-                <MessageSquare className="h-8 w-8 text-gray-300 mx-auto mb-3" />
-                <p className="text-sm text-gray-500">{copy.noComments}</p>
+                <MessageSquare className="h-8 w-8 text-content-muted mx-auto mb-3" />
+                <p className="text-sm text-content-muted">{copy.noComments}</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -715,7 +715,7 @@ export default function PublicEventDetailClient() {
                   <article key={comment.id} className="flex gap-4">
                     <Link
                       href={`/member/${comment.member_public_id}`}
-                      className="h-10 w-10 flex-shrink-0 rounded-full bg-slate-100 border border-gray-200 overflow-hidden flex items-center justify-center mt-1"
+                      className="h-10 w-10 flex-shrink-0 rounded-full bg-sunken border border-outline-subtle overflow-hidden flex items-center justify-center mt-1"
                     >
                       {comment.member_avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -725,7 +725,7 @@ export default function PublicEventDetailClient() {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <span className="text-sm font-semibold text-gray-500">
+                        <span className="text-sm font-semibold text-content-muted">
                           {comment.member_name.charAt(0).toUpperCase()}
                         </span>
                       )}
@@ -735,11 +735,11 @@ export default function PublicEventDetailClient() {
                         <div className="flex items-center gap-2">
                           <Link
                             href={`/member/${comment.member_public_id}`}
-                            className="text-sm font-semibold text-gray-900 hover:underline"
+                            className="text-sm font-semibold text-content-primary hover:underline"
                           >
                             {comment.member_name}
                           </Link>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-content-muted">
                             {new Date(comment.created_at).toLocaleString(
                               localeTag(lang),
                               { dateStyle: 'medium', timeStyle: 'short' }
@@ -751,7 +751,7 @@ export default function PublicEventDetailClient() {
                             type="button"
                             onClick={() => void handleReport(comment.id)}
                             disabled={reportingId === comment.id}
-                            className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-red-50 disabled:opacity-50"
+                            className="text-content-muted hover:text-status-danger-content transition-colors p-1 rounded-md hover:bg-status-danger-bg disabled:opacity-50"
                             title={copy.report}
                           >
                             {reportingId === comment.id ? (
@@ -762,7 +762,7 @@ export default function PublicEventDetailClient() {
                           </button>
                         )}
                       </div>
-                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      <p className="text-sm text-content-secondary leading-relaxed whitespace-pre-wrap">
                         {comment.body}
                       </p>
                     </div>

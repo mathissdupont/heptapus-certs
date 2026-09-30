@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { pickLang } from "@/lib/pickLang";
 import { localeTag } from "@/lib/localeTag";
@@ -94,7 +94,7 @@ export default function EmailAnalyticsPage() {
   return (
     <FeatureGate requiredPlans={["growth", "enterprise"]}>
       <div className="flex w-full flex-col gap-5 antialiased text-surface-900">
-        
+
         {/* SAYFA BAŞLIĞI */}
         <PageHeader
           title={copy.title}
@@ -105,7 +105,7 @@ export default function EmailAnalyticsPage() {
 
         {/* HATA BANNERI */}
         {error && (
-          <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
+          <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content flex items-center gap-2">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -116,13 +116,13 @@ export default function EmailAnalyticsPage() {
           <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             {[
               { label: lang === "tr" ? "Gönderilen" : "Sent", value: summary.total_sent.toLocaleString(), icon: Send, color: "text-surface-700" },
-              { label: lang === "tr" ? "Tekil Açılma" : "Unique Opens", value: summary.unique_opens.toLocaleString(), icon: Eye, color: "text-blue-600" },
-              { label: lang === "tr" ? "Tekil Tıklama" : "Unique Clicks", value: summary.unique_clicks.toLocaleString(), icon: MousePointerClick, color: "text-violet-600" },
-              { label: lang === "tr" ? "Açılma Oranı" : "Open Rate", value: `${summary.open_rate}%`, icon: Percent, color: "text-emerald-600" },
-              { label: lang === "tr" ? "Tıklama Oranı" : "Click Rate", value: `${summary.click_rate}%`, icon: Percent, color: "text-amber-600" },
-              { label: "CTOR", value: `${summary.click_to_open_rate}%`, icon: TrendingUp, color: "text-rose-600" },
+              { label: lang === "tr" ? "Tekil Açılma" : "Unique Opens", value: summary.unique_opens.toLocaleString(), icon: Eye, color: "text-status-info-content" },
+              { label: lang === "tr" ? "Tekil Tıklama" : "Unique Clicks", value: summary.unique_clicks.toLocaleString(), icon: MousePointerClick, color: "text-status-info-content" },
+              { label: lang === "tr" ? "Açılma Oranı" : "Open Rate", value: `${summary.open_rate}%`, icon: Percent, color: "text-status-success-content" },
+              { label: lang === "tr" ? "Tıklama Oranı" : "Click Rate", value: `${summary.click_rate}%`, icon: Percent, color: "text-status-warning-content" },
+              { label: "CTOR", value: `${summary.click_to_open_rate}%`, icon: TrendingUp, color: "text-status-danger-content" },
             ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="rounded-2xl border border-surface-100 bg-white p-3.5 shadow-sm">
+              <div key={label} className="rounded-2xl border border-surface-100 bg-raised p-3.5 shadow-sm">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Icon className={`h-3.5 w-3.5 ${color}`} />
                   <p className="text-11 font-bold uppercase tracking-wider text-surface-400">{label}</p>
@@ -134,7 +134,7 @@ export default function EmailAnalyticsPage() {
         )}
 
         {/* REHBER BİLGİ KUTUSU (Apple Tarzı Soft Kart) */}
-        <div className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm flex items-start gap-3">
+        <div className="rounded-2xl border border-surface-200 bg-raised p-4 shadow-sm flex items-start gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-surface-100 bg-surface-50 text-surface-900 shadow-sm">
             <Mail className="h-4 w-4 stroke-[1.8]" />
           </div>
@@ -156,19 +156,19 @@ export default function EmailAnalyticsPage() {
             }
           />
         ) : (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            className="w-full rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden"
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full rounded-2xl border border-surface-200 bg-raised shadow-sm overflow-hidden"
           >
             {/* Liste Başlığı */}
-            <div className="border-b border-surface-100 px-5 py-4 bg-white">
+            <div className="border-b border-surface-100 px-5 py-4 bg-raised">
               <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.events}</h2>
               <p className="mt-1 text-11 font-medium text-surface-400">{copy.chooseEvent(events.length)}</p>
             </div>
-            
+
             {/* Satır Akış Modülü */}
-            <div className="divide-y divide-gray-100 bg-white">
+            <div className="divide-y divide-outline-subtle bg-raised">
               {events.map((event) => (
                 <div key={event.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-surface-50/40">
                   <div className="min-w-0 space-y-0.5">
@@ -179,21 +179,21 @@ export default function EmailAnalyticsPage() {
                       </p>
                     )}
                   </div>
-                  
+
                   {/* Aksiyon Buton Setleri */}
                   <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                    <Link 
-                      href={`/admin/events/${event.id}/bulk-emails`} 
-                      className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 hover:text-surface-900 active:scale-95"
+                    <Link
+                      href={`/admin/events/${event.id}/bulk-emails`}
+                      className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-raised px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 hover:text-surface-900 active:scale-95"
                     >
-                      <Send className="h-3 w-3 text-surface-400 group-hover:text-surface-600 stroke-[2]" /> 
+                      <Send className="h-3 w-3 text-surface-400 group-hover:text-surface-600 stroke-[2]" />
                       <span>{copy.bulkEmail}</span>
                     </Link>
-                    <Link 
-                      href={`/admin/events/${event.id}/advanced-analytics`} 
-                      className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 hover:text-surface-900 active:scale-95"
+                    <Link
+                      href={`/admin/events/${event.id}/advanced-analytics`}
+                      className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-raised px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 hover:text-surface-900 active:scale-95"
                     >
-                      <BarChart3 className="h-3 w-3 text-surface-400 group-hover:text-surface-600 stroke-[2]" /> 
+                      <BarChart3 className="h-3 w-3 text-surface-400 group-hover:text-surface-600 stroke-[2]" />
                       <span>{copy.analytics}</span>
                     </Link>
                   </div>

@@ -26,21 +26,21 @@ const STAGE_LABELS_EN: Record<string, string> = {
 };
 
 const STAGE_COLORS: Record<string, string> = {
-  lead: "border-gray-200 bg-gray-50",
-  qualified: "border-blue-100 bg-blue-50",
-  proposal: "border-amber-100 bg-amber-50",
-  negotiation: "border-orange-100 bg-orange-50",
-  won: "border-green-100 bg-green-50",
-  lost: "border-red-100 bg-red-50",
+  lead: "border-outline-subtle bg-canvas",
+  qualified: "border-status-info-border bg-status-info-bg",
+  proposal: "border-status-warning-border bg-status-warning-bg",
+  negotiation: "border-status-warning-border bg-status-warning-bg",
+  won: "border-status-success-border bg-status-success-bg",
+  lost: "border-status-danger-border bg-status-danger-bg",
 };
 
 const STAGE_HEADER_COLORS: Record<string, string> = {
-  lead: "text-gray-600 bg-gray-100",
-  qualified: "text-blue-700 bg-blue-100",
-  proposal: "text-amber-700 bg-amber-100",
-  negotiation: "text-orange-700 bg-orange-100",
-  won: "text-green-700 bg-green-100",
-  lost: "text-red-700 bg-red-100",
+  lead: "text-content-secondary bg-sunken",
+  qualified: "text-status-info-content bg-status-info-bg",
+  proposal: "text-status-warning-content bg-status-warning-bg",
+  negotiation: "text-status-warning-content bg-status-warning-bg",
+  won: "text-status-success-content bg-status-success-bg",
+  lost: "text-status-danger-content bg-status-danger-bg",
 };
 
 type DealCard = {
@@ -112,7 +112,7 @@ export default function CrmPipelinePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+        <Loader2 className="h-5 w-5 animate-spin text-content-muted" />
       </div>
     );
   }
@@ -128,7 +128,7 @@ export default function CrmPipelinePage() {
   return (
     <div className="px-4 py-8 space-y-6 max-w-full">
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-gray-900 text-white text-sm rounded-xl px-4 py-2.5 shadow-lg">
+        <div className="fixed top-4 right-4 z-50 bg-inverse-surface text-white text-sm rounded-xl px-4 py-2.5 shadow-lg">
           {toast}
         </div>
       )}
@@ -136,16 +136,16 @@ export default function CrmPipelinePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <TrendingUp className="h-6 w-6 text-indigo-600" />
+          <TrendingUp className="h-6 w-6 text-status-info-content" />
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">{copy.pageTitle}</h1>
-            <p className="text-sm text-gray-500">{copy.pageSubtitle}</p>
+            <h1 className="text-xl font-semibold text-content-primary">{copy.pageTitle}</h1>
+            <p className="text-sm text-content-muted">{copy.pageSubtitle}</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-sm text-gray-500">
-          <span><span className="font-semibold text-gray-900">{totalDeals}</span> {copy.deals}</span>
-          <span>{copy.total}: <span className="font-semibold text-gray-900">₺{totalValue.toLocaleString(localeTag(lang))}</span></span>
-          <span>{copy.won}: <span className="font-semibold text-green-600">₺{wonValue.toLocaleString(localeTag(lang))}</span></span>
+        <div className="flex items-center gap-4 text-sm text-content-muted">
+          <span><span className="font-semibold text-content-primary">{totalDeals}</span> {copy.deals}</span>
+          <span>{copy.total}: <span className="font-semibold text-content-primary">₺{totalValue.toLocaleString(localeTag(lang))}</span></span>
+          <span>{copy.won}: <span className="font-semibold text-status-success-content">₺{wonValue.toLocaleString(localeTag(lang))}</span></span>
         </div>
       </div>
 
@@ -157,29 +157,29 @@ export default function CrmPipelinePage() {
           return (
             <div key={stage} className="flex-shrink-0 w-64 space-y-3">
               {/* Column header */}
-              <div className={`rounded-xl px-3 py-2 flex items-center justify-between ${STAGE_HEADER_COLORS[stage] ?? "text-gray-600 bg-gray-100"}`}>
+              <div className={`rounded-xl px-3 py-2 flex items-center justify-between ${STAGE_HEADER_COLORS[stage] ?? "text-content-secondary bg-sunken"}`}>
                 <span className="text-xs font-semibold">{STAGE_LABELS[stage] ?? stage}</span>
                 <span className="text-xs opacity-75">{cards.length}</span>
               </div>
 
               {/* Cards */}
-              <div className={`rounded-xl border min-h-32 p-2 space-y-2 ${STAGE_COLORS[stage] ?? "border-gray-200 bg-gray-50"}`}>
+              <div className={`rounded-xl border min-h-32 p-2 space-y-2 ${STAGE_COLORS[stage] ?? "border-outline-subtle bg-canvas"}`}>
                 {cards.map((deal) => (
                   <div
                     key={deal.id}
-                    className={`rounded-xl border border-white bg-white shadow-sm p-3 space-y-2 ${
+                    className={`rounded-xl border border-white bg-raised shadow-sm p-3 space-y-2 ${
                       movingDeal === deal.id ? "opacity-50" : ""
                     }`}
                   >
                     <Link
                       href={`/admin/crm/accounts/${deal.account_id}`}
-                      className="block text-xs font-semibold text-gray-900 hover:text-indigo-600 line-clamp-2"
+                      className="block text-xs font-semibold text-content-primary hover:text-status-info-content line-clamp-2"
                     >
                       {deal.name}
                     </Link>
-                    <p className="text-xs text-gray-400">{deal.account_name}</p>
+                    <p className="text-xs text-content-muted">{deal.account_name}</p>
                     {deal.amount != null && (
-                      <p className="text-xs font-medium text-gray-700">₺{deal.amount.toLocaleString(localeTag(lang))}</p>
+                      <p className="text-xs font-medium text-content-secondary">₺{deal.amount.toLocaleString(localeTag(lang))}</p>
                     )}
                     {/* Move buttons */}
                     <div className="flex gap-1 pt-1">
@@ -191,7 +191,7 @@ export default function CrmPipelinePage() {
                             key={toStage}
                             onClick={() => handleMoveStage(deal, stage, toStage)}
                             disabled={movingDeal === deal.id}
-                            className="rounded-md border border-gray-100 px-1.5 py-0.5 text-xs text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30"
+                            className="rounded-md border border-outline-subtle px-1.5 py-0.5 text-xs text-content-muted hover:bg-sunken hover:text-content-secondary disabled:opacity-30"
                           >
                             → {STAGE_LABELS[toStage]?.slice(0, 4)}
                           </button>
@@ -201,7 +201,7 @@ export default function CrmPipelinePage() {
                 ))}
 
                 {cards.length === 0 && (
-                  <div className="text-center py-6 text-xs text-gray-300">
+                  <div className="text-center py-6 text-xs text-content-muted">
                     <Briefcase className="h-5 w-5 mx-auto mb-1 opacity-40" />
                     {copy.empty}
                   </div>
@@ -209,7 +209,7 @@ export default function CrmPipelinePage() {
               </div>
 
               {stageValue > 0 && (
-                <p className="text-xs text-right text-gray-400 pr-1">
+                <p className="text-xs text-right text-content-muted pr-1">
                   ₺{stageValue.toLocaleString(localeTag(lang))}
                 </p>
               )}

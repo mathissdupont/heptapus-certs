@@ -366,7 +366,7 @@ export default function AccreditationPage() {
                     </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => openEdit(a)} className="btn-ghost text-xs">{copy.edit}</button>
-                      <button type="button" onClick={() => setDeleteId(a.id)} className="btn-ghost text-xs text-red-600 hover:bg-red-50">{copy.delete}</button>
+                      <button type="button" onClick={() => setDeleteId(a.id)} className="btn-ghost text-xs text-status-danger-content hover:bg-status-danger-bg">{copy.delete}</button>
                     </div>
                   </div>
                 </div>

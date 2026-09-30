@@ -77,7 +77,7 @@ export default function PdfStageViewer({
       try {
         const pdfjs = await import("pdfjs-dist");
         pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-          "pdfjs-dist/build/pdf.worker.min.mjs",
+ "pdfjs-dist/build/pdf.worker.min.mjs",
           import.meta.url
         ).toString();
 
@@ -240,14 +240,14 @@ export default function PdfStageViewer({
   }, [containerSize.height, containerSize.width, errorLabel, pageCount, pageIndex]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-xl border border-surface-200 bg-white shadow-sm">
-      <div ref={containerRef} className="flex h-full w-full items-center justify-center bg-white p-3">
-        <canvas ref={canvasRef} aria-label={title} className="max-h-full max-w-full bg-white shadow-sm" />
+    <div className="relative h-full w-full overflow-hidden rounded-xl border border-surface-200 bg-raised shadow-sm">
+      <div ref={containerRef} className="flex h-full w-full items-center justify-center bg-raised p-3">
+        <canvas ref={canvasRef} aria-label={title} className="max-h-full max-w-full bg-raised shadow-sm" />
       </div>
 
       {(loading || rendering) && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/65 backdrop-blur-[1px]">
-          <div className="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-white px-4 py-2 text-sm font-bold text-surface-600 shadow-sm">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-raised/65 backdrop-blur-[1px]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-surface-200 bg-raised px-4 py-2 text-sm font-bold text-surface-600 shadow-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
             {loading ? loadingLabel : pageLabel}
           </div>
@@ -255,11 +255,11 @@ export default function PdfStageViewer({
       )}
 
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white p-6">
-          <div className="max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-center shadow-sm">
-            <FileText className="mx-auto mb-3 h-9 w-9 text-red-400" />
-            <p className="text-sm font-bold text-red-700">{errorLabel}</p>
-            <p className="mt-2 break-words text-xs font-semibold text-red-500">{error}</p>
+        <div className="absolute inset-0 flex items-center justify-center bg-raised p-6">
+          <div className="max-w-md rounded-2xl border border-status-danger-border bg-status-danger-bg p-6 text-center shadow-sm">
+            <FileText className="mx-auto mb-3 h-9 w-9 text-status-danger-content" />
+            <p className="text-sm font-bold text-status-danger-content">{errorLabel}</p>
+            <p className="mt-2 break-words text-xs font-semibold text-status-danger-content">{error}</p>
             <button
               type="button"
               onClick={() => setReloadKey((value) => value + 1)}
@@ -273,7 +273,7 @@ export default function PdfStageViewer({
       )}
 
       {pageCount > 0 && (
-        <div className="pointer-events-none absolute bottom-4 right-4 rounded-full border border-surface-200 bg-white/95 px-3 py-1.5 text-xs font-black text-surface-500 shadow-sm">
+        <div className="pointer-events-none absolute bottom-4 right-4 rounded-full border border-surface-200 bg-raised/95 px-3 py-1.5 text-xs font-black text-surface-500 shadow-sm">
           {pageLabel} {clampPage(pageIndex, pageCount)} / {pageCount}
         </div>
       )}

@@ -50,7 +50,7 @@ function EligibleMarquee({
   if (items.length === 0) return null;
 
   return (
-    <div className="overflow-hidden rounded-full border border-white/10 bg-white/5 py-2 backdrop-blur">
+    <div className="overflow-hidden rounded-full border border-white/10 bg-raised/5 py-2 backdrop-blur">
       <motion.div
         className="flex w-max items-center gap-3 px-3"
         animate={{ x: reverse ? ["-50%", "0%"] : ["0%", "-50%"] }}
@@ -59,7 +59,7 @@ function EligibleMarquee({
         {repeated.map((item, index) => (
           <div
             key={`${item.attendee_id}-${index}`}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-sm font-medium text-white/90"
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-raised/8 px-3 py-1.5 text-sm font-medium text-white/90"
           >
             <span>{item.attendee_name}</span>
             <span className="text-xs text-white/50">{item.sessions_attended} {sessionLabel}</span>
@@ -107,7 +107,7 @@ function NameMarquee({
   if (items.length === 0) return null;
 
   return (
-    <div className="overflow-hidden rounded-full border border-white/10 bg-white/5 py-2 backdrop-blur">
+    <div className="overflow-hidden rounded-full border border-white/10 bg-raised/5 py-2 backdrop-blur">
       <motion.div
         className="flex w-max items-center gap-3 px-3"
         animate={{ x: reverse ? ["-50%", "0%"] : ["0%", "-50%"] }}
@@ -118,8 +118,8 @@ function NameMarquee({
             key={`${item.id}-${index}`}
             className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium ${
               item.kind === "asil"
-                ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-                : "border-amber-300/20 bg-amber-300/10 text-amber-100"
+                ? "border-status-success-border/20 bg-status-success-bg/10 text-status-success-content"
+                : "border-status-warning-border/20 bg-status-warning-bg/10 text-status-warning-content"
             }`}
           >
             <span className="text-xs uppercase tracking-[0.14em] opacity-70">
@@ -482,12 +482,12 @@ export default function RafflePresentationPage() {
       radial-gradient(circle at 20% 20%, ${brandColor}24 0%, transparent 24%),
       radial-gradient(circle at 80% 0%, rgba(249,115,22,0.18) 0%, transparent 22%),
       linear-gradient(180deg, #08111f 0%, #040816 45%, #020617 100%)
-    `,
+ `,
   };
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-white">
+      <div className="fixed inset-0 flex items-center justify-center bg-inverse-surface text-white">
         <Loader2 className="h-10 w-10 animate-spin" />
       </div>
     );
@@ -495,13 +495,13 @@ export default function RafflePresentationPage() {
 
   if (error && !raffle) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 p-6 text-center text-white">
-        <div className="max-w-lg rounded-[32px] border border-white/10 bg-white/5 p-8 backdrop-blur">
+      <div className="fixed inset-0 flex items-center justify-center bg-inverse-surface p-6 text-center text-white">
+        <div className="max-w-lg rounded-[32px] border border-white/10 bg-raised/5 p-8 backdrop-blur">
           <p className="text-2xl font-black">{copy.presentationError}</p>
           <p className="mt-3 text-sm text-white/70">{error}</p>
           <Link
             href={`/admin/events/${eventId}/raffles`}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-raised/10 px-4 py-2.5 text-sm font-semibold text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             {copy.backToRaffles}
@@ -512,14 +512,14 @@ export default function RafflePresentationPage() {
   }
 
   return (
-    <div className="fixed inset-0 overflow-auto bg-slate-950 text-white" style={backgroundStyle}>
+    <div className="fixed inset-0 overflow-auto bg-inverse-surface text-white" style={backgroundStyle}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(2,6,23,0.24)_58%,rgba(2,6,23,0.74)_100%)]" />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-6 py-6 md:px-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
             href={`/admin/events/${eventId}/raffles`}
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-raised/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
           >
             <ArrowLeft className="h-4 w-4" />
             {copy.backToAdmin}
@@ -532,7 +532,7 @@ export default function RafflePresentationPage() {
                   href={`/admin/events/${eventId}/raffles/${raffleId}/present?mode=stage`}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-sm font-semibold text-emerald-100 backdrop-blur"
+                  className="inline-flex items-center gap-2 rounded-full border border-status-success-border/20 bg-status-success-bg/10 px-4 py-2 text-sm font-semibold text-status-success-content backdrop-blur"
                 >
                   <Expand className="h-4 w-4" />
                   {copy.openStageMode}
@@ -540,7 +540,7 @@ export default function RafflePresentationPage() {
                 <button
                   type="button"
                   onClick={loadPresentation}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-raised/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
                 >
                   <RotateCcw className="h-4 w-4" />
                   {copy.refreshData}
@@ -548,7 +548,7 @@ export default function RafflePresentationPage() {
                 <button
                   type="button"
                   onClick={enterFullscreen}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-raised/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
                 >
                   <Expand className="h-4 w-4" />
                   {copy.fullscreen}
@@ -557,7 +557,7 @@ export default function RafflePresentationPage() {
                   <button
                     type="button"
                     onClick={handleReplay}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-raised/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
                   >
                     <RotateCcw className="h-4 w-4" />
                     {copy.replayPresentation}
@@ -568,7 +568,7 @@ export default function RafflePresentationPage() {
               <button
                 type="button"
                 onClick={enterFullscreen}
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-raised/10 px-4 py-2 text-sm font-semibold text-white/90 backdrop-blur"
               >
                 <Expand className="h-4 w-4" />
                 {copy.fullscreen}
@@ -579,7 +579,7 @@ export default function RafflePresentationPage() {
 
         <div className="mt-8 grid flex-1 gap-8 xl:grid-cols-[1.05fr_0.95fr] xl:items-center">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-white/70 backdrop-blur">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-raised/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-white/70 backdrop-blur">
               <Sparkles className="h-3.5 w-3.5" />
               {mode === "operator" ? copy.operatorMode : copy.stageMode}
             </div>
@@ -597,17 +597,17 @@ export default function RafflePresentationPage() {
             </div>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[28px] border border-white/10 bg-white/10 p-5 backdrop-blur">
+              <div className="rounded-[28px] border border-white/10 bg-raised/10 p-5 backdrop-blur">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">{copy.prize}</p>
                 <p className="mt-3 text-xl font-black text-white">{raffle?.prize_name}</p>
               </div>
-              <div className="rounded-[28px] border border-white/10 bg-white/10 p-5 backdrop-blur">
+              <div className="rounded-[28px] border border-white/10 bg-raised/10 p-5 backdrop-blur">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">{copy.roundPlan}</p>
                 <p className="mt-3 text-xl font-black text-white">
                   {raffle ? formatWinnerPlan(raffle.winner_count, raffle.reserve_winner_count) : "-"}
                 </p>
               </div>
-              <div className="rounded-[28px] border border-white/10 bg-white/10 p-5 backdrop-blur">
+              <div className="rounded-[28px] border border-white/10 bg-raised/10 p-5 backdrop-blur">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/45">{copy.eligiblePool}</p>
                 <p className="mt-3 text-xl font-black text-white">{copy.people(raffle?.eligible_count ?? 0)}</p>
               </div>
@@ -619,14 +619,14 @@ export default function RafflePresentationPage() {
                   type="button"
                   onClick={handleStart}
                   disabled={drawing || !!(raffle && raffle.winners.length === 0 && raffle.eligible_count === 0)}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-black text-surface-900 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-raised px-6 py-3 text-sm font-black text-surface-900 transition hover:bg-raised/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {drawing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                   {raffle?.winners.length ? copy.startPresentation : copy.startRaffle}
                 </button>
               ) : null}
               {raffle?.winners.length ? (
-                <div className="inline-flex items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-5 py-3 text-sm font-semibold text-emerald-200">
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-status-success-border/20 bg-emerald-400/10 px-5 py-3 text-sm font-semibold text-status-success-content">
                   <Trophy className="h-4 w-4" />
                   {copy.lastDraw(formatRaffleDate(raffle.drawn_at, lang))}
                 </div>
@@ -641,13 +641,13 @@ export default function RafflePresentationPage() {
             ) : null}
 
             {error ? (
-              <div className="mt-5 rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm font-medium text-rose-100">
+              <div className="mt-5 rounded-2xl border border-status-danger-border/20 bg-rose-400/10 px-4 py-3 text-sm font-medium text-status-danger-content">
                 {error}
               </div>
             ) : null}
           </div>
 
-          <div className="relative overflow-hidden rounded-[36px] border border-white/10 bg-white/8 p-6 backdrop-blur-xl">
+          <div className="relative overflow-hidden rounded-[36px] border border-white/10 bg-raised/8 p-6 backdrop-blur-xl">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_55%)]" />
             <div className="relative">
               <div className="flex items-center justify-between gap-3">
@@ -663,13 +663,13 @@ export default function RafflePresentationPage() {
                           : copy.phaseIdle}
                   </p>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/75">
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-raised/10 px-3 py-1.5 text-xs font-semibold text-white/75">
                   <Users className="h-3.5 w-3.5" />
                   {revealedCount}/{sequenceItems.length || raffle?.winner_count || 0}
                 </div>
               </div>
 
-              <div className="mt-6 rounded-[30px] border border-white/10 bg-slate-950/55 p-6">
+              <div className="mt-6 rounded-[30px] border border-white/10 bg-inverse-surface/55 p-6">
                 {phase === "idle" ? (
                   <div className="flex min-h-[360px] flex-col justify-center">
                     <div className="text-center">
@@ -680,16 +680,16 @@ export default function RafflePresentationPage() {
                       </p>
                     </div>
 
-                    <div className="mt-8 rounded-[28px] border border-white/10 bg-white/5 p-4">
+                    <div className="mt-8 rounded-[28px] border border-white/10 bg-raised/5 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">{copy.eligibleCandidatePool}</p>
-                        <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/75">
+                        <span className="rounded-full border border-white/10 bg-raised/10 px-3 py-1 text-xs font-semibold text-white/75">
                           {copy.people(eligibleAttendees.length)}
                         </span>
                       </div>
 
                       {eligibleAttendees.length === 0 ? (
-                        <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-slate-950/35 px-4 py-8 text-center text-sm text-white/50">
+                        <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-inverse-surface/35 px-4 py-8 text-center text-sm text-white/50">
                           {copy.noEligibleCandidates}
                         </div>
                       ) : (
@@ -705,7 +705,7 @@ export default function RafflePresentationPage() {
                     <motion.div
                       animate={{ rotate: 360 }}
                       transition={{ repeat: Infinity, duration: 2.4, ease: "linear" }}
-                      className="flex h-24 w-24 items-center justify-center rounded-full border border-white/15 bg-white/10"
+                      className="flex h-24 w-24 items-center justify-center rounded-full border border-white/15 bg-raised/10"
                     >
                       <Sparkles className="h-10 w-10 text-white/80" />
                     </motion.div>
@@ -719,7 +719,7 @@ export default function RafflePresentationPage() {
                         initial={{ opacity: 0.45, scale: 0.96 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.12 }}
-                        className="mt-8 rounded-[28px] border border-white/15 bg-white/10 px-6 py-5 text-center backdrop-blur"
+                        className="mt-8 rounded-[28px] border border-white/15 bg-raised/10 px-6 py-5 text-center backdrop-blur"
                       >
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/45">{copy.selectingFrom}</p>
                         <p className="mt-3 text-3xl font-black text-white">{spotlightCandidate.attendee_name}</p>
@@ -748,8 +748,8 @@ export default function RafflePresentationPage() {
                           transition={{ duration: 0.45, ease: "easeOut" }}
                           className={`relative rounded-[30px] border p-6 ${
                             latestWinner.kind === "asil"
-                              ? "border-emerald-300/30 bg-emerald-300/10"
-                              : "border-amber-300/30 bg-amber-300/10"
+                              ? "border-status-success-border/30 bg-status-success-bg/10"
+                              : "border-status-warning-border/30 bg-status-warning-bg/10"
                           }`}
                         >
                           <motion.div
@@ -765,13 +765,13 @@ export default function RafflePresentationPage() {
                             }}
                           />
                           <div className="relative flex flex-wrap items-center justify-between gap-3">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-raised/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
                               <Medal className="h-3.5 w-3.5" />
                               {isTr
                                 ? `Tur ${latestWinner.round} • ${latestWinner.kind === "asil" ? copy.primaryWinner : copy.reserveWinner}`
                                 : `Round ${latestWinner.round} • ${latestWinner.kind === "asil" ? copy.primaryWinner : copy.reserveWinner}`}
                             </div>
-                            <div className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/75">
+                            <div className="rounded-full border border-white/10 bg-raised/10 px-3 py-1 text-xs font-semibold text-white/75">
                               {copy.sessionAttendance(latestWinner.winner.sessions_attended)}
                             </div>
                           </div>
@@ -794,8 +794,8 @@ export default function RafflePresentationPage() {
                           transition={{ duration: 0.3, ease: "easeOut" }}
                           className={`rounded-3xl border px-4 py-4 ${
                             item.kind === "asil"
-                              ? "border-emerald-300/20 bg-emerald-300/8"
-                              : "border-amber-300/20 bg-amber-300/8"
+                              ? "border-status-success-border/20 bg-status-success-bg/8"
+                              : "border-status-warning-border/20 bg-status-warning-bg/8"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-3">
@@ -813,7 +813,7 @@ export default function RafflePresentationPage() {
                 )}
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-raised/5 px-4 py-3 text-sm text-white/70">
                 <span>
                   {copy.ruleLabel(raffle?.min_sessions_required ?? 0, raffle ? formatWinnerPlan(raffle.winner_count, raffle.reserve_winner_count) : "-")}
                 </span>

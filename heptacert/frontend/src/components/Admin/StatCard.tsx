@@ -32,7 +32,7 @@ export function StatCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-      className={`group relative w-full overflow-hidden rounded-xl border border-surface-200 bg-white p-5 shadow-card transition-colors duration-200 hover:border-surface-300 hover:bg-surface-50/40 ${className}`}
+      className={`group relative w-full overflow-hidden rounded-xl border border-surface-200 bg-raised p-5 shadow-card transition-colors duration-200 hover:border-surface-300 hover:bg-surface-50/40 ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -46,7 +46,7 @@ export function StatCard({
 
           {trend && (
             <p className="mt-2 inline-flex items-center gap-1 text-11 font-medium">
-              <span className={trend.value >= 0 ? "text-emerald-600" : "text-red-500"}>
+              <span className={trend.value >= 0 ? "text-status-success-content" : "text-status-danger-content"}>
                 {trend.value >= 0 ? "↑" : "↓"} {Math.abs(trend.value)}%
               </span>
               {trend.label && (
@@ -80,7 +80,7 @@ export function StatCardSkeleton({ count = 4 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="w-full rounded-xl border border-surface-100 bg-white p-5 shadow-card animate-pulse"
+          className="w-full rounded-xl border border-surface-100 bg-raised p-5 shadow-card animate-pulse"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 space-y-2.5">

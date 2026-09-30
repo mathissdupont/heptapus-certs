@@ -44,20 +44,20 @@ function getTicketStatus(ticket: EventTicketOut, labels: { used: string; cancell
   if (ticket.status === "used") {
     return {
       label: labels.used,
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      className: "border-status-success-border bg-status-success-bg text-status-success-content",
       icon: <CheckCircle2 className="h-3.5 w-3.5" />,
     };
   }
   if (ticket.status === "cancelled" || ticket.status === "revoked") {
     return {
       label: labels.cancelled,
-      className: "border-red-200 bg-red-50 text-red-700",
+      className: "border-status-danger-border bg-status-danger-bg text-status-danger-content",
       icon: <XCircle className="h-3.5 w-3.5" />,
     };
   }
   return {
     label: labels.ready,
-    className: "border-sky-200 bg-sky-50 text-sky-700",
+    className: "border-status-info-border bg-status-info-bg text-status-info-content",
     icon: <QrCode className="h-3.5 w-3.5" />,
   };
 }
@@ -333,7 +333,7 @@ export default function EventTicketsPage() {
         <div className="border-b border-surface-100 px-5 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-700">
+              <p className="inline-flex items-center gap-2 rounded-full border border-status-warning-border bg-status-warning-bg px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-status-warning-content">
                 <Ticket className="h-3.5 w-3.5" />
                 {copy.tagLabel}
               </p>
@@ -354,21 +354,21 @@ export default function EventTicketsPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-surface-400">{copy.statTotal}</p>
             <p className="mt-1 text-2xl font-black text-surface-900">{stats.total}</p>
           </div>
-          <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-500">{copy.statReady}</p>
-            <p className="mt-1 text-2xl font-black text-sky-700">{stats.ready}</p>
+          <div className="rounded-xl border border-status-info-border bg-status-info-bg px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-info-content">{copy.statReady}</p>
+            <p className="mt-1 text-2xl font-black text-status-info-content">{stats.ready}</p>
           </div>
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-500">{copy.statUsed}</p>
-            <p className="mt-1 text-2xl font-black text-emerald-700">{stats.used}</p>
+          <div className="rounded-xl border border-status-success-border bg-status-success-bg px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-success-content">{copy.statUsed}</p>
+            <p className="mt-1 text-2xl font-black text-status-success-content">{stats.used}</p>
           </div>
-          <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-500">{copy.statCancelled}</p>
-            <p className="mt-1 text-2xl font-black text-red-700">{stats.cancelled}</p>
+          <div className="rounded-xl border border-status-danger-border bg-status-danger-bg px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-danger-content">{copy.statCancelled}</p>
+            <p className="mt-1 text-2xl font-black text-status-danger-content">{stats.cancelled}</p>
           </div>
-          <div className="rounded-xl border border-amber-100 bg-amber-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-600">{copy.statRate}</p>
-            <p className="mt-1 text-2xl font-black text-amber-700">%{stats.usedRate}</p>
+          <div className="rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-status-warning-content">{copy.statRate}</p>
+            <p className="mt-1 text-2xl font-black text-status-warning-content">%{stats.usedRate}</p>
           </div>
         </div>
       </section>
@@ -455,7 +455,7 @@ export default function EventTicketsPage() {
                       {copy.btnConfirmEntry}
                     </button>
                   ) : (
-                    <span className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700">
+                    <span className="inline-flex items-center gap-2 rounded-xl border border-status-danger-border bg-raised px-3 py-2 text-sm font-semibold text-status-danger-content">
                       <Ban className="h-4 w-4" />
                       {copy.btnCheckinClosed}
                     </span>
@@ -470,12 +470,12 @@ export default function EventTicketsPage() {
           )}
 
           {message && (
-            <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            <p className="mt-4 rounded-xl border border-status-success-border bg-status-success-bg px-4 py-3 text-sm font-medium text-status-success-content">
               {message}
             </p>
           )}
           {error && (
-            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            <p className="mt-4 rounded-xl border border-status-danger-border bg-status-danger-bg px-4 py-3 text-sm font-medium text-status-danger-content">
               {error}
             </p>
           )}
@@ -508,7 +508,7 @@ export default function EventTicketsPage() {
                 className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
                   filter === value
                     ? "border-brand-500 bg-brand-50 text-brand-700"
-                    : "border-surface-200 bg-white text-surface-600 hover:border-surface-300"
+                    : "border-surface-200 bg-raised text-surface-600 hover:border-surface-300"
                 }`}
               >
                 {label}
@@ -600,7 +600,7 @@ export default function EventTicketsPage() {
                         type="button"
                         onClick={() => changeTicketStatus(ticket, "cancelled")}
                         disabled={updatingId === ticket.id}
-                        className="btn-secondary min-h-0 px-3 py-2 text-xs text-red-700 hover:border-red-200 hover:bg-red-50"
+                        className="btn-secondary min-h-0 px-3 py-2 text-xs text-status-danger-content hover:border-status-danger-border hover:bg-status-danger-bg"
                       >
                         {updatingId === ticket.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
                         İptal et

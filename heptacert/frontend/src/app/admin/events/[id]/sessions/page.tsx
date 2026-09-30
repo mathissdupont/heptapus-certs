@@ -47,14 +47,14 @@ function RegisterLinkBanner({ eventId }: { eventId: string }) {
         <p className="text-xs font-semibold text-surface-700 mb-0.5">{bannerCopy.label}</p>
         <p className="text-xs text-surface-500 truncate font-mono">{url}</p>
       </div>
-      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-surface-600 transition-colors hover:text-surface-900 sm:w-auto">
+      <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border border-surface-200 bg-raised px-2.5 py-1.5 text-xs font-semibold text-surface-600 transition-colors hover:text-surface-900 sm:w-auto">
         <ExternalLink className="w-3.5 h-3.5" /> {bannerCopy.open}
       </a>
       <button
         onClick={copy}
         className={`inline-flex shrink-0 items-center justify-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors sm:w-auto ${
           copied
-            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+            ? "border-status-success-border bg-status-success-bg text-status-success-content"
             : "border-surface-900 bg-surface-900 text-white hover:bg-surface-800"
         }`}
       >
@@ -442,7 +442,7 @@ export default function AdminSessionsPage() {
                   className="input-field resize-y"
                 />
               </div>
-              {formError && <p className="text-xs text-red-600">{formError}</p>}
+              {formError && <p className="text-xs text-status-danger-content">{formError}</p>}
               <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => setShowForm(false)} className="btn-secondary justify-center">
                   {copy.cancel}
@@ -473,7 +473,7 @@ export default function AdminSessionsPage() {
         ) : (
           <div className="space-y-3">
             {sessions.map((s) => (
-              <div key={s.id} className={`card p-4 ${s.is_active ? "border-emerald-200 bg-emerald-50/30" : ""}`}>
+              <div key={s.id} className={`card p-4 ${s.is_active ? "border-status-success-border bg-status-success-bg/30" : ""}`}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -516,7 +516,7 @@ export default function AdminSessionsPage() {
                           {s.speaker_name}
                         </span>
                       )}
-                      <span className="text-emerald-600 font-medium">{s.attendance_count} {copy.attended}</span>
+                      <span className="text-status-success-content font-medium">{s.attendance_count} {copy.attended}</span>
                     </div>
                   </div>
 
@@ -536,7 +536,7 @@ export default function AdminSessionsPage() {
                       onClick={() => handleToggle(s)}
                       disabled={toggling === s.id}
                       title={s.is_active ? copy.checkinClose : copy.checkinOpenAction}
-                      className={`p-2 rounded-lg transition ${s.is_active ? "text-emerald-600 hover:bg-emerald-50" : "text-surface-400 hover:bg-surface-50"}`}
+                      className={`p-2 rounded-lg transition ${s.is_active ? "text-status-success-content hover:bg-status-success-bg" : "text-surface-400 hover:bg-surface-50"}`}
                     >
                       {toggling === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : s.is_active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                     </button>
@@ -555,7 +555,7 @@ export default function AdminSessionsPage() {
                       onClick={() => handleDelete(s.id)}
                       disabled={deletingId === s.id}
                       title={copy.delete}
-                      className="p-2 rounded-lg hover:bg-red-50 text-surface-400 hover:text-red-600 transition"
+                      className="p-2 rounded-lg hover:bg-status-danger-bg text-surface-400 hover:text-status-danger-content transition"
                     >
                       {deletingId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                     </button>
@@ -569,7 +569,7 @@ export default function AdminSessionsPage() {
       {/* QR Modal */}
       {qrModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setQrModal(null)}>
-          <div className="bg-white rounded-2xl shadow-modal p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-raised rounded-2xl shadow-modal p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
             <h2 className="font-bold text-surface-700 mb-1">{qrModal.sessionName}</h2>
             <p className="text-xs text-surface-400 mb-4">{copy.qrInstructions}</p>
             <img src={qrModal.url} alt="Check-in QR" className="w-48 h-48 mx-auto rounded-xl border" />
@@ -585,8 +585,8 @@ export default function AdminSessionsPage() {
               <button
                 onClick={() => {
                   window.open(
-                    `/admin/events/${eventId}/qr-present?session=${qrModal!.sessionId}&name=${encodeURIComponent(qrModal!.sessionName)}`,
-                    "_blank"
+ `/admin/events/${eventId}/qr-present?session=${qrModal!.sessionId}&name=${encodeURIComponent(qrModal!.sessionName)}`,
+ "_blank"
                   );
                 }}
                 className="flex-1 inline-flex items-center justify-center gap-2 border border-surface-200 text-surface-700 text-sm font-semibold py-2 rounded-xl hover:bg-surface-50 transition"

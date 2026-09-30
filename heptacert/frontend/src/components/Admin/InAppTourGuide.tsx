@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Link from "next/link";
@@ -239,7 +239,7 @@ function getStepsForRole(copy: TourCopy, role: string | null) {
 
 function highlightTarget(selector: string): boolean {
   if (typeof window === "undefined") return false;
-  
+
   document.querySelectorAll('.hepta-tour-highlight').forEach(el => {
     el.classList.remove('hepta-tour-highlight');
   });
@@ -322,7 +322,7 @@ export default function InAppTourGuide() {
     if (typeof window === "undefined") return;
     const storedDismissed = window.localStorage.getItem(TOUR_DISMISSED_KEY) === "1";
     const storedCount = Number(window.localStorage.getItem(TOUR_COMPLETED_COUNT_KEY) || "0");
-    
+
     setCompletedCount(Number.isFinite(storedCount) ? storedCount : 0);
     setDismissed(storedDismissed);
     if (!storedDismissed) setOpen(true);
@@ -425,7 +425,7 @@ export default function InAppTourGuide() {
         <button
           type="button"
           onClick={restartTour}
-          className="group flex h-11 w-11 items-center justify-center rounded-full border border-surface-200 bg-white shadow-md transition-all duration-300 hover:w-36 hover:px-4 hover:border-gray-300"
+          className="group flex h-11 w-11 items-center justify-center rounded-full border border-surface-200 bg-raised shadow-md transition-all duration-300 hover:w-36 hover:px-4 hover:border-outline-strong"
         >
           <HelpCircle className="h-5 w-5 text-surface-500 transition-colors group-hover:text-surface-900 stroke-[1.8]" />
           <span className="hidden whitespace-nowrap pl-2 text-xs font-semibold text-surface-800 tracking-tight group-hover:block">
@@ -447,7 +447,7 @@ export default function InAppTourGuide() {
           border-radius: 8px !important;
           transition: box-shadow 0.2s ease-out !important;
         }
-      `}} />
+ `}} />
 
       {/* AKTİF REHBER LAUNCHER BUTONU */}
       <div className="admin-floating-launcher admin-floating-tour-launcher fixed z-45 antialiased">
@@ -457,7 +457,7 @@ export default function InAppTourGuide() {
             announceFloatingWidgetOpen("tour");
             setOpen(true);
           }}
-          className="group flex h-11 w-11 items-center justify-center rounded-full border border-surface-200 bg-white shadow-md transition-all duration-300 hover:w-32 hover:px-4 hover:border-gray-300 relative"
+          className="group flex h-11 w-11 items-center justify-center rounded-full border border-surface-200 bg-raised shadow-md transition-all duration-300 hover:w-32 hover:px-4 hover:border-outline-strong relative"
         >
           <HelpCircle className="h-5 w-5 text-surface-500 transition-colors group-hover:text-surface-900 stroke-[1.8]" />
           <span className="hidden whitespace-nowrap pl-2 text-xs font-semibold text-surface-800 tracking-tight group-hover:block">
@@ -479,7 +479,7 @@ export default function InAppTourGuide() {
               className="pointer-events-none fixed z-[60] transition-all duration-200 ease-out antialiased"
               style={{ top: `${targetBubble.top}px`, left: `${targetBubble.left}px` }}
             >
-              <div className="inline-flex animate-bounce items-center gap-1.5 rounded-full border border-surface-100 bg-white px-3 py-1 text-11 font-bold text-surface-800 shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
+              <div className="inline-flex animate-bounce items-center gap-1.5 rounded-full border border-surface-100 bg-raised px-3 py-1 text-11 font-bold text-surface-800 shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
                 <MousePointerClick className="h-3.5 w-3.5 text-surface-400 stroke-[2.5]" />
                 {copy.targetHint}
               </div>
@@ -487,13 +487,13 @@ export default function InAppTourGuide() {
           )}
 
           {/* SÜZÜLEN APPLE TUR KARTI (Sağ Alt Köşe Yerleşim) */}
-          <div className="admin-floating-tour-panel fixed inset-x-2 z-50 w-auto max-w-[320px] overflow-y-auto rounded-2xl border border-surface-200/80 bg-white/95 shadow-[0_20px_50px_rgba(0,0,0,0.08)] backdrop-blur-xl antialiased animate-in fade-in slide-in-from-bottom-4 duration-200 sm:left-auto sm:right-5 sm:w-full">
-            
+          <div className="admin-floating-tour-panel fixed inset-x-2 z-50 w-auto max-w-[320px] overflow-y-auto rounded-2xl border border-surface-200/80 bg-raised/95 shadow-[0_20px_50px_rgba(0,0,0,0.08)] backdrop-blur-xl antialiased animate-in fade-in slide-in-from-bottom-4 duration-200 sm:left-auto sm:right-5 sm:w-full">
+
             {/* Üst İnce İlerleme Çubuğu */}
             <div className="h-1 w-full bg-surface-100/70">
-              <div 
-                className="h-full bg-surface-900 transition-all duration-500 ease-out" 
-                style={{ width: `${progress}%` }} 
+              <div
+                className="h-full bg-surface-900 transition-all duration-500 ease-out"
+                style={{ width: `${progress}%` }}
               />
             </div>
 
@@ -539,7 +539,7 @@ export default function InAppTourGuide() {
                         highlightTarget(currentStep.targetSelector || "");
                         setTargetVisible(highlightTarget(currentStep.targetSelector || ""));
                       }}
-                      className="inline-flex items-center gap-1 rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-11 font-semibold text-surface-600 shadow-sm transition-all hover:bg-surface-50 hover:text-surface-900 active:scale-95"
+                      className="inline-flex items-center gap-1 rounded-xl border border-surface-200 bg-raised px-3 py-1.5 text-11 font-semibold text-surface-600 shadow-sm transition-all hover:bg-surface-50 hover:text-surface-900 active:scale-95"
                     >
                       <MousePointerClick className="h-3.5 w-3.5 text-surface-400 stroke-[1.8]" />
                       {copy.clickTarget}
@@ -550,7 +550,7 @@ export default function InAppTourGuide() {
 
               {/* Öğe Bulunamadı Uyarı Alanı */}
               {!targetVisible && currentStep.targetSelector && (
-                <div className="mt-3.5 flex items-center gap-1.5 rounded-lg border border-red-100 bg-red-50/40 px-3 py-2 text-11 font-semibold text-red-600">
+                <div className="mt-3.5 flex items-center gap-1.5 rounded-lg border border-status-danger-border bg-status-danger-bg/40 px-3 py-2 text-11 font-semibold text-status-danger-content">
                   <X className="h-3.5 w-3.5 shrink-0" />
                   <span>{copy.targetNotFound}</span>
                 </div>
@@ -565,7 +565,7 @@ export default function InAppTourGuide() {
                   type="checkbox"
                   checked={dontShowAgain}
                   onChange={(e) => setDontShowAgain(e.target.checked)}
-                  className="h-3.5 w-3.5 rounded-md border-gray-300 text-surface-900 focus:ring-0 focus:ring-offset-0"
+                  className="h-3.5 w-3.5 rounded-md border-outline-strong text-surface-900 focus:ring-0 focus:ring-offset-0"
                 />
                 {copy.dontShowAgain}
               </label>
@@ -576,11 +576,11 @@ export default function InAppTourGuide() {
                   type="button"
                   onClick={prevStep}
                   disabled={stepIndex === 0}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 disabled:hover:text-surface-400 shadow-sm"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-raised text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 disabled:hover:text-surface-400 shadow-sm"
                 >
                   <ChevronLeft className="h-4 w-4 stroke-[2]" />
                 </button>
-                
+
                 {stepIndex < steps.length - 1 ? (
                   <button
                     type="button"

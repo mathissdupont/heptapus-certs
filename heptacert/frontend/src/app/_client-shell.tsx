@@ -19,11 +19,11 @@ import {
 } from "@/lib/api";
 
 const HEPTACERT_PRIMARY_HOSTS = new Set([
-  "heptacert.com",
-  "www.heptacert.com",
-  "heptacert.com",
-  "localhost",
-  "127.0.0.1",
+ "heptacert.com",
+ "www.heptacert.com",
+ "heptacert.com",
+ "localhost",
+ "127.0.0.1",
 ]);
 
 function HtmlLangSync() {

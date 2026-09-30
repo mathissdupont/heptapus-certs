@@ -70,8 +70,8 @@ describe("presentation upload API", () => {
     expect(xhr.timeout).toBe(300_000);
     expect(xhr.headers).toMatchObject({
       Authorization: "Bearer test-token",
-      "X-Organization-Id": "42",
-      "X-App-Lang": "en",
+ "X-Organization-Id": "42",
+ "X-App-Lang": "en",
     });
     expect(xhr.body).toBeInstanceOf(FormData);
     expect((xhr.body as FormData).get("file")).toBe(file);

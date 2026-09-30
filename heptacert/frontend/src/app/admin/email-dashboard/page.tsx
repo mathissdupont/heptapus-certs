@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState, type ElementType } from "react";
 import Link from "next/link";
@@ -184,7 +184,7 @@ export default function EmailDashboard() {
             { label: copy.metricWebhooks, count: webhookCount, sub: copy.statWebhooks },
             { label: copy.metricEvents, count: eventCount, sub: copy.statEvents },
           ].map((metric, i) => (
-            <div key={i} className="w-full rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+            <div key={i} className="w-full rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm">
               <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{metric.label}</p>
               <p className="mt-1 text-2xl font-bold tracking-tight text-surface-900 tabular-nums">
                 {loading ? "..." : metric.count}
@@ -196,16 +196,16 @@ export default function EmailDashboard() {
 
         {/* ANA KART DÜZENİ VE SAĞ KILAVUZ SÜTUNU */}
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_320px] items-start">
-          
+
           {/* Sol Izgara: Aksiyon Kartları */}
           <div className="grid gap-3.5 sm:grid-cols-2">
             {cards.map((card) => {
               const Icon = card.icon;
               return (
-                <Link 
-                  key={card.title} 
-                  href={card.href} 
-                  className="group flex flex-col justify-between gap-5 rounded-2xl border border-surface-200 bg-white p-5 shadow-sm transition-all duration-300 hover:border-surface-300 hover:bg-surface-50/40"
+                <Link
+                  key={card.title}
+                  href={card.href}
+                  className="group flex flex-col justify-between gap-5 rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm transition-all duration-300 hover:border-surface-300 hover:bg-surface-50/40"
                 >
                   <div className="space-y-4">
                     {/* Minimalist Apple İkon Kafesi */}
@@ -217,9 +217,9 @@ export default function EmailDashboard() {
                       <p className="mt-1.5 text-xs leading-relaxed text-surface-400">{card.description}</p>
                     </div>
                   </div>
-                  
+
                   {/* Kart Altı Statü ve İlerleme Okları */}
-                  <div className="flex items-center justify-between gap-2 text-11 font-semibold tracking-tight pt-1.5 border-t border-gray-50">
+                  <div className="flex items-center justify-between gap-2 text-11 font-semibold tracking-tight pt-1.5 border-t border-outline-subtle">
                     <span className="text-surface-400 font-medium">{card.stat}</span>
                     <span className="inline-flex items-center gap-0.5 text-surface-900 group-hover:text-surface-900">
                       <span>{copy.open}</span>
@@ -232,12 +232,12 @@ export default function EmailDashboard() {
           </div>
 
           {/* Sağ Sütun: Sistem Çalışma Rehberi */}
-          <aside className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
-            <div className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-11 font-bold text-emerald-700 shadow-sm">
+          <aside className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm space-y-4">
+            <div className="inline-flex items-center rounded-full bg-status-success-bg border border-status-success-border px-2.5 py-0.5 text-11 font-bold text-status-success-content shadow-sm">
               <ShieldCheck className="mr-1 h-3 w-3 stroke-[2.5]" />
               <span>{copy.setupTitle}</span>
             </div>
-            
+
             <div>
               <h2 className="text-sm font-bold tracking-tight text-surface-900">{copy.title}</h2>
               <p className="mt-1.5 text-xs leading-relaxed text-surface-500">{copy.setupBody}</p>
@@ -247,7 +247,7 @@ export default function EmailDashboard() {
             <div className="space-y-2 rounded-xl border border-surface-100 bg-surface-50/50 p-3.5 text-xs">
               <p className="font-semibold leading-relaxed text-surface-700 tracking-tight">{copy.eventsHint}</p>
               <div className="pt-1.5 space-y-2">
-                <Link href="/admin/events" className="w-full inline-flex min-h-[34px] items-center justify-center rounded-lg border border-surface-200 bg-white text-xs font-semibold text-surface-800 shadow-sm transition hover:bg-surface-50">
+                <Link href="/admin/events" className="w-full inline-flex min-h-[34px] items-center justify-center rounded-lg border border-surface-200 bg-raised text-xs font-semibold text-surface-800 shadow-sm transition hover:bg-surface-50">
                   {copy.goEvents}
                 </Link>
                 <Link href="/admin/email-analytics" className="w-full inline-flex min-h-[34px] items-center justify-center rounded-lg bg-surface-900 text-xs font-semibold text-white shadow-sm transition hover:bg-surface-800">

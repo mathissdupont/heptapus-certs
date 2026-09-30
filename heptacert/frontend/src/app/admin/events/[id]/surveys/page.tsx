@@ -180,9 +180,9 @@ export default function SurveysPage() {
     webhookInfo: isTr ? "Webhook Bağlantı Bilgisi" : "Webhook Connection Info",
     webhookDesc: isTr
       ? (endpoint: string) =>
-          `Harici sağlayıcınız her tamamlanan anketten sonra bu endpointi çağırmalı ve X-Webhook-Key header'ı ile anahtarı göndermeli.`
+ `Harici sağlayıcınız her tamamlanan anketten sonra bu endpointi çağırmalı ve X-Webhook-Key header'ı ile anahtarı göndermeli.`
       : (_: string) =>
-          "Your external provider must call this endpoint after each completed survey and send the key via the X-Webhook-Key header.",
+ "Your external provider must call this endpoint after each completed survey and send the key via the X-Webhook-Key header.",
     attendeeLinks: isTr ? "Katılımcı bağlantıları" : "Attendee Links",
     attendeeLinksDesc: isTr
       ? "Genel anket adresi sadece giriş noktasıdır. Form, yalnızca kişiye özel token ile açılır."
@@ -496,7 +496,7 @@ export default function SurveysPage() {
           <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
             <Link
               href={`/admin/events/${eventId}/certificates`}
-              className="inline-flex rounded-xl border border-surface-200 bg-white p-2.5 text-surface-700 shadow-card transition hover:border-surface-300 hover:text-surface-700"
+              className="inline-flex rounded-xl border border-surface-200 bg-raised p-2.5 text-surface-700 shadow-card transition hover:border-surface-300 hover:text-surface-700"
             >
               <ChevronLeft className="h-5 w-5" />
             </Link>
@@ -539,7 +539,7 @@ export default function SurveysPage() {
         ].map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.label} className="rounded-xl border border-surface-200 bg-white p-5 shadow-card">
+            <div key={item.label} className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-surface-500">{item.label}</p>
@@ -578,10 +578,10 @@ export default function SurveysPage() {
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4"
+          className="flex items-start gap-3 rounded-xl border border-status-danger-border bg-status-danger-bg p-4"
         >
-          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-          <p className="text-sm text-red-700">{error}</p>
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-status-danger-content" />
+          <p className="text-sm text-status-danger-content">{error}</p>
         </motion.div>
       )}
 
@@ -589,10 +589,10 @@ export default function SurveysPage() {
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4"
+          className="flex items-start gap-3 rounded-xl border border-status-success-border bg-status-success-bg p-4"
         >
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-          <p className="text-sm text-emerald-700">{success}</p>
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-status-success-content" />
+          <p className="text-sm text-status-success-content">{success}</p>
         </motion.div>
       )}
 
@@ -600,13 +600,13 @@ export default function SurveysPage() {
         <div className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-[1.4fr,0.9fr]">
             <div className="space-y-6">
-              <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-card">
+              <div className="rounded-xl border border-surface-200 bg-raised p-6 shadow-card">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-semibold text-surface-900">{copy.generalSetup}</h2>
                     <p className="mt-1 text-sm text-surface-500">{copy.generalSetupDesc}</p>
                   </div>
-                  <div className={`rounded-full px-3 py-1 text-xs font-semibold ${isRequired ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-700"}`}>
+                  <div className={`rounded-full px-3 py-1 text-xs font-semibold ${isRequired ? "bg-status-warning-bg text-status-warning-content" : "bg-status-success-bg text-status-success-content"}`}>
                     {isRequired ? copy.required : copy.optional}
                   </div>
                 </div>
@@ -645,7 +645,7 @@ export default function SurveysPage() {
                       className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
                         surveyType === "disabled"
                           ? "bg-surface-900 text-white"
-                          : "border border-surface-200 bg-white text-surface-700 hover:bg-surface-100"
+                          : "border border-surface-200 bg-raised text-surface-700 hover:bg-surface-100"
                       }`}
                     >
                       {surveyType === "disabled" ? copy.surveyClosed : copy.closeSurvey}
@@ -666,7 +666,7 @@ export default function SurveysPage() {
                       className={`rounded-xl border p-4 text-left transition ${
                         surveyType === item.value
                           ? "border-surface-900 bg-surface-50 shadow-card"
-                          : "border-surface-200 bg-surface-50 hover:border-surface-300 hover:bg-white"
+                          : "border-surface-200 bg-surface-50 hover:border-surface-300 hover:bg-raised"
                       }`}
                     >
                       <div className="font-semibold text-surface-900">{item.title}</div>
@@ -677,7 +677,7 @@ export default function SurveysPage() {
               </div>
 
               {(surveyType === "builtin" || surveyType === "both") && (
-                <div className="space-y-4 rounded-xl border border-surface-200 bg-white p-6 shadow-card">
+                <div className="space-y-4 rounded-xl border border-surface-200 bg-raised p-6 shadow-card">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <h2 className="text-lg font-semibold text-surface-900">{copy.builtinQuestions}</h2>
@@ -704,12 +704,12 @@ export default function SurveysPage() {
                           <div className="flex items-start justify-between gap-4">
                             <div className="space-y-3">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-surface-600">#{question.id}</span>
+                                <span className="rounded-full bg-raised px-2.5 py-1 text-xs font-semibold text-surface-600">#{question.id}</span>
                                 <span className="rounded-full bg-surface-100 px-2.5 py-1 text-xs font-semibold text-surface-700">{getQuestionTypeLabel(question.type)}</span>
                                 {question.required ? (
-                                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">{copy.required}</span>
+                                  <span className="rounded-full bg-status-warning-bg px-2.5 py-1 text-xs font-semibold text-status-warning-content">{copy.required}</span>
                                 ) : (
-                                  <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">{copy.optional}</span>
+                                  <span className="rounded-full bg-status-success-bg px-2.5 py-1 text-xs font-semibold text-status-success-content">{copy.optional}</span>
                                 )}
                               </div>
                               <div>
@@ -723,7 +723,7 @@ export default function SurveysPage() {
                             <button
                               type="button"
                               onClick={() => removeQuestion(index)}
-                              className="rounded-xl p-2 text-red-600 transition hover:bg-red-50"
+                              className="rounded-xl p-2 text-status-danger-content transition hover:bg-status-danger-bg"
                             >
                               <X className="h-4 w-4" />
                             </button>
@@ -773,7 +773,7 @@ export default function SurveysPage() {
                     {newQuestion.type === "multiple_choice" && (
                       <div className="mt-4">
                         <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.options}</label>
-                        <div className="rounded-xl border border-surface-200 bg-white p-4">
+                        <div className="rounded-xl border border-surface-200 bg-raised p-4">
                           <div className="flex gap-2">
                             <input
                               type="text"
@@ -791,7 +791,7 @@ export default function SurveysPage() {
                             <button
                               type="button"
                               onClick={addMultipleChoiceOption}
-                              className="inline-flex items-center gap-2 rounded-lg bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                              className="inline-flex items-center gap-2 rounded-lg bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-inverse-surface"
                             >
                               <Plus className="h-4 w-4" />
                               {copy.addOption}
@@ -813,7 +813,7 @@ export default function SurveysPage() {
                                   <button
                                     type="button"
                                     onClick={() => removeMultipleChoiceOption(option)}
-                                    className="rounded-full p-0.5 text-surface-400 transition hover:bg-white hover:text-rose-600"
+                                    className="rounded-full p-0.5 text-surface-400 transition hover:bg-raised hover:text-status-danger-content"
                                   >
                                     <X className="h-3.5 w-3.5" />
                                   </button>
@@ -850,13 +850,13 @@ export default function SurveysPage() {
 
             <div className="space-y-6">
               {(surveyType === "external" || surveyType === "both") && (
-                <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-card">
+                <div className="rounded-xl border border-surface-200 bg-raised p-6 shadow-card">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h2 className="text-lg font-semibold text-surface-900">{copy.externalProviderTitle}</h2>
                       <p className="mt-1 text-sm text-surface-500">{copy.externalProviderTitleDesc}</p>
                     </div>
-                    <div className="rounded-xl bg-amber-50 p-3 text-amber-600">
+                    <div className="rounded-xl bg-status-warning-bg p-3 text-status-warning-content">
                       <Link2 className="h-5 w-5" />
                     </div>
                   </div>
@@ -905,39 +905,39 @@ export default function SurveysPage() {
                       <ExternalLink className="h-4 w-4 text-surface-600" />
                       {copy.webhookInfo}
                     </div>
-                    <code className="mt-3 block rounded-xl bg-white p-3 text-xs text-surface-700 break-all">POST {webhookEndpoint}</code>
+                    <code className="mt-3 block rounded-xl bg-raised p-3 text-xs text-surface-700 break-all">POST {webhookEndpoint}</code>
                     <p className="mt-2 text-xs text-surface-500">{copy.webhookDesc(webhookEndpoint)}</p>
                   </div>
                 </div>
               )}
 
-              <div className="rounded-xl border border-surface-200 bg-white p-6 shadow-card">
+              <div className="rounded-xl border border-surface-200 bg-raised p-6 shadow-card">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-semibold text-surface-900">{copy.attendeeLinks}</h2>
                     <p className="mt-1 text-sm text-surface-500">{copy.attendeeLinksDesc}</p>
                   </div>
-                  <div className="rounded-xl bg-indigo-50 p-3 text-indigo-600">
+                  <div className="rounded-xl bg-status-info-bg p-3 text-status-info-content">
                     <Link2 className="h-5 w-5" />
                   </div>
                 </div>
 
                 {surveyType === "disabled" ? (
-                  <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-surface-50 px-4 py-6 text-sm text-surface-600">
+                  <div className="mt-5 rounded-xl border border-dashed border-outline-strong bg-surface-50 px-4 py-6 text-sm text-surface-600">
                     {copy.surveyClosedLinks}
                   </div>
                 ) : (
                   <>
                 <div className="mt-5 rounded-xl border border-surface-200 bg-surface-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.generalEntryAddress}</p>
-                  <code className="mt-3 block break-all rounded-xl bg-white p-3 text-xs text-surface-700">
+                  <code className="mt-3 block break-all rounded-xl bg-raised p-3 text-xs text-surface-700">
                     {surveyLandingUrl}
                   </code>
                   <div className="mt-3 flex flex-wrap gap-3">
                     <button
                       type="button"
                       onClick={() => copyText(surveyLandingUrl, copy.copyLinkSuccess)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
+                      className="inline-flex items-center gap-2 rounded-xl border border-surface-200 bg-raised px-4 py-2.5 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
                     >
                       <Copy className="h-4 w-4" />
                       {copy.copyLink}
@@ -952,7 +952,7 @@ export default function SurveysPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <div className="mt-4 rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3 text-sm text-status-warning-content">
                   {copy.personalLinkHint}
                 </div>
                   </>
@@ -961,19 +961,19 @@ export default function SurveysPage() {
               <div className="rounded-xl border border-surface-200 bg-surface-900 p-6 text-white shadow-card">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-slate-300">{copy.liveSummary}</p>
+                    <p className="text-sm font-medium text-content-muted">{copy.liveSummary}</p>
                     <h3 className="mt-2 text-xl font-semibold">{copy.flowReady}</h3>
-                    <p className="mt-2 text-sm text-slate-300">{copy.flowDesc(isRequired)}</p>
+                    <p className="mt-2 text-sm text-content-muted">{copy.flowDesc(isRequired)}</p>
                   </div>
-                  <div className="rounded-xl bg-white/10 p-3">
+                  <div className="rounded-xl bg-raised/10 p-3">
                     <BarChart3 className="h-5 w-5" />
                   </div>
                 </div>
                 <div className="mt-5 grid gap-3 text-sm text-surface-200">
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">{copy.modeLabel}: <span className="font-semibold">{getSurveyModeLabelFull()}</span></div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">{copy.questionCountLabel}: <span className="font-semibold">{builtinQuestionCount}</span></div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">{copy.webhookLabel}: <span className="font-semibold">{externalWebhookKey ? copy.webhookReady : surveyType === "builtin" ? copy.webhookNotNeeded : copy.webhookWillGenerate}</span></div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">{copy.builtinResponse}: <span className="font-semibold">{builtinResponseCount}</span> • {copy.externalResponse}: <span className="font-semibold">{externalResponseCount}</span></div>
+                  <div className="rounded-xl border border-white/10 bg-raised/5 px-4 py-3">{copy.modeLabel}: <span className="font-semibold">{getSurveyModeLabelFull()}</span></div>
+                  <div className="rounded-xl border border-white/10 bg-raised/5 px-4 py-3">{copy.questionCountLabel}: <span className="font-semibold">{builtinQuestionCount}</span></div>
+                  <div className="rounded-xl border border-white/10 bg-raised/5 px-4 py-3">{copy.webhookLabel}: <span className="font-semibold">{externalWebhookKey ? copy.webhookReady : surveyType === "builtin" ? copy.webhookNotNeeded : copy.webhookWillGenerate}</span></div>
+                  <div className="rounded-xl border border-white/10 bg-raised/5 px-4 py-3">{copy.builtinResponse}: <span className="font-semibold">{builtinResponseCount}</span> • {copy.externalResponse}: <span className="font-semibold">{externalResponseCount}</span></div>
                 </div>
               </div>
             </div>
@@ -995,21 +995,21 @@ export default function SurveysPage() {
       {activeTab === "responses" && (
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card">
+            <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card">
               <p className="text-sm font-medium text-surface-500">{copy.totalResponses}</p>
               <p className="mt-3 text-3xl font-semibold text-surface-900">{responses.length}</p>
             </div>
-            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card">
+            <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card">
               <p className="text-sm font-medium text-surface-500">{copy.completionRateLabel}</p>
               <p className="mt-3 text-3xl font-semibold text-surface-900">{isTr ? `%${completionRate}` : `${completionRate}%`}</p>
             </div>
-            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card">
+            <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card">
               <p className="text-sm font-medium text-surface-500">{copy.filterResult}</p>
               <p className="mt-3 text-3xl font-semibold text-surface-900">{filteredResponses.length}</p>
             </div>
           </div>
 
-          <div className="rounded-xl border border-surface-200 bg-white p-4 shadow-card">
+          <div className="rounded-xl border border-surface-200 bg-raised p-4 shadow-card">
             <div className="grid gap-3 md:grid-cols-[1fr,200px]">
               <label className="relative block">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
@@ -1034,7 +1034,7 @@ export default function SurveysPage() {
           </div>
 
           {filteredResponses.length === 0 ? (
-            <div className="rounded-xl border border-surface-200 bg-white px-6 py-12 text-center shadow-card">
+            <div className="rounded-xl border border-surface-200 bg-raised px-6 py-12 text-center shadow-card">
               <FileText className="mx-auto mb-4 h-16 w-16 text-surface-300" />
               <p className="text-base font-semibold text-surface-800">{copy.noResponses}</p>
               <p className="mt-2 text-sm text-surface-500">{copy.noResponsesHint}</p>
@@ -1048,7 +1048,7 @@ export default function SurveysPage() {
                     key={response.id}
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-surface-200 bg-white p-5 shadow-card"
+                    className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card"
                   >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div>
@@ -1056,7 +1056,7 @@ export default function SurveysPage() {
                           <h3 className="text-lg font-semibold text-surface-900">
                             {response.attendee_name || copy.attendeeLabel(response.attendee_id)}
                           </h3>
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${response.survey_type === "external" ? "bg-amber-100 text-amber-800" : "bg-surface-100 text-surface-700"}`}>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${response.survey_type === "external" ? "bg-status-warning-bg text-status-warning-content" : "bg-surface-100 text-surface-700"}`}>
                             {response.survey_type === "external" ? copy.external : copy.builtin}
                           </span>
                         </div>
@@ -1066,7 +1066,7 @@ export default function SurveysPage() {
                           <p className="mt-2 text-xs font-medium text-surface-500">{copy.externalResponseId}: <span className="font-mono text-surface-700">{response.external_response_id}</span></p>
                         ) : null}
                       </div>
-                      <div className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
+                      <div className="rounded-full bg-status-success-bg px-3 py-1 text-sm font-semibold text-status-success-content">
                         {copy.completedBadge}
                       </div>
                     </div>

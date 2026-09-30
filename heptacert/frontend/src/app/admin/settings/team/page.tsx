@@ -27,11 +27,11 @@ const ROLE_OPTIONS = [
 ];
 
 const ROLE_COLORS: Record<string, string> = {
-  instructor: "bg-indigo-100 text-indigo-700",
-  teaching_assistant: "bg-purple-100 text-purple-700",
-  content_editor: "bg-blue-100 text-blue-700",
-  department_admin: "bg-amber-100 text-amber-700",
-  viewer: "bg-gray-100 text-gray-600",
+  instructor: "bg-status-info-bg text-status-info-content",
+  teaching_assistant: "bg-status-info-bg text-status-info-content",
+  content_editor: "bg-status-info-bg text-status-info-content",
+  department_admin: "bg-status-warning-bg text-status-warning-content",
+  viewer: "bg-sunken text-content-secondary",
 };
 
 const ROLE_LABELS: Record<string, string> = Object.fromEntries(ROLE_OPTIONS.map((r) => [r.value, r.label]));
@@ -121,7 +121,7 @@ export default function TeamPage() {
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       {toast && (
         <div
-          className={`fixed top-4 right-4 z-50 rounded-xl px-4 py-2.5 text-sm text-white shadow-lg ${toast.ok ? "bg-gray-900" : "bg-red-600"}`}
+          className={`fixed top-4 right-4 z-50 rounded-xl px-4 py-2.5 text-sm text-white shadow-lg ${toast.ok ? "bg-inverse-surface" : "bg-red-600"}`}
         >
           {toast.msg}
         </div>
@@ -129,11 +129,11 @@ export default function TeamPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-indigo-600" />
+          <h1 className="text-xl font-bold text-content-primary flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-status-info-content" />
             Yönetici Ekibi
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-content-muted mt-1">
             Admin paneline erişebilen yönetici ve operasyon personelini davet edin, rollerini yönetin.
           </p>
         </div>
@@ -149,29 +149,29 @@ export default function TeamPage() {
       {/* Invite modal */}
       {showInvite && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 space-y-4">
+          <div className="w-full max-w-md bg-raised rounded-2xl shadow-xl p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">Personel Davet Et</h2>
-              <button onClick={() => setShowInvite(false)} className="text-gray-400 hover:text-gray-600">
+              <h2 className="font-semibold text-content-primary">Personel Davet Et</h2>
+              <button onClick={() => setShowInvite(false)} className="text-content-muted hover:text-content-secondary">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">E-posta *</label>
+                <label className="block text-xs font-medium text-content-secondary mb-1">E-posta *</label>
                 <input
                   type="email"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full border border-outline-strong rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                   placeholder="personel@ornek.com"
                   value={form.email}
                   onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Rol</label>
+                <label className="block text-xs font-medium text-content-secondary mb-1">Rol</label>
                 <select
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                  className="w-full border border-outline-strong rounded-lg px-3 py-2 text-sm focus:outline-none"
                   value={form.role}
                   onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
                 >
@@ -181,18 +181,18 @@ export default function TeamPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Ad Soyad (opsiyonel)</label>
+                <label className="block text-xs font-medium text-content-secondary mb-1">Ad Soyad (opsiyonel)</label>
                 <input
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                  className="w-full border border-outline-strong rounded-lg px-3 py-2 text-sm focus:outline-none"
                   placeholder="Ad Soyad"
                   value={form.display_name}
                   onChange={(e) => setForm((p) => ({ ...p, display_name: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Departman (opsiyonel)</label>
+                <label className="block text-xs font-medium text-content-secondary mb-1">Departman (opsiyonel)</label>
                 <input
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                  className="w-full border border-outline-strong rounded-lg px-3 py-2 text-sm focus:outline-none"
                   placeholder="Bilgi İşlem, Pazarlama..."
                   value={form.department}
                   onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}
@@ -201,7 +201,7 @@ export default function TeamPage() {
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <button onClick={() => setShowInvite(false)} className="text-sm text-gray-600 px-4 py-2">
+              <button onClick={() => setShowInvite(false)} className="text-sm text-content-secondary px-4 py-2">
                 İptal
               </button>
               <button
@@ -220,14 +220,14 @@ export default function TeamPage() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+          <Loader2 className="w-5 h-5 animate-spin text-status-info-content" />
         </div>
       ) : (
         <div className="space-y-6">
           {/* Active */}
           {active.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              <h2 className="text-sm font-semibold text-content-muted uppercase tracking-wide mb-3">
                 Aktif Üyeler ({active.length})
               </h2>
               <div className="space-y-2">
@@ -251,7 +251,7 @@ export default function TeamPage() {
           {/* Pending invites */}
           {pending.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              <h2 className="text-sm font-semibold text-content-muted uppercase tracking-wide mb-3">
                 Bekleyen Davetler ({pending.length})
               </h2>
               <div className="space-y-2">
@@ -275,7 +275,7 @@ export default function TeamPage() {
           {/* Inactive */}
           {inactive.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              <h2 className="text-sm font-semibold text-content-muted uppercase tracking-wide mb-3">
                 Pasif Üyeler ({inactive.length})
               </h2>
               <div className="space-y-2 opacity-60">
@@ -297,10 +297,10 @@ export default function TeamPage() {
           )}
 
           {staff.length === 0 && (
-            <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-              <ShieldCheck className="w-8 h-8 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">Henüz ekip üyesi yok.</p>
-              <p className="text-sm text-gray-400 mt-1">Davet et butonuna tıklayarak personel ekleyin.</p>
+            <div className="text-center py-16 bg-raised rounded-xl border border-outline-subtle">
+              <ShieldCheck className="w-8 h-8 text-content-muted mx-auto mb-3" />
+              <p className="text-content-muted">Henüz ekip üyesi yok.</p>
+              <p className="text-sm text-content-muted mt-1">Davet et butonuna tıklayarak personel ekleyin.</p>
             </div>
           )}
         </div>
@@ -331,18 +331,18 @@ function StaffRow({
   const isEditing = editId === member.id;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
+    <div className="bg-raised rounded-xl border border-outline-subtle px-4 py-3 flex items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-sm font-bold text-indigo-700">
+        <div className="w-9 h-9 rounded-full bg-status-info-bg flex items-center justify-center flex-shrink-0 text-sm font-bold text-status-info-content">
           {(member.display_name || member.email)[0].toUpperCase()}
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">
+          <p className="text-sm font-medium text-content-primary truncate">
             {member.display_name || member.email}
           </p>
-          <p className="text-xs text-gray-400 truncate">{member.email}</p>
+          <p className="text-xs text-content-muted truncate">{member.email}</p>
           {member.department && (
-            <p className="text-xs text-gray-400">{member.department}</p>
+            <p className="text-xs text-content-muted">{member.department}</p>
           )}
         </div>
       </div>
@@ -350,9 +350,9 @@ function StaffRow({
       <div className="flex items-center gap-2 flex-shrink-0">
         {/* Status badge */}
         {!member.joined ? (
-          <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">Davet Bekliyor</span>
+          <span className="text-xs px-2 py-1 rounded-full bg-status-warning-bg text-status-warning-content">Davet Bekliyor</span>
         ) : (
-          <span className={`text-xs px-2 py-1 rounded-full font-medium ${ROLE_COLORS[member.role] ?? "bg-gray-100 text-gray-600"}`}>
+          <span className={`text-xs px-2 py-1 rounded-full font-medium ${ROLE_COLORS[member.role] ?? "bg-sunken text-content-secondary"}`}>
             {ROLE_LABELS[member.role] ?? member.role}
           </span>
         )}
@@ -361,7 +361,7 @@ function StaffRow({
         {isEditing ? (
           <div className="flex items-center gap-1">
             <select
-              className="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:outline-none"
+              className="text-xs border border-outline-strong rounded-lg px-2 py-1 focus:outline-none"
               value={editRole}
               onChange={(e) => setEditRole(e.target.value)}
             >
@@ -377,7 +377,7 @@ function StaffRow({
             </button>
             <button
               onClick={() => setEditId(null)}
-              className="p-1 rounded text-gray-400 hover:text-gray-600"
+              className="p-1 rounded text-content-muted hover:text-content-secondary"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -385,7 +385,7 @@ function StaffRow({
         ) : (
           <button
             onClick={() => { setEditId(member.id); setEditRole(member.role); }}
-            className="text-xs text-indigo-600 hover:underline"
+            className="text-xs text-status-info-content hover:underline"
           >
             Rolü Değiştir
           </button>
@@ -394,19 +394,19 @@ function StaffRow({
         {/* Toggle active */}
         <button
           onClick={() => onToggleActive(member)}
-          className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+          className="p-1.5 rounded hover:bg-sunken text-content-muted hover:text-content-secondary"
           title={member.is_active ? "Pasife Al" : "Aktife Al"}
         >
           {member.is_active
             ? <UserX className="w-4 h-4" />
-            : <UserCheck className="w-4 h-4 text-green-600" />
+            : <UserCheck className="w-4 h-4 text-status-success-content" />
           }
         </button>
 
         {/* Remove */}
         <button
           onClick={() => onRemove(member.id)}
-          className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"
+          className="p-1.5 rounded hover:bg-status-danger-bg text-content-muted hover:text-status-danger-content"
         >
           <Trash2 className="w-4 h-4" />
         </button>

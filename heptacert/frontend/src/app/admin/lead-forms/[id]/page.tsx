@@ -265,7 +265,7 @@ export default function LeadFormBuilderPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+        <Loader2 className="h-5 w-5 animate-spin text-content-muted" />
       </div>
     );
   }
@@ -284,25 +284,25 @@ export default function LeadFormBuilderPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/admin/lead-forms" className="text-gray-400 hover:text-gray-600">
+        <Link href="/admin/lead-forms" className="text-content-muted hover:text-content-secondary">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-xl font-semibold text-gray-900 flex-1 truncate">{form?.name}</h1>
+        <h1 className="text-xl font-semibold text-content-primary flex-1 truncate">{form?.name}</h1>
         <span className={`text-xs rounded-full px-2.5 py-1 font-medium ${
-          active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+          active ? "bg-status-success-bg text-status-success-content" : "bg-sunken text-content-muted"
         }`}>
           {active ? copy.active : copy.passive}
         </span>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
+      <div className="flex gap-1 rounded-xl bg-sunken p-1 w-fit">
         {(["builder", "submissions", "embed"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              tab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
+              tab === t ? "bg-raised shadow text-content-primary" : "text-content-muted hover:text-content-secondary"
             }`}
           >
             {t === "builder"
@@ -318,21 +318,21 @@ export default function LeadFormBuilderPage() {
       {tab === "builder" && (
         <div className="space-y-5">
           {/* Meta card */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-            <h2 className="text-sm font-medium text-gray-700">{copy.formSettings}</h2>
+          <div className="rounded-2xl border border-outline-subtle bg-raised p-6 shadow-sm space-y-4">
+            <h2 className="text-sm font-medium text-content-secondary">{copy.formSettings}</h2>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-500 mb-1">{copy.labelFormName}</label>
+                <label className="block text-xs font-medium text-content-muted mb-1">{copy.labelFormName}</label>
                 <input
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{copy.labelDestination}</label>
+                <label className="block text-xs font-medium text-content-muted mb-1">{copy.labelDestination}</label>
                 <select
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                 >
@@ -341,25 +341,25 @@ export default function LeadFormBuilderPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{copy.labelAutoTag}</label>
+                <label className="block text-xs font-medium text-content-muted mb-1">{copy.labelAutoTag}</label>
                 <input
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                   placeholder={copy.placeholderAutoTag}
                   value={autoTag}
                   onChange={(e) => setAutoTag(e.target.value)}
                 />
               </div>
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-500 mb-1">{copy.labelRedirectUrl}</label>
+                <label className="block text-xs font-medium text-content-muted mb-1">{copy.labelRedirectUrl}</label>
                 <input
                   type="url"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                   placeholder={copy.placeholderRedirectUrl}
                   value={redirectUrl}
                   onChange={(e) => setRedirectUrl(e.target.value)}
                 />
               </div>
-              <label className="col-span-2 flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <label className="col-span-2 flex items-center gap-2 text-sm text-content-secondary cursor-pointer">
                 <input
                   type="checkbox"
                   className="rounded"
@@ -372,28 +372,28 @@ export default function LeadFormBuilderPage() {
           </div>
 
           {/* Fields card */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-outline-subtle bg-raised p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium text-gray-700">{copy.fieldsTitle(fields.length)}</h2>
+              <h2 className="text-sm font-medium text-content-secondary">{copy.fieldsTitle(fields.length)}</h2>
             </div>
 
             {fields.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-4">{copy.noFields}</p>
+              <p className="text-sm text-content-muted text-center py-4">{copy.noFields}</p>
             )}
 
             <div className="space-y-4">
               {fields.map((field, idx) => (
-                <div key={idx} className="rounded-xl border border-gray-100 bg-gray-50 p-4 space-y-3">
+                <div key={idx} className="rounded-xl border border-outline-subtle bg-canvas p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-gray-400">{copy.fieldN(idx + 1)}</span>
+                    <span className="text-xs font-bold text-content-muted">{copy.fieldN(idx + 1)}</span>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => moveField(idx, -1)} disabled={idx === 0} className="p-1 text-gray-300 hover:text-gray-600 disabled:opacity-30">
+                      <button onClick={() => moveField(idx, -1)} disabled={idx === 0} className="p-1 text-content-muted hover:text-content-secondary disabled:opacity-30">
                         <ChevronUp className="h-4 w-4" />
                       </button>
-                      <button onClick={() => moveField(idx, 1)} disabled={idx === fields.length - 1} className="p-1 text-gray-300 hover:text-gray-600 disabled:opacity-30">
+                      <button onClick={() => moveField(idx, 1)} disabled={idx === fields.length - 1} className="p-1 text-content-muted hover:text-content-secondary disabled:opacity-30">
                         <ChevronDown className="h-4 w-4" />
                       </button>
-                      <button onClick={() => removeField(idx)} className="p-1 text-red-300 hover:text-red-600">
+                      <button onClick={() => removeField(idx)} className="p-1 text-status-danger-content hover:text-status-danger-content">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -401,27 +401,27 @@ export default function LeadFormBuilderPage() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">{copy.labelFieldLabel}</label>
+                      <label className="block text-xs font-medium text-content-muted mb-1">{copy.labelFieldLabel}</label>
                       <input
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-lg border border-outline-subtle bg-raised px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                         placeholder={copy.placeholderFieldLabel}
                         value={field.label}
                         onChange={(e) => updateField(idx, "label", e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">{copy.labelFieldName}</label>
+                      <label className="block text-xs font-medium text-content-muted mb-1">{copy.labelFieldName}</label>
                       <input
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-mono text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-lg border border-outline-subtle bg-raised px-3 py-1.5 text-sm font-mono text-content-muted focus:outline-none focus:ring-2 focus:ring-status-info-border"
                         placeholder={copy.placeholderFieldName}
                         value={field.name}
                         onChange={(e) => updateField(idx, "name", e.target.value)}
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">{copy.labelFieldType}</label>
+                      <label className="block text-xs font-medium text-content-muted mb-1">{copy.labelFieldType}</label>
                       <select
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-lg border border-outline-subtle bg-raised px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                         value={field.field_type}
                         onChange={(e) => updateField(idx, "field_type", e.target.value as any)}
                       >
@@ -429,18 +429,18 @@ export default function LeadFormBuilderPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-500 mb-1">{copy.labelPlaceholder}</label>
+                      <label className="block text-xs font-medium text-content-muted mb-1">{copy.labelPlaceholder}</label>
                       <input
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-lg border border-outline-subtle bg-raised px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                         value={field.placeholder ?? ""}
                         onChange={(e) => updateField(idx, "placeholder", e.target.value)}
                       />
                     </div>
                     {field.field_type === "dropdown" && (
                       <div className="col-span-2">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">{copy.labelOptions}</label>
+                        <label className="block text-xs font-medium text-content-muted mb-1">{copy.labelOptions}</label>
                         <input
-                          className="w-full rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full rounded-lg border border-outline-subtle bg-raised px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                           placeholder={copy.placeholderOptions}
                           value={field.options.join(", ")}
                           onChange={(e) =>
@@ -449,7 +449,7 @@ export default function LeadFormBuilderPage() {
                         />
                       </div>
                     )}
-                    <label className="col-span-2 flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                    <label className="col-span-2 flex items-center gap-2 text-xs text-content-secondary cursor-pointer">
                       <input
                         type="checkbox"
                         className="rounded"
@@ -465,7 +465,7 @@ export default function LeadFormBuilderPage() {
 
             <button
               onClick={addField}
-              className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-outline-strong bg-canvas px-4 py-3 text-sm text-content-muted hover:border-status-info-border hover:text-status-info-content hover:bg-status-info-bg transition"
             >
               <Plus className="h-4 w-4" /> {copy.addField}
             </button>
@@ -488,33 +488,33 @@ export default function LeadFormBuilderPage() {
       {tab === "submissions" && (
         <div className="space-y-4">
           {subLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
+            <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-content-muted" /></div>
           ) : submissions.length === 0 ? (
-            <div className="text-center py-16 text-gray-400 text-sm">
+            <div className="text-center py-16 text-content-muted text-sm">
               {copy.noSubmissions}
             </div>
           ) : (
-            <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-outline-subtle bg-raised shadow-sm overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-100">
+                <thead className="bg-canvas border-b border-outline-subtle">
                   <tr>
                     {subFields.map((f) => (
-                      <th key={f.name} className="text-left px-4 py-3 text-xs font-medium text-gray-500">
+                      <th key={f.name} className="text-left px-4 py-3 text-xs font-medium text-content-muted">
                         {f.label}
                       </th>
                     ))}
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">{copy.colDate}</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-content-muted">{copy.colDate}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-outline-subtle">
                   {submissions.map((sub) => (
-                    <tr key={sub.id} className="hover:bg-gray-50">
+                    <tr key={sub.id} className="hover:bg-canvas">
                       {subFields.map((f) => (
-                        <td key={f.name} className="px-4 py-3 text-gray-700">
+                        <td key={f.name} className="px-4 py-3 text-content-secondary">
                           {sub.data_json[f.name] ?? "—"}
                         </td>
                       ))}
-                      <td className="px-4 py-3 text-gray-400 text-xs">
+                      <td className="px-4 py-3 text-content-muted text-xs">
                         {new Date(sub.submitted_at).toLocaleString(localeTag(lang), { dateStyle: "short", timeStyle: "short" })}
                       </td>
                     </tr>
@@ -529,21 +529,21 @@ export default function LeadFormBuilderPage() {
       {/* ── Embed Tab ── */}
       {tab === "embed" && (
         <div className="space-y-5">
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-            <h2 className="text-sm font-medium text-gray-700">{copy.embedTitle}</h2>
+          <div className="rounded-2xl border border-outline-subtle bg-raised p-6 shadow-sm space-y-4">
+            <h2 className="text-sm font-medium text-content-secondary">{copy.embedTitle}</h2>
 
             {/* Public link */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-500">{copy.labelStandardLink}</label>
+              <label className="text-xs font-medium text-content-muted">{copy.labelStandardLink}</label>
               <div className="flex gap-2">
                 <input
                   readOnly
-                  className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-mono text-gray-600"
+                  className="flex-1 rounded-xl border border-outline-subtle bg-canvas px-3 py-2 text-sm font-mono text-content-secondary"
                   value={getPublicUrl()}
                 />
                 <button
                   onClick={copyLink}
-                  className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-600 hover:bg-gray-50"
+                  className="flex items-center gap-1.5 rounded-xl border border-outline-subtle px-3 py-2 text-xs text-content-secondary hover:bg-canvas"
                 >
                   <Copy className="h-3.5 w-3.5" /> {copy.btnCopy}
                 </button>
@@ -551,7 +551,7 @@ export default function LeadFormBuilderPage() {
                   href={`/public/forms/${form?.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-600 hover:bg-gray-50"
+                  className="flex items-center gap-1.5 rounded-xl border border-outline-subtle px-3 py-2 text-xs text-content-secondary hover:bg-canvas"
                 >
                   <ExternalLink className="h-3.5 w-3.5" /> {copy.btnOpen}
                 </a>
@@ -560,13 +560,13 @@ export default function LeadFormBuilderPage() {
 
             {/* Embed code */}
             <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-500">{copy.labelEmbedCode}</label>
-              <pre className="rounded-xl bg-gray-900 text-green-400 text-xs p-4 overflow-x-auto whitespace-pre-wrap font-mono">
+              <label className="text-xs font-medium text-content-muted">{copy.labelEmbedCode}</label>
+              <pre className="rounded-xl bg-inverse-surface text-status-success-content text-xs p-4 overflow-x-auto whitespace-pre-wrap font-mono">
                 {`<iframe\n  src="${getPublicUrl()}"\n  width="100%"\n  height="500"\n  frameborder="0"\n  style="border-radius:12px;border:none"\n></iframe>`}
               </pre>
               <button
                 onClick={copyEmbed}
-                className="flex items-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-600 hover:bg-gray-50"
+                className="flex items-center gap-1.5 rounded-xl border border-outline-subtle px-3 py-2 text-xs text-content-secondary hover:bg-canvas"
               >
                 <Copy className="h-3.5 w-3.5" /> {copy.btnCopyEmbed}
               </button>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { pickLang } from "@/lib/pickLang";
 import { localeTag } from "@/lib/localeTag";
@@ -56,16 +56,16 @@ type EventHealthOut = {
 };
 
 function healthTone(status: EventHealthCheck["status"]) {
-  if (status === "ok") return "border-emerald-100 bg-emerald-50/30 text-emerald-700";
-  if (status === "warning") return "border-amber-100 bg-amber-50/30 text-amber-700";
-  if (status === "error") return "border-red-100 bg-red-50/30 text-red-600";
+  if (status === "ok") return "border-status-success-border bg-status-success-bg/30 text-status-success-content";
+  if (status === "warning") return "border-status-warning-border bg-status-warning-bg/30 text-status-warning-content";
+  if (status === "error") return "border-status-danger-border bg-status-danger-bg/30 text-status-danger-content";
   return "border-surface-150 bg-surface-50 text-surface-500";
 }
 
 function getHealthIcon(status: EventHealthCheck["status"]) {
-  if (status === "ok") return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 stroke-[2.5]" />;
-  if (status === "warning") return <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500 stroke-[2]" />;
-  if (status === "error") return <XCircle className="h-4 w-4 shrink-0 text-red-500 stroke-[2]" />;
+  if (status === "ok") return <CheckCircle2 className="h-4 w-4 shrink-0 text-status-success-content stroke-[2.5]" />;
+  if (status === "warning") return <AlertTriangle className="h-4 w-4 shrink-0 text-status-warning-content stroke-[2]" />;
+  if (status === "error") return <XCircle className="h-4 w-4 shrink-0 text-status-danger-content stroke-[2]" />;
   return <Activity className="h-4 w-4 shrink-0 text-surface-400 stroke-[1.8]" />;
 }
 
@@ -269,15 +269,15 @@ export default function EventIndexPage() {
 
   return (
     <div className="w-full flex flex-col gap-6 pb-16 antialiased text-surface-900">
-      
+
       {/* 1. ANA ETKİNLİK BAŞLIK KARTI */}
-      <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm">
+      <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 space-y-1.5 flex-1">
             <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{copy.eyebrow}</p>
             <h1 className="text-xl font-bold tracking-tight text-surface-900 sm:text-2xl">{event.name}</h1>
             <p className="max-w-2xl text-xs leading-relaxed text-surface-400 font-medium">{copy.description}</p>
-            
+
             <div className="pt-2 flex flex-wrap gap-1.5 text-11 font-bold text-surface-500">
               {event.event_date && (
                 <span className="inline-flex items-center gap-1 rounded-md border border-surface-100 bg-surface-50 px-2.5 py-0.5 shadow-sm font-mono uppercase">
@@ -296,20 +296,20 @@ export default function EventIndexPage() {
           <div className="w-full rounded-xl border border-surface-200/80 bg-surface-50/50 p-4 lg:w-[320px] shrink-0">
             <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{copy.registration}</p>
             <p className="mt-1.5 break-all font-mono text-11 font-medium text-surface-700 select-all tracking-tight">{registrationUrl}</p>
-            
+
             <div className="mt-4 flex flex-col gap-1.5 sm:flex-row lg:flex-col w-full">
-              <button 
-                type="button" 
-                onClick={copyRegistrationLink} 
-                className="flex-1 inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 active:scale-[0.98]"
+              <button
+                type="button"
+                onClick={copyRegistrationLink}
+                className="flex-1 inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-raised text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 active:scale-[0.98]"
               >
                 <Copy className="h-3.5 w-3.5 text-surface-400 stroke-[2]" />
                 <span>{copied ? copy.copied : copy.copyLink}</span>
               </button>
-              <a 
-                href={registrationUrl} 
-                target="_blank" 
-                rel="noreferrer" 
+              <a
+                href={registrationUrl}
+                target="_blank"
+                rel="noreferrer"
                 className="flex-1 inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 text-xs font-semibold text-white shadow-sm transition hover:bg-surface-800 active:scale-[0.98] text-center"
               >
                 <ExternalLink className="h-3.5 w-3.5 text-surface-400 stroke-[2.5]" />
@@ -324,9 +324,9 @@ export default function EventIndexPage() {
       {health && (
         <section className="grid gap-4 xl:grid-cols-[340px_1fr]">
           {/* Sol Panel: Operasyon Başlığı ve Hızlı Durum Matrisi */}
-          <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm flex flex-col justify-between">
+          <div className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm flex flex-col justify-between">
             <div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600 shadow-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-status-success-border bg-status-success-bg text-status-success-content shadow-sm">
                 <Activity className="h-4 w-4 stroke-[2]" />
               </div>
               <h2 className="mt-3.5 text-sm font-bold tracking-tight text-surface-900">
@@ -338,7 +338,7 @@ export default function EventIndexPage() {
                   : "Monitor attendance, ticket check-ins, and credential matrices."}
               </p>
             </div>
-            
+
             {/* Küçük Bilgi Matrisi */}
             <div className="mt-5 grid grid-cols-2 gap-2.5">
               {[
@@ -356,7 +356,7 @@ export default function EventIndexPage() {
           </div>
 
           {/* Sağ Panel: Canlı Sistem Sağlık Kontrolleri Listesi */}
-          <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm flex flex-col justify-center">
+          <div className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm flex flex-col justify-center">
             <div className="grid gap-2.5 sm:grid-cols-2">
               {health.checks.map((item) => (
                 <div key={item.key} className={`rounded-xl border p-3.5 transition-colors ${healthTone(item.status)}`}>
@@ -368,8 +368,8 @@ export default function EventIndexPage() {
                       </h3>
                       <p className="text-11 font-medium text-surface-400 leading-normal line-clamp-2">{item.detail}</p>
                     </div>
-                    
-                    <span className="shrink-0 inline-flex rounded-md border border-white/60 bg-white/50 px-1.5 py-0.5 text-11 font-bold uppercase tracking-wider text-surface-500 shadow-sm">
+
+                    <span className="shrink-0 inline-flex rounded-md border border-white/60 bg-raised/50 px-1.5 py-0.5 text-11 font-bold uppercase tracking-wider text-surface-500 shadow-sm">
                       {item.status === "ok"
                         ? lang === "tr" ? "Sağlıklı" : "Healthy"
                         : item.status === "warning"
@@ -392,11 +392,11 @@ export default function EventIndexPage() {
         <EventSetupChecklist event={event} overview={health?.overview} />
 
         {/* Sağ Sütun: Modül Kısayol Kartları Havuzu */}
-        <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm flex flex-col">
+        <div className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm flex flex-col">
           <div className="mb-4 border-b border-surface-100 pb-2.5">
             <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.modules}</h2>
           </div>
-          
+
           <div className="grid gap-3 sm:grid-cols-2">
             {modules.map((item) => {
               const Icon = item.icon;
@@ -404,7 +404,7 @@ export default function EventIndexPage() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="group flex flex-col justify-between gap-4 rounded-xl border border-surface-100 bg-white p-4 shadow-sm transition-all duration-300 hover:border-surface-200 hover:bg-surface-50/40"
+                  className="group flex flex-col justify-between gap-4 rounded-xl border border-surface-100 bg-raised p-4 shadow-sm transition-all duration-300 hover:border-surface-200 hover:bg-surface-50/40"
                 >
                   <div className="space-y-3">
                     <div className={`flex h-9 w-9 items-center justify-center rounded-xl border shadow-sm group-hover:scale-105 transition-transform ${item.tone}`}>
@@ -415,7 +415,7 @@ export default function EventIndexPage() {
                       <p className="text-11 leading-relaxed text-surface-400 line-clamp-2">{item.body}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-end pt-1">
                     <ArrowRight className="h-3.5 w-3.5 text-surface-300 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-surface-600" />
                   </div>
@@ -428,7 +428,7 @@ export default function EventIndexPage() {
 
       {/* 4. DİNAMİK EKİP AKTİVİTE ZAMAN AKIŞI */}
       <EventActivityTimeline eventId={event.id} />
-      
+
     </div>
   );
 }

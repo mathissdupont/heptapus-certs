@@ -20,21 +20,21 @@ import {
 import { useI18n } from "@/lib/i18n";
 
 const DEAL_STAGES = [
-  { value: "lead", label: "Lead", color: "bg-gray-100 text-gray-700" },
-  { value: "qualified", label: "Nitelikli", color: "bg-blue-100 text-blue-700" },
-  { value: "proposal", label: "Teklif", color: "bg-amber-100 text-amber-700" },
-  { value: "negotiation", label: "Müzakere", color: "bg-orange-100 text-orange-700" },
-  { value: "won", label: "Kazanıldı", color: "bg-green-100 text-green-700" },
-  { value: "lost", label: "Kaybedildi", color: "bg-red-100 text-red-700" },
+  { value: "lead", label: "Lead", color: "bg-sunken text-content-secondary" },
+  { value: "qualified", label: "Nitelikli", color: "bg-status-info-bg text-status-info-content" },
+  { value: "proposal", label: "Teklif", color: "bg-status-warning-bg text-status-warning-content" },
+  { value: "negotiation", label: "Müzakere", color: "bg-status-warning-bg text-status-warning-content" },
+  { value: "won", label: "Kazanıldı", color: "bg-status-success-bg text-status-success-content" },
+  { value: "lost", label: "Kaybedildi", color: "bg-status-danger-bg text-status-danger-content" },
 ];
 
 const DEAL_STAGES_EN = [
-  { value: "lead", label: "Lead", color: "bg-gray-100 text-gray-700" },
-  { value: "qualified", label: "Qualified", color: "bg-blue-100 text-blue-700" },
-  { value: "proposal", label: "Proposal", color: "bg-amber-100 text-amber-700" },
-  { value: "negotiation", label: "Negotiation", color: "bg-orange-100 text-orange-700" },
-  { value: "won", label: "Won", color: "bg-green-100 text-green-700" },
-  { value: "lost", label: "Lost", color: "bg-red-100 text-red-700" },
+  { value: "lead", label: "Lead", color: "bg-sunken text-content-secondary" },
+  { value: "qualified", label: "Qualified", color: "bg-status-info-bg text-status-info-content" },
+  { value: "proposal", label: "Proposal", color: "bg-status-warning-bg text-status-warning-content" },
+  { value: "negotiation", label: "Negotiation", color: "bg-status-warning-bg text-status-warning-content" },
+  { value: "won", label: "Won", color: "bg-status-success-bg text-status-success-content" },
+  { value: "lost", label: "Lost", color: "bg-status-danger-bg text-status-danger-content" },
 ];
 
 const ACTIVITY_TYPES = [
@@ -54,13 +54,13 @@ const ACTIVITY_TYPES_EN = [
 ];
 
 const INDUSTRY_OPTIONS_TR = [
-  "Teknoloji", "Finans", "Sağlık", "Eğitim", "Üretim",
-  "Perakende", "İnşaat", "Lojistik", "Danışmanlık", "Diğer",
+ "Teknoloji", "Finans", "Sağlık", "Eğitim", "Üretim",
+ "Perakende", "İnşaat", "Lojistik", "Danışmanlık", "Diğer",
 ];
 
 const INDUSTRY_OPTIONS_EN = [
-  "Technology", "Finance", "Healthcare", "Education", "Manufacturing",
-  "Retail", "Construction", "Logistics", "Consulting", "Other",
+ "Technology", "Finance", "Healthcare", "Education", "Manufacturing",
+ "Retail", "Construction", "Logistics", "Consulting", "Other",
 ];
 
 const SIZE_OPTIONS = [
@@ -424,7 +424,7 @@ export default function CrmAccountDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+        <Loader2 className="h-5 w-5 animate-spin text-content-muted" />
       </div>
     );
   }
@@ -443,31 +443,31 @@ export default function CrmAccountDetailPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/admin/crm/accounts" className="text-gray-400 hover:text-gray-600">
+        <Link href="/admin/crm/accounts" className="text-content-muted hover:text-content-secondary">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-sm font-bold text-indigo-700">
+        <div className="w-9 h-9 rounded-xl bg-status-info-bg flex items-center justify-center text-sm font-bold text-status-info-content">
           {account?.name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-semibold text-gray-900 truncate">{account?.name}</h1>
-          {account?.domain && <p className="text-xs text-gray-400">{account.domain}</p>}
+          <h1 className="text-xl font-semibold text-content-primary truncate">{account?.name}</h1>
+          {account?.domain && <p className="text-xs text-content-muted">{account.domain}</p>}
         </div>
         <span className={`text-xs rounded-full px-2.5 py-1 font-medium ${
-          status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+          status === "active" ? "bg-status-success-bg text-status-success-content" : "bg-sunken text-content-muted"
         }`}>
           {status === "active" ? copy.active : copy.inactive}
         </span>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
+      <div className="flex gap-1 rounded-xl bg-sunken p-1 w-fit">
         {(["info", "contacts", "deals"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition ${
-              tab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
+              tab === t ? "bg-raised shadow text-content-primary" : "text-content-muted hover:text-content-secondary"
             }`}
           >
             {t === "info" && <Building2 className="h-4 w-4" />}
@@ -480,29 +480,29 @@ export default function CrmAccountDetailPage() {
 
       {/* ── Info Tab ── */}
       {tab === "info" && (
-        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+        <div className="rounded-2xl border border-outline-subtle bg-raised p-6 shadow-sm space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.companyName}</label>
+              <label className="block text-xs font-medium text-content-muted mb-1">{copy.companyName}</label>
               <input
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.domain}</label>
+              <label className="block text-xs font-medium text-content-muted mb-1">{copy.domain}</label>
               <input
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 placeholder="acme.com"
                 value={domain}
                 onChange={(e) => setDomain(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.sector}</label>
+              <label className="block text-xs font-medium text-content-muted mb-1">{copy.sector}</label>
               <select
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
               >
@@ -511,9 +511,9 @@ export default function CrmAccountDetailPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.size}</label>
+              <label className="block text-xs font-medium text-content-muted mb-1">{copy.size}</label>
               <select
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 value={size}
                 onChange={(e) => setSize(e.target.value)}
               >
@@ -522,19 +522,19 @@ export default function CrmAccountDetailPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.annualValue}</label>
+              <label className="block text-xs font-medium text-content-muted mb-1">{copy.annualValue}</label>
               <input
                 type="number"
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 placeholder="0"
                 value={annualValue}
                 onChange={(e) => setAnnualValue(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.statusLabel}</label>
+              <label className="block text-xs font-medium text-content-muted mb-1">{copy.statusLabel}</label>
               <select
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
               >
@@ -544,10 +544,10 @@ export default function CrmAccountDetailPage() {
               </select>
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.notes}</label>
+              <label className="block text-xs font-medium text-content-muted mb-1">{copy.notes}</label>
               <textarea
                 rows={4}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -580,81 +580,81 @@ export default function CrmAccountDetailPage() {
           </div>
 
           {showContactSearch && (
-            <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 space-y-2">
-              <p className="text-xs font-medium text-indigo-800">{copy.searchContactLabel}</p>
+            <div className="rounded-2xl border border-status-info-border bg-status-info-bg p-4 space-y-2">
+              <p className="text-xs font-medium text-status-info-content">{copy.searchContactLabel}</p>
               <div className="relative">
                 <input
                   autoFocus
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                   placeholder={copy.searchContactPlaceholder}
                   value={contactSearch}
                   onChange={(e) => setContactSearch(e.target.value)}
                 />
                 {contactResults.length > 0 && (
-                  <div className="absolute z-10 mt-1 w-full rounded-xl border border-gray-100 bg-white shadow-lg overflow-hidden">
+                  <div className="absolute z-10 mt-1 w-full rounded-xl border border-outline-subtle bg-raised shadow-lg overflow-hidden">
                     {contactResults.map((p) => (
                       <button
                         key={p.id ?? p.email}
                         onClick={() => handleAddContact(p)}
                         disabled={addingContact || !p.id || contacts.some((c) => c.participant_crm_profile_id === p.id)}
-                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-indigo-50 flex items-center justify-between gap-2 disabled:opacity-40"
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-status-info-bg flex items-center justify-between gap-2 disabled:opacity-40"
                       >
                         <span>
-                          <span className="font-medium text-gray-800">{p.name || p.email}</span>
-                          {p.name && <span className="ml-2 text-xs text-gray-400">{p.email}</span>}
+                          <span className="font-medium text-content-primary">{p.name || p.email}</span>
+                          {p.name && <span className="ml-2 text-xs text-content-muted">{p.email}</span>}
                         </span>
-                        {!p.id && <span className="text-xs text-gray-400">{copy.noProfile}</span>}
+                        {!p.id && <span className="text-xs text-content-muted">{copy.noProfile}</span>}
                         {p.id && contacts.some((c) => c.participant_crm_profile_id === p.id) && (
-                          <span className="text-xs text-gray-400">{copy.alreadyAdded}</span>
+                          <span className="text-xs text-content-muted">{copy.alreadyAdded}</span>
                         )}
                       </button>
                     ))}
                   </div>
                 )}
                 {contactSearch.trim() && contactResults.length === 0 && (
-                  <p className="mt-1 text-xs text-gray-400">{copy.noContactsSearchResult}</p>
+                  <p className="mt-1 text-xs text-content-muted">{copy.noContactsSearchResult}</p>
                 )}
               </div>
             </div>
           )}
 
           {contactsLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
+            <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-content-muted" /></div>
           ) : contacts.length === 0 ? (
-            <div className="text-center py-14 text-gray-400">
+            <div className="text-center py-14 text-content-muted">
               <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
               <p className="text-sm">{copy.noContacts}</p>
               <p className="text-xs mt-1">{copy.noContactsHint}</p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-outline-subtle bg-raised shadow-sm overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-100">
+                <thead className="bg-canvas border-b border-outline-subtle">
                   <tr>
-                    <th className="text-left px-5 py-3 text-xs font-medium text-gray-500">{copy.colEmail}</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">{copy.colName}</th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">{copy.colRole}</th>
-                    <th className="text-center px-4 py-3 text-xs font-medium text-gray-500">{copy.colPrimary}</th>
+                    <th className="text-left px-5 py-3 text-xs font-medium text-content-muted">{copy.colEmail}</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-content-muted">{copy.colName}</th>
+                    <th className="text-left px-4 py-3 text-xs font-medium text-content-muted">{copy.colRole}</th>
+                    <th className="text-center px-4 py-3 text-xs font-medium text-content-muted">{copy.colPrimary}</th>
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-outline-subtle">
                   {contacts.map((c) => (
-                    <tr key={c.id} className="hover:bg-gray-50">
+                    <tr key={c.id} className="hover:bg-canvas">
                       <td className="px-5 py-3">
-                        <span className="flex items-center gap-2 text-gray-800 font-medium">
-                          <Mail className="h-3.5 w-3.5 text-gray-400" /> {c.email}
+                        <span className="flex items-center gap-2 text-content-primary font-medium">
+                          <Mail className="h-3.5 w-3.5 text-content-muted" /> {c.email}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-600">{c.name || "—"}</td>
-                      <td className="px-4 py-3 text-gray-500">{c.role || "—"}</td>
+                      <td className="px-4 py-3 text-content-secondary">{c.name || "—"}</td>
+                      <td className="px-4 py-3 text-content-muted">{c.role || "—"}</td>
                       <td className="px-4 py-3 text-center">
-                        {c.is_primary && <Star className="h-4 w-4 text-amber-400 mx-auto" />}
+                        {c.is_primary && <Star className="h-4 w-4 text-status-warning-content mx-auto" />}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => handleRemoveContact(c.id)}
-                          className="rounded-lg border border-gray-200 p-1.5 text-red-400 hover:bg-red-50"
+                          className="rounded-lg border border-outline-subtle p-1.5 text-status-danger-content hover:bg-status-danger-bg"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -682,17 +682,17 @@ export default function CrmAccountDetailPage() {
           </div>
 
           {showDealForm && (
-            <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4 space-y-3">
+            <div className="rounded-2xl border border-status-info-border bg-status-info-bg p-4 space-y-3">
               <div className="grid grid-cols-3 gap-3">
                 <input
                   autoFocus
-                  className="col-span-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="col-span-3 rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                   placeholder={copy.dealNamePlaceholder}
                   value={newDealName}
                   onChange={(e) => setNewDealName(e.target.value)}
                 />
                 <select
-                  className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                   value={newDealStage}
                   onChange={(e) => setNewDealStage(e.target.value)}
                 >
@@ -700,7 +700,7 @@ export default function CrmAccountDetailPage() {
                 </select>
                 <input
                   type="number"
-                  className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                   placeholder={copy.amountPlaceholder}
                   value={newDealAmount}
                   onChange={(e) => setNewDealAmount(e.target.value)}
@@ -713,7 +713,7 @@ export default function CrmAccountDetailPage() {
                   >
                     {creatingDeal ? <Loader2 className="h-4 w-4 animate-spin" /> : copy.add}
                   </button>
-                  <button onClick={() => setShowDealForm(false)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500">
+                  <button onClick={() => setShowDealForm(false)} className="rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm text-content-muted">
                     {copy.cancel}
                   </button>
                 </div>
@@ -722,11 +722,11 @@ export default function CrmAccountDetailPage() {
           )}
 
           {dealsLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
+            <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-content-muted" /></div>
           ) : (
             <div className="space-y-3">
               {deals.length === 0 && !showDealForm && (
-                <div className="text-center py-12 text-gray-400 text-sm">
+                <div className="text-center py-12 text-content-muted text-sm">
                   <Briefcase className="h-8 w-8 mx-auto mb-2 opacity-40" /> {copy.noDeals}
                 </div>
               )}
@@ -735,20 +735,20 @@ export default function CrmAccountDetailPage() {
                   key={deal.id}
                   className={`rounded-2xl border p-4 cursor-pointer transition ${
                     selectedDeal?.id === deal.id
-                      ? "border-indigo-200 bg-indigo-50"
-                      : "border-gray-100 bg-white hover:border-gray-200"
+                      ? "border-status-info-border bg-status-info-bg"
+                      : "border-outline-subtle bg-raised hover:border-outline-subtle"
                   }`}
                   onClick={() => selectedDeal?.id === deal.id ? setSelectedDeal(null) : loadActivities(deal)}
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 truncate">{deal.name}</span>
+                        <span className="font-medium text-content-primary truncate">{deal.name}</span>
                         <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${stageInfo(deal.stage).color}`}>
                           {stageInfo(deal.stage).label}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                      <div className="flex items-center gap-3 mt-1 text-xs text-content-muted">
                         {deal.amount != null && (
                           <span>₺{deal.amount.toLocaleString(localeTag(lang))}</span>
                         )}
@@ -760,13 +760,13 @@ export default function CrmAccountDetailPage() {
                         value={deal.stage}
                         onClick={(e) => e.stopPropagation()}
                         onChange={(e) => handleMoveDeal(deal, e.target.value)}
-                        className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs focus:outline-none"
+                        className="rounded-lg border border-outline-subtle bg-raised px-2 py-1 text-xs focus:outline-none"
                       >
                         {dealStages.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                       </select>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleDeleteDeal(deal.id); }}
-                        className="p-1.5 rounded-lg border border-gray-200 text-red-400 hover:bg-red-50"
+                        className="p-1.5 rounded-lg border border-outline-subtle text-status-danger-content hover:bg-status-danger-bg"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -775,18 +775,18 @@ export default function CrmAccountDetailPage() {
 
                   {/* Activities panel */}
                   {selectedDeal?.id === deal.id && (
-                    <div className="mt-4 pt-4 border-t border-indigo-100 space-y-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="mt-4 pt-4 border-t border-status-info-border space-y-3" onClick={(e) => e.stopPropagation()}>
                       {/* Add activity */}
                       <div className="flex gap-2">
                         <select
                           value={activityType}
                           onChange={(e) => setActivityType(e.target.value)}
-                          className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs focus:outline-none"
+                          className="rounded-lg border border-outline-subtle bg-raised px-2 py-1.5 text-xs focus:outline-none"
                         >
                           {activityTypes.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
                         </select>
                         <input
-                          className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                          className="flex-1 rounded-lg border border-outline-subtle bg-raised px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-status-info-border"
                           placeholder={copy.activityPlaceholder}
                           value={activityContent}
                           onChange={(e) => setActivityContent(e.target.value)}
@@ -803,25 +803,25 @@ export default function CrmAccountDetailPage() {
 
                       {/* Activity list */}
                       {activitiesLoading ? (
-                        <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-gray-400" /></div>
+                        <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-content-muted" /></div>
                       ) : activities.length === 0 ? (
-                        <p className="text-xs text-gray-400 text-center py-3">{copy.noActivities}</p>
+                        <p className="text-xs text-content-muted text-center py-3">{copy.noActivities}</p>
                       ) : (
                         <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                           {activities.map((act) => {
                             const TypeIcon = actTypeInfo(act.activity_type).icon;
                             return (
-                              <div key={act.id} className="flex items-start gap-2.5 rounded-lg bg-white px-3 py-2.5 border border-gray-100">
-                                <TypeIcon className="h-3.5 w-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                              <div key={act.id} className="flex items-start gap-2.5 rounded-lg bg-raised px-3 py-2.5 border border-outline-subtle">
+                                <TypeIcon className="h-3.5 w-3.5 text-content-muted mt-0.5 flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-xs text-gray-800">{act.content}</p>
-                                  <p className="text-xs text-gray-400 mt-0.5">
+                                  <p className="text-xs text-content-primary">{act.content}</p>
+                                  <p className="text-xs text-content-muted mt-0.5">
                                     {new Date(act.activity_at).toLocaleString(localeTag(lang), { dateStyle: "short", timeStyle: "short" })}
                                   </p>
                                 </div>
                                 <button
                                   onClick={() => handleDeleteActivity(act.id)}
-                                  className="p-1 text-gray-300 hover:text-red-400 flex-shrink-0"
+                                  className="p-1 text-content-muted hover:text-status-danger-content flex-shrink-0"
                                 >
                                   <Trash2 className="h-3 w-3" />
                                 </button>

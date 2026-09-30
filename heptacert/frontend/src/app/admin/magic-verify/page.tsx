@@ -80,8 +80,8 @@ function MagicVerifyInner() {
       >
         {status === "loading" && (
           <>
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
-              <Sparkles className="h-7 w-7 text-amber-500 animate-pulse" />
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-status-warning-bg">
+              <Sparkles className="h-7 w-7 text-status-warning-content animate-pulse" />
             </div>
             <h1 className="text-xl font-bold text-surface-900 mb-2">{copy.verifying}</h1>
             <p className="text-sm text-surface-500 mb-6">{copy.pleaseWait}</p>
@@ -91,8 +91,8 @@ function MagicVerifyInner() {
 
         {status === "success" && (
           <>
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50">
-              <CheckCircle2 className="h-7 w-7 text-emerald-500" />
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-status-success-bg">
+              <CheckCircle2 className="h-7 w-7 text-status-success-content" />
             </div>
             <h1 className="text-xl font-bold text-surface-900 mb-2">{copy.loginSuccess}</h1>
             <p className="text-sm text-surface-500">{copy.redirecting}</p>
@@ -102,8 +102,8 @@ function MagicVerifyInner() {
 
         {status === "error" && (
           <>
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50">
-              <AlertCircle className="h-7 w-7 text-rose-500" />
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-status-danger-bg">
+              <AlertCircle className="h-7 w-7 text-status-danger-content" />
             </div>
             <h1 className="text-xl font-bold text-surface-900 mb-2">{copy.verifyFailed}</h1>
             <p className="text-sm text-surface-500 mb-6">{errMsg}</p>

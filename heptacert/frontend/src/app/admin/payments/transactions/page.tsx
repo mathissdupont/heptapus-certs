@@ -83,9 +83,9 @@ export default function TransactionsPage() {
   }, lang);
 
   const orderStatus: Record<string, { label: string; cls: string }> = {
-    pending: { label: copy.status.pending, cls: "bg-amber-100 text-amber-800" },
-    paid: { label: copy.status.paid, cls: "bg-emerald-100 text-emerald-800" },
-    failed: { label: copy.status.failed, cls: "bg-rose-100 text-rose-800" },
+    pending: { label: copy.status.pending, cls: "bg-status-warning-bg text-status-warning-content" },
+    paid: { label: copy.status.paid, cls: "bg-status-success-bg text-status-success-content" },
+    failed: { label: copy.status.failed, cls: "bg-status-danger-bg text-status-danger-content" },
     refunded: { label: copy.status.refunded, cls: "bg-surface-100 text-surface-700" },
   };
 
@@ -191,7 +191,7 @@ export default function TransactionsPage() {
                     })}
                   </p>
                 </div>
-                <span className={`text-sm font-bold ${tx.type === "credit" ? "text-emerald-600" : "text-rose-600"}`}>
+                <span className={`text-sm font-bold ${tx.type === "credit" ? "text-status-success-content" : "text-status-danger-content"}`}>
                   {tx.type === "credit" ? "+" : "-"}{tx.amount} HC
                 </span>
               </div>

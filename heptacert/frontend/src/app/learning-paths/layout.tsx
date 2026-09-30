@@ -6,14 +6,14 @@ export const metadata: Metadata = {
     template: "%s — HeptaCert",
   },
   description:
-    "Çok adımlı kurumsal eğitim programlarını takip edin. Adım adım ilerleyin, her aşamayı tamamlayarak dijital sertifikanızı kazanın.",
+ "Çok adımlı kurumsal eğitim programlarını takip edin. Adım adım ilerleyin, her aşamayı tamamlayarak dijital sertifikanızı kazanın.",
   keywords: [
-    "öğrenme yolu",
-    "eğitim programı",
-    "kurumsal eğitim",
-    "dijital sertifika",
-    "sertifikalı program Türkiye",
-    "learning path",
+ "öğrenme yolu",
+ "eğitim programı",
+ "kurumsal eğitim",
+ "dijital sertifika",
+ "sertifikalı program Türkiye",
+ "learning path",
   ],
   alternates: {
     canonical: "/learning-paths",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Öğrenme Yolları — HeptaCert",
     description:
-      "Adım adım ilerleyen kurumsal eğitim programları. Her adımı tamamla, sertifikanı al.",
+ "Adım adım ilerleyen kurumsal eğitim programları. Her adımı tamamla, sertifikanı al.",
     url: "/learning-paths",
     type: "website",
   },

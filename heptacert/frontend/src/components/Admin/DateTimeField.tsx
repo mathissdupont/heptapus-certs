@@ -67,8 +67,8 @@ export default function DateTimeField({
   })();
 
   return (
-    <fieldset 
-      disabled={disabled} 
+    <fieldset
+      disabled={disabled}
       className={`min-w-0 border-0 p-0 m-0 transition-opacity duration-200 disabled:opacity-50 antialiased ${className}`}
     >
       {label && (
@@ -76,7 +76,7 @@ export default function DateTimeField({
           {label}
         </legend>
       )}
-      
+
       {/* Mobil uyumlu, esnek ve tam orantılı Apple Izgara Düzeni */}
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <DateField

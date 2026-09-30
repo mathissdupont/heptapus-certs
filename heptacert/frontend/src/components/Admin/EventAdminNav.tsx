@@ -109,29 +109,29 @@ const EVENT_ACCESS_CACHE = new Map<string, EventAccessOut>();
 const EVENT_META_REFRESH_EVENT = "heptacert:event-admin-meta-updated";
 
 const TAB_PERMISSIONS: Partial<Record<EventAdminTab, EventTeamPermission>> = {
-  details:       "event:view",
-  certificates:  "certificates:write",
-  sessions:      "checkin:write",
-  attendees:     "attendees:read",
-  approvals:     "attendees:read",
-  cfp:           "attendees:read",
-  live:          "attendees:read",
-  segments:      "attendees:read",
-  team:          "team:manage",
-  ops:           "checkin:write",
-  checkin:       "checkin:write",
-  tickets:       "checkin:write",
-  gamification:  "settings:write",
-  raffles:       "settings:write",
-  surveys:       "settings:write",
-  analytics:     "analytics:read",
-  editor:        "certificates:write",
-  email:         "email:write",
-  automations:   "email:write",
-  quiz:          "certificates:write",
+  details: "event:view",
+  certificates: "certificates:write",
+  sessions: "checkin:write",
+  attendees: "attendees:read",
+  approvals: "attendees:read",
+  cfp: "attendees:read",
+  live: "attendees:read",
+  segments: "attendees:read",
+  team: "team:manage",
+  ops: "checkin:write",
+  checkin: "checkin:write",
+  tickets: "checkin:write",
+  gamification: "settings:write",
+  raffles: "settings:write",
+  surveys: "settings:write",
+  analytics: "analytics:read",
+  editor: "certificates:write",
+  email: "email:write",
+  automations: "email:write",
+  quiz: "certificates:write",
   presentations: "certificates:write",
-  cpd:           "settings:write",
-  settings:      "settings:write",
+  cpd: "settings:write",
+  settings: "settings:write",
 };
 
 export function refreshEventAdminMeta(eventId?: string | number) {
@@ -322,7 +322,7 @@ export default function EventAdminNav({
     return (
       <div className={`flex w-full min-w-0 flex-col gap-3 antialiased ${className || ""}`}>
         {/* Back + event info */}
-        <div className="rounded-xl border border-surface-200 bg-white p-4 shadow-card">
+        <div className="rounded-xl border border-surface-200 bg-raised p-4 shadow-card">
           <Link
             href="/admin/events"
             className="inline-flex items-center gap-1 text-11 font-semibold uppercase tracking-wider text-surface-400 transition-colors hover:text-surface-900"
@@ -341,7 +341,7 @@ export default function EventAdminNav({
         </div>
 
         {/* Sidebar nav list */}
-        <div className="overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
+        <div className="overflow-hidden rounded-xl border border-surface-200 bg-raised shadow-card">
           <div className="p-1.5">
             {loadingEventMeta && !eventMeta ? (
               <NavSkeleton variant="sidebar" />
@@ -373,7 +373,7 @@ export default function EventAdminNav({
   // ── INLINE VARIANT (horizontal tab bar) ─────────────────────────────
   return (
     <div className={`w-full min-w-0 antialiased ${className || ""}`}>
-      <div className="rounded-xl border border-surface-200 bg-white shadow-card">
+      <div className="rounded-xl border border-surface-200 bg-raised shadow-card">
         {/* Event breadcrumb row */}
         <div className="flex min-w-0 items-center justify-between gap-3 border-b border-surface-100 px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
@@ -413,14 +413,14 @@ export default function EventAdminNav({
               onClick={() => setMoreOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={moreOpen}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm font-semibold text-surface-700 shadow-sm"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-surface-200 bg-raised px-3 py-2 text-sm font-semibold text-surface-700 shadow-sm"
             >
               {copy.more}
               <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-150 ${moreOpen ? "rotate-180" : ""}`} />
             </button>
 
             {moreOpen && (
-              <div role="menu" className="absolute left-3 right-3 top-full z-50 mt-1 grid grid-cols-2 gap-1 rounded-xl border border-surface-200 bg-white p-2 shadow-float">
+              <div role="menu" className="absolute left-3 right-3 top-full z-50 mt-1 grid grid-cols-2 gap-1 rounded-xl border border-surface-200 bg-raised p-2 shadow-float">
                 {visibleNavItems.map(({ tab, label, icon: Icon, href }) => {
                   const isAct = resolvedActive === tab;
                   return (
@@ -497,7 +497,7 @@ export default function EventAdminNav({
               </button>
 
               {moreOpen && (
-                <div role="menu" className="absolute right-0 top-full z-50 mt-1 w-52 overflow-hidden rounded-xl border border-surface-200 bg-white py-1 shadow-float">
+                <div role="menu" className="absolute right-0 top-full z-50 mt-1 w-52 overflow-hidden rounded-xl border border-surface-200 bg-raised py-1 shadow-float">
                       {overflowItems.map(({ tab, label, icon: Icon, href }) => {
                         const isAct = resolvedActive === tab;
                         return (

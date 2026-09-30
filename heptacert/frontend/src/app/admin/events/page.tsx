@@ -120,7 +120,7 @@ export default function AdminEvents() {
       delete: "Sil",
       deleteTitle: "Etkinliği sil",
       deleteDescription: (eventName: string) =>
-        `"${eventName}" etkinliğini ve tüm sertifikalarını kalıcı olarak silmek istediğinizden emin misiniz?`,
+ `"${eventName}" etkinliğini ve tüm sertifikalarını kalıcı olarak silmek istediğinizden emin misiniz?`,
       superadmin: "Superadmin",
       certificates: "Sertifikalar",
       tickets: "Biletler",
@@ -166,7 +166,7 @@ export default function AdminEvents() {
       delete: "Delete",
       deleteTitle: "Delete event",
       deleteDescription: (eventName: string) =>
-        `Are you sure you want to permanently delete "${eventName}" and all of its certificates?`,
+ `Are you sure you want to permanently delete "${eventName}" and all of its certificates?`,
       superadmin: "Superadmin",
       certificates: "Certificates",
       tickets: "Tickets",

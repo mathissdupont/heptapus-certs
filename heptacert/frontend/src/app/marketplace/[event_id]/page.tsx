@@ -19,7 +19,7 @@ type MarketplaceEvent = {
 const apiBase =
   process.env.NEXT_SERVER_API_BASE ||
   process.env.NEXT_PUBLIC_API_BASE ||
-  "https://heptacert.com/api";
+ "https://heptacert.com/api";
 
 async function fetchEvent(eventId: string): Promise<MarketplaceEvent | null> {
   try {
@@ -48,7 +48,7 @@ export async function generateMetadata({
   const title = `${event.name} — HeptaCert Marketplace`;
   const description =
     event.marketplace_description ??
-    `${event.org_name ? event.org_name + " tarafından sunulan " : ""}${event.name} programı. ${event.certificate_enabled ? "Sertifikalı program." : ""}`;
+ `${event.org_name ? event.org_name + " tarafından sunulan " : ""}${event.name} programı. ${event.certificate_enabled ? "Sertifikalı program." : ""}`;
 
   return {
     title,
@@ -80,8 +80,8 @@ export default async function MarketplaceEventPage({
     process.env.NEXT_PUBLIC_FRONTEND_BASE_URL || "https://heptacert.com";
 
   const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "Course",
+ "@context": "https://schema.org",
+ "@type": "Course",
     name: event.name,
     description: event.marketplace_description ?? event.name,
     provider: event.org_name
@@ -90,13 +90,13 @@ export default async function MarketplaceEventPage({
     url: `${baseUrl}/marketplace/${event_id}`,
     image: event.event_banner_url ?? undefined,
     hasCourseInstance: {
-      "@type": "CourseInstance",
+ "@type": "CourseInstance",
       courseMode: event.event_location ? "onsite" : "online",
       location: event.event_location ?? undefined,
       startDate: event.event_date ?? undefined,
     },
     offers: {
-      "@type": "Offer",
+ "@type": "Offer",
       price: isFree ? "0" : String(event.marketplace_price),
       priceCurrency: "TRY",
       availability: "https://schema.org/InStock",

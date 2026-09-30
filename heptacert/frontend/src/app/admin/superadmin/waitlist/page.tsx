@@ -28,9 +28,9 @@ type WaitlistRow = {
 
 const PLAN_TONES: Record<string, string> = {
   starter: "bg-surface-100 text-surface-700",
-  pro: "bg-violet-100 text-violet-700",
-  growth: "bg-rose-100 text-rose-700",
-  enterprise: "bg-amber-100 text-amber-700",
+  pro: "bg-status-info-bg text-status-info-content",
+  growth: "bg-status-danger-bg text-status-danger-content",
+  enterprise: "bg-status-warning-bg text-status-warning-content",
 };
 
 export default function SuperadminWaitlistPage() {

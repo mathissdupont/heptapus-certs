@@ -24,39 +24,39 @@ export function Toast({ toast }: ToastProps) {
   const getIcon = () => {
     switch (toast.type) {
       case 'success':
-        return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
+        return <CheckCircle2 className="h-5 w-5 text-status-success-content" />;
       case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
+        return <AlertCircle className="h-5 w-5 text-status-danger-content" />;
       case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+        return <AlertTriangle className="h-5 w-5 text-status-warning-content" />;
       case 'info':
-        return <Info className="h-5 w-5 text-blue-500" />;
+        return <Info className="h-5 w-5 text-status-info-content" />;
     }
   };
 
   const getStyles = () => {
     switch (toast.type) {
       case 'success':
-        return 'bg-emerald-50 border-emerald-200';
+        return 'bg-status-success-bg border-status-success-border';
       case 'error':
-        return 'bg-red-50 border-red-200';
+        return 'bg-status-danger-bg border-status-danger-border';
       case 'warning':
-        return 'bg-amber-50 border-amber-200';
+        return 'bg-status-warning-bg border-status-warning-border';
       case 'info':
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-status-info-bg border-status-info-border';
     }
   };
 
   const getTextColor = () => {
     switch (toast.type) {
       case 'success':
-        return 'text-emerald-900';
+        return 'text-status-success-content';
       case 'error':
-        return 'text-red-900';
+        return 'text-status-danger-content';
       case 'warning':
-        return 'text-amber-900';
+        return 'text-status-warning-content';
       case 'info':
-        return 'text-blue-900';
+        return 'text-status-info-content';
     }
   };
 
@@ -85,7 +85,7 @@ export function Toast({ toast }: ToastProps) {
 
       <button
         onClick={() => removeToast(toast.id)}
-        className={`flex-shrink-0 rounded-lg p-1 transition hover:bg-white/50 ${getTextColor()} hover:opacity-75`}
+        className={`flex-shrink-0 rounded-lg p-1 transition hover:bg-raised/50 ${getTextColor()} hover:opacity-75`}
         aria-label="Bildirimi kapat"
       >
         <X className="h-4 w-4" />

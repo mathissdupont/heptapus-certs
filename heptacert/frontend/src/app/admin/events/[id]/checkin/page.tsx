@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { localeTag } from "@/lib/localeTag";
 import { useEffect, useRef, useState } from "react";
@@ -468,16 +468,16 @@ export default function AdminCheckinPage() {
   return (
     <div className={`antialiased text-surface-900 w-full ${staffMode ? "min-h-screen bg-surface-50 px-3 pb-8 pt-3 md:px-4" : "mx-auto max-w-6xl space-y-5 pb-10"}`}>
       <div className={`mx-auto w-full ${staffMode ? "max-w-xl" : "max-w-6xl"}`}>
-        
+
         {/* ÜST MODÜL DEKORASYONU */}
         {!staffMode && <EventAdminNav eventId={eventId} eventName={eventName} active="checkin" />}
         {staffMode && (
-          <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-surface-200 bg-white p-3 shadow-card">
-            <Link href={`/admin/events/${eventId}/ops`} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 text-xs font-bold text-surface-700 hover:bg-surface-50 active:scale-95">
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-surface-200 bg-raised p-3 shadow-card">
+            <Link href={`/admin/events/${eventId}/ops`} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-raised px-3 text-xs font-bold text-surface-700 hover:bg-surface-50 active:scale-95">
               <ArrowLeft className="h-3.5 w-3.5 stroke-[2.5]" />
               <span>{copy.labelOpsBack}</span>
             </Link>
-            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-11 font-bold text-emerald-700 uppercase tracking-tight shadow-card animate-pulse">{copy.labelStaffMode}</span>
+            <span className="inline-flex rounded-md border border-status-success-border bg-status-success-bg px-2 py-0.5 text-11 font-bold text-status-success-content uppercase tracking-tight shadow-card animate-pulse">{copy.labelStaffMode}</span>
           </div>
         )}
 
@@ -488,25 +488,25 @@ export default function AdminCheckinPage() {
 
         {planOk !== false && (
           <div className="space-y-4">
-            
+
             {/* KAPALILIK VE CANLI DURUM ADASI */}
-            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
+            <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-0.5">
                   <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{copy.labelMobileOps}</p>
                   <h1 className="text-lg font-bold tracking-tight text-surface-900 sm:text-xl">{copy.labelGateway}</h1>
                   <p className="text-xs text-surface-400 font-medium truncate max-w-xs sm:max-w-md">{eventName}</p>
                 </div>
-                
+
                 <div className="flex items-center gap-2 flex-wrap">
                   <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-11 font-bold uppercase tracking-tight shadow-card ${
-                    isOnline ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-amber-100 bg-amber-50 text-amber-700"
+                    isOnline ? "border-status-success-border bg-status-success-bg text-status-success-content" : "border-status-warning-border bg-status-warning-bg text-status-warning-content"
                   }`}>
                     {isOnline ? <Wifi className="h-3.5 w-3.5 mr-1" /> : <WifiOff className="h-3.5 w-3.5 mr-1" />}
                     <span>{isOnline ? copy.labelOnline : copy.labelOffline}</span>
                   </div>
                   {liveCount > 0 && (
-                    <div className="inline-flex items-center gap-1 rounded-full border border-violet-100 bg-violet-50 px-2.5 py-0.5 text-11 font-bold text-violet-700">
+                    <div className="inline-flex items-center gap-1 rounded-full border border-status-info-border bg-status-info-bg px-2.5 py-0.5 text-11 font-bold text-status-info-content">
                       <span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-ping inline-block" />
                       <span>+{liveCount} {copy.liveLabel}</span>
                     </div>
@@ -533,46 +533,46 @@ export default function AdminCheckinPage() {
               {/* SAHA CANLI İSTATİSTİKLERİ DEPOSU */}
               {metrics && (
                 <div className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-6 pt-1">
-                  <div className="rounded-xl border border-surface-100 bg-white p-2.5">
+                  <div className="rounded-xl border border-surface-100 bg-raised p-2.5">
                     <p className="text-11 font-bold uppercase tracking-wider text-surface-400">{copy.labelGateFlow}</p>
                     <p className="mt-0.5 text-xs font-bold text-surface-900 font-mono">{metrics.last_hour}{copy.labelPerHour}</p>
                   </div>
-                  <div className="rounded-xl border border-surface-100 bg-white p-2.5">
+                  <div className="rounded-xl border border-surface-100 bg-raised p-2.5">
                     <p className="text-11 font-bold uppercase tracking-wider text-surface-400">{copy.labelDispatchSuccess}</p>
                     <p className="mt-0.5 text-xs font-bold text-surface-900 font-mono">{metrics.successful}/{metrics.total}</p>
                   </div>
-                  <div className="rounded-xl border border-surface-100 bg-white p-2.5">
+                  <div className="rounded-xl border border-surface-100 bg-raised p-2.5">
                     <p className="text-11 font-bold uppercase tracking-wider text-surface-400">{copy.labelMostActiveDesk}</p>
                     <p className="mt-0.5 text-11 font-bold text-surface-900 truncate font-mono">{metrics.by_staff[0]?.email || "—"}</p>
                   </div>
-                  <div className="rounded-xl border border-amber-100 bg-amber-50/20 p-2.5">
-                    <p className="text-11 font-bold uppercase tracking-wider text-amber-600">{copy.labelDuplicate}</p>
-                    <p className="mt-0.5 text-xs font-bold text-amber-900 font-mono">{metrics.duplicate_count}</p>
+                  <div className="rounded-xl border border-status-warning-border bg-status-warning-bg/20 p-2.5">
+                    <p className="text-11 font-bold uppercase tracking-wider text-status-warning-content">{copy.labelDuplicate}</p>
+                    <p className="mt-0.5 text-xs font-bold text-status-warning-content font-mono">{metrics.duplicate_count}</p>
                   </div>
-                  <div className="rounded-xl border border-red-100 bg-red-50/20 p-2.5">
-                    <p className="text-11 font-bold uppercase tracking-wider text-red-500">{copy.labelInvalidQrMetric}</p>
-                    <p className="mt-0.5 text-xs font-bold text-red-600 font-mono">{metrics.invalid_count}</p>
+                  <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/20 p-2.5">
+                    <p className="text-11 font-bold uppercase tracking-wider text-status-danger-content">{copy.labelInvalidQrMetric}</p>
+                    <p className="mt-0.5 text-xs font-bold text-status-danger-content font-mono">{metrics.invalid_count}</p>
                   </div>
-                  <div className="rounded-xl border border-sky-100 bg-sky-50/20 p-2.5">
-                    <p className="text-11 font-bold uppercase tracking-wider text-sky-600">{copy.labelCapacityAlarm}</p>
-                    <p className="mt-0.5 text-xs font-bold text-sky-900 font-mono">{metrics.capacity_alerts.length}</p>
+                  <div className="rounded-xl border border-status-info-border bg-status-info-bg/20 p-2.5">
+                    <p className="text-11 font-bold uppercase tracking-wider text-status-info-content">{copy.labelCapacityAlarm}</p>
+                    <p className="mt-0.5 text-xs font-bold text-status-info-content font-mono">{metrics.capacity_alerts.length}</p>
                   </div>
                 </div>
               )}
 
               {/* DOLULUK TEHLİKE ALARMI */}
               {metrics?.capacity_alerts?.length ? (
-                <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3 text-11 font-semibold text-amber-800 flex items-center gap-1.5 animate-in fade-in duration-200">
-                  <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+                <div className="rounded-xl border border-status-warning-border bg-status-warning-bg/40 p-3 text-11 font-semibold text-status-warning-content flex items-center gap-1.5 animate-in fade-in duration-200">
+                  <AlertCircle className="h-3.5 w-3.5 text-status-warning-content" />
                   <span>{metrics.capacity_alerts[0].session_name}: %{metrics.capacity_alerts[0].fill_rate} {copy.labelFillRateWarning}</span>
                 </div>
               ) : null}
             </div>
 
-            {error && <div className="rounded-xl border border-red-100 bg-red-50/40 p-3.5 text-xs font-semibold text-red-600">{error}</div>}
+            {error && <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3.5 text-xs font-semibold text-status-danger-content">{error}</div>}
 
             {/* ANA OTURUM SEÇME PANELİ */}
-            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-3">
+            <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card space-y-3">
               <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.labelSelectSessionHeader}</h2>
               <div className="space-y-2 max-h-48 overflow-y-auto scrollbar-none pr-0.5">
                 {sessions.length === 0 ? (
@@ -587,7 +587,7 @@ export default function AdminCheckinPage() {
                     const isSessSel = selectedSession === s.id;
                     return (
                       <label key={s.id} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-all duration-200 ${
-                        isSessSel ? "border-gray-950 bg-white ring-1 ring-gray-950 shadow-card" : "border-surface-100 bg-white hover:border-surface-300"
+                        isSessSel ? "border-outline-strong bg-raised ring-1 ring-outline-strong shadow-card" : "border-surface-100 bg-raised hover:border-surface-300"
                       }`}>
                         <input type="radio" name="session" value={s.id} checked={isSessSel} onChange={() => setSelectedSession(s.id)} className="h-3.5 w-3.5 text-surface-900 focus:ring-0 focus:ring-offset-0 cursor-pointer" />
                         <div className="min-w-0 flex-1 space-y-0.5">
@@ -597,7 +597,7 @@ export default function AdminCheckinPage() {
                             {s.session_start && <span>· {s.session_start}</span>}
                           </div>
                         </div>
-                        <span className={`shrink-0 text-11 font-bold px-2 py-0.5 border rounded-md shadow-card ${isSessSel ? "border-gray-950 bg-surface-50 text-surface-900" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
+                        <span className={`shrink-0 text-11 font-bold px-2 py-0.5 border rounded-md shadow-card ${isSessSel ? "border-outline-strong bg-surface-50 text-surface-900" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
                           {s.attendance_count} {copy.labelAdmitCount}
                         </span>
                       </label>
@@ -609,14 +609,14 @@ export default function AdminCheckinPage() {
 
             {/* YOKLAMA KABUL KAPISI (Check-in Area & QR Hub) */}
             {selectedSession && (
-              <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
+              <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card space-y-4">
                 <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-2.5">
                   <div className="flex items-center gap-1.5">
                     <UserCheck className="h-4 w-4 text-surface-700 stroke-[2]" />
                     <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.labelGateHeader}</h2>
                   </div>
 
-                  <button type="button" onClick={() => setScannerOpen((v) => !v)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-white px-3 text-xs font-bold text-surface-700 shadow-card transition hover:bg-surface-50 active:scale-95">
+                  <button type="button" onClick={() => setScannerOpen((v) => !v)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-surface-200 bg-raised px-3 text-xs font-bold text-surface-700 shadow-card transition hover:bg-surface-50 active:scale-95">
                     <Camera className="h-3.5 w-3.5 text-surface-500 stroke-[1.8]" />
                     <span>{scannerOpen ? copy.labelCloseCamera : copy.labelOpenScanner}</span>
                   </button>
@@ -626,7 +626,7 @@ export default function AdminCheckinPage() {
                 {scannerOpen && (
                   <div className="overflow-hidden rounded-xl border border-surface-200 bg-surface-800 p-3 shadow-inner max-w-sm mx-auto animate-in zoom-in-98 duration-200 w-full">
                     <div id={scannerRegionId} className="min-h-[240px] overflow-hidden rounded-lg bg-black flex items-center justify-center text-xs text-white" />
-                    {scannerError && <p className="mt-2 text-11 font-bold text-red-500 text-center">{scannerError}</p>}
+                    {scannerError && <p className="mt-2 text-11 font-bold text-status-danger-content text-center">{scannerError}</p>}
                     <p className="mt-2.5 text-11 font-semibold text-surface-400 flex items-center justify-center gap-1">
                       <QrCode className="h-3.5 w-3.5" />
                       <span>{copy.labelScannerHint}</span>
@@ -638,21 +638,21 @@ export default function AdminCheckinPage() {
                 <form onSubmit={inputRef.current?.value ? handleCheckin : undefined} className="flex flex-col sm:flex-row gap-2">
                   <div className="relative flex-1 w-full">
                     <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-surface-400 stroke-[2]" />
-                    <input 
-                      ref={inputRef} 
-                      type="email" 
-                      value={email} 
-                      onChange={(e) => setEmail(e.target.value)} 
+                    <input
+                      ref={inputRef}
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder={copy.labelEmailPlaceholder}
-                      required 
-                      autoComplete="off" 
+                      required
+                      autoComplete="off"
                       disabled={submitting}
-                      className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white pl-9 pr-3.5 text-xs font-semibold outline-none transition focus:border-surface-900" 
+                      className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised pl-9 pr-3.5 text-xs font-semibold outline-none transition focus:border-surface-900"
                     />
                   </div>
-                  <button 
-                    type="submit" 
-                    disabled={submitting || !email.trim()} 
+                  <button
+                    type="submit"
+                    disabled={submitting || !email.trim()}
                     className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-5 text-xs font-bold text-white shadow-card transition hover:bg-surface-800 disabled:opacity-40 active:scale-[0.98]"
                   >
                     {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5 stroke-[2.5]" />}
@@ -663,34 +663,34 @@ export default function AdminCheckinPage() {
             )}
 
             {/* OFFLINE SENKRONİZASYON YÖNETİM MERKEZİ */}
-            <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
+            <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card space-y-4">
               <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-2.5">
                 <div className="flex items-center gap-1.5">
                   <RotateCcw className={`h-4 w-4 ${syncing ? "animate-spin text-surface-900" : "text-surface-400 stroke-[2]"}`} />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.labelOfflinePanelHeader}</h3>
                 </div>
                 <div className="flex gap-1.5">
-                  <button type="button" onClick={() => void syncQueue()} disabled={!isOnline || syncing || offlineQueue.length === 0} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-bold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
+                  <button type="button" onClick={() => void syncQueue()} disabled={!isOnline || syncing || offlineQueue.length === 0} className="rounded-lg border border-surface-200 bg-raised px-2.5 py-1 text-11 font-bold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
                     {copy.labelSyncQueue}
                   </button>
-                  <button type="button" onClick={clearQueue} disabled={offlineQueue.length === 0} className="rounded-lg border border-red-100 bg-white px-2 py-1 text-11 font-bold text-red-600 shadow-card hover:bg-red-50 disabled:opacity-40">
+                  <button type="button" onClick={clearQueue} disabled={offlineQueue.length === 0} className="rounded-lg border border-status-danger-border bg-raised px-2 py-1 text-11 font-bold text-status-danger-content shadow-card hover:bg-status-danger-bg disabled:opacity-40">
                     <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />
                   </button>
                 </div>
               </div>
-              
+
               {offlineQueue.length === 0 ? (
                 <p className="flex items-center gap-1.5 text-xs font-medium text-surface-400">
                   <Smartphone className="h-3.5 w-3.5 text-surface-300" />
                   <span>{copy.labelNoOfflineRecords}</span>
                 </p>
               ) : (
-                <div className="max-h-40 divide-y divide-gray-100 overflow-y-auto pr-0.5 scrollbar-none font-mono text-11 font-medium text-surface-500">
+                <div className="max-h-40 divide-y divide-outline-subtle overflow-y-auto pr-0.5 scrollbar-none font-mono text-11 font-medium text-surface-500">
                   {offlineQueue.map((item) => (
                     <div key={item.id} className="py-2 flex items-center justify-between gap-3">
                       <span className="truncate text-surface-700"><strong className="font-sans text-11 uppercase text-surface-400 mr-1">{item.type === "ticket" ? copy.labelTicketType : copy.labelEmailType}:</strong> {item.value}</span>
                       <span className="shrink-0 text-surface-400 font-sans font-bold">{item.attempts} {copy.labelAttempts}</span>
-                      {item.lastError && <p className="text-red-500 text-11 tracking-tight">{item.lastError}</p>}
+                      {item.lastError && <p className="text-status-danger-content text-11 tracking-tight">{item.lastError}</p>}
                     </div>
                   ))}
                 </div>
@@ -699,19 +699,19 @@ export default function AdminCheckinPage() {
 
             {/* GÜNLÜK ANLIK KAYIT GÜNLÜĞÜ GEÇMİŞİ */}
             {log.length > 0 && (
-              <div className="rounded-xl border border-surface-200 bg-white shadow-card overflow-hidden flex flex-col">
+              <div className="rounded-xl border border-surface-200 bg-raised shadow-card overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between border-b border-surface-100 bg-surface-50 px-4.5 py-3">
                   <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-surface-900">
                     <History className="h-3.5 w-3.5 text-surface-400 stroke-[2]" />
                     <span>{copy.labelLogHeader}</span>
                   </h3>
-                  <button type="button" onClick={() => setLog([])} className="text-11 font-bold text-surface-400 hover:text-red-500 transition-colors">{copy.labelClearLog}</button>
+                  <button type="button" onClick={() => setLog([])} className="text-11 font-bold text-surface-400 hover:text-status-danger-content transition-colors">{copy.labelClearLog}</button>
                 </div>
-                
-                <div className="max-h-80 divide-y divide-gray-100 overflow-y-auto scrollbar-none bg-white">
+
+                <div className="max-h-80 divide-y divide-outline-subtle overflow-y-auto scrollbar-none bg-raised">
                   {log.map((entry, i) => (
-                    <div key={`${entry.time}-${i}`} className={`flex items-start gap-3 px-4.5 py-3 transition-colors ${entry.success ? "bg-white" : "bg-red-50/10"}`}>
-                      {entry.success ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5 stroke-[2.5]" /> : <XCircle className="h-4 w-4 shrink-0 text-red-500 mt-0.5 stroke-[2]" />}
+                    <div key={`${entry.time}-${i}`} className={`flex items-start gap-3 px-4.5 py-3 transition-colors ${entry.success ? "bg-raised" : "bg-status-danger-bg/10"}`}>
+                      {entry.success ? <CheckCircle2 className="h-4 w-4 shrink-0 text-status-success-content mt-0.5 stroke-[2.5]" /> : <XCircle className="h-4 w-4 shrink-0 text-status-danger-content mt-0.5 stroke-[2]" />}
                       <div className="min-w-0 flex-1 space-y-0.5">
                         <p className="truncate text-xs font-bold text-surface-900 tracking-tight">{entry.email}</p>
                         <p className="text-11 font-medium text-surface-400 leading-normal">{entry.queued ? "⚠️ " : ""}{entry.message}</p>

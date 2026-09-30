@@ -105,15 +105,15 @@ export default function PricingPage({ mode: _mode = "all" }: PricingClientProps)
   return (
     <div className="flex min-h-screen flex-col bg-surface-50 pb-24">
       {/* Header */}
-      <section className="border-b border-surface-200 bg-white">
+      <section className="border-b border-surface-200 bg-raised">
         <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
           {/* Status badge */}
           <div className="mb-6 flex justify-center">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-surface-200 bg-surface-50 px-3.5 py-1.5 text-xs font-medium text-surface-600">
               {paymentEnabled ? (
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                <ShieldCheck className="h-3.5 w-3.5 text-status-success-content" />
               ) : (
-                <Clock className="h-3.5 w-3.5 text-amber-500" />
+                <Clock className="h-3.5 w-3.5 text-status-warning-content" />
               )}
               {copy.badge}
             </span>
@@ -130,7 +130,7 @@ export default function PricingPage({ mode: _mode = "all" }: PricingClientProps)
 
       {/* Billing toggle */}
       <div className="flex justify-center py-8">
-        <div className="flex items-center gap-1 rounded-xl border border-surface-200 bg-white p-1 shadow-soft">
+        <div className="flex items-center gap-1 rounded-xl border border-surface-200 bg-raised p-1 shadow-soft">
           <button
             onClick={() => setBillingPeriod("monthly")}
             className={`rounded-lg px-5 py-2 text-sm font-medium transition-colors ${
@@ -152,7 +152,7 @@ export default function PricingPage({ mode: _mode = "all" }: PricingClientProps)
             >
               {copy.annual}
             </button>
-            <span className="absolute -right-2 -top-3 rounded-full border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-11 font-semibold text-emerald-700">
+            <span className="absolute -right-2 -top-3 rounded-full border border-status-success-border bg-status-success-bg px-1.5 py-0.5 text-11 font-semibold text-status-success-content">
               {copy.saveLabel}
             </span>
           </div>
@@ -191,8 +191,8 @@ export default function PricingPage({ mode: _mode = "all" }: PricingClientProps)
                   variants={fadeUp}
                   className={`relative flex h-full flex-col rounded-xl p-6 transition-shadow ${
                     isPro
-                      ? "border-2 border-surface-900 bg-white shadow-raised"
-                      : "border border-surface-200 bg-white shadow-card hover:shadow-raised"
+                      ? "border-2 border-surface-900 bg-raised shadow-raised"
+                      : "border border-surface-200 bg-raised shadow-card hover:shadow-raised"
                   }`}
                 >
                   {isPro && (
@@ -231,7 +231,7 @@ export default function PricingPage({ mode: _mode = "all" }: PricingClientProps)
                     </div>
 
                     {tier.hc_quota ? (
-                      <div className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                      <div className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-status-warning-border bg-status-warning-bg px-2.5 py-1 text-xs font-medium text-status-warning-content">
                         <Coins className="h-3.5 w-3.5" />
                         {tier.is_free
                           ? t("pricing_pay_as_you_go")
@@ -309,7 +309,7 @@ export default function PricingPage({ mode: _mode = "all" }: PricingClientProps)
       {/* FAQ */}
       <section className="mx-auto mt-16 w-full max-w-2xl px-4 sm:px-6">
         <h2 className="mb-6 text-center text-xl font-bold text-surface-900">{copy.faqTitle}</h2>
-        <div className="divide-y divide-surface-100 rounded-xl border border-surface-200 bg-white shadow-card">
+        <div className="divide-y divide-surface-100 rounded-xl border border-surface-200 bg-raised shadow-card">
           {([
             { q: t("pricing_faq_q1"), a: t("pricing_faq_a1") },
             { q: t("pricing_faq_q2"), a: t("pricing_faq_a2") },
@@ -400,7 +400,7 @@ function WaitlistModal({ tier, lang, onClose }: WaitlistModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full overflow-hidden rounded-t-2xl border border-surface-200 bg-white shadow-modal sm:max-w-md sm:rounded-2xl">
+      <div className="relative z-10 w-full overflow-hidden rounded-t-2xl border border-surface-200 bg-raised shadow-modal sm:max-w-md sm:rounded-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-surface-100 px-5 py-4">
           <div className="flex items-center gap-2">
@@ -419,8 +419,8 @@ function WaitlistModal({ tier, lang, onClose }: WaitlistModalProps) {
 
         {done ? (
           <div className="flex flex-col items-center px-8 py-12 text-center">
-            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50">
-              <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-status-success-border bg-status-success-bg">
+              <CheckCircle2 className="h-6 w-6 text-status-success-content" />
             </div>
             <h3 className="text-lg font-semibold text-surface-900">{mc.successTitle}</h3>
             <p className="mt-2 text-sm text-surface-500">{mc.successBody}</p>

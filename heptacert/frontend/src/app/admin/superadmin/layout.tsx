@@ -173,18 +173,18 @@ export default function SuperadminLayout({
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-3 rounded-2xl border border-amber-200/60 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 sm:px-5 sm:py-4">
+      <div className="flex items-center gap-3 rounded-2xl border border-status-warning-border/60 bg-gradient-to-r from-status-warning-bg to-status-warning-bg px-4 py-3 sm:px-5 sm:py-4">
         {/* Mobile menu button */}
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-amber-700 hover:bg-amber-100 lg:hidden"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-status-warning-content hover:bg-status-warning-bg lg:hidden"
           aria-label="Menüyü aç"
         >
           <Menu className="h-5 w-5" />
         </button>
 
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 shadow-sm">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-status-warning-bg text-status-warning-content shadow-sm">
           <Crown className="h-5 w-5" />
         </div>
         <div className="min-w-0">
@@ -195,9 +195,9 @@ export default function SuperadminLayout({
               : "Platform control center — superadmins only"}
           </p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100/60 px-2.5 py-1">
-          <Zap className="h-3 w-3 text-amber-600" />
-          <span className="text-11 font-bold uppercase tracking-wide text-amber-700">superadmin</span>
+        <div className="ml-auto flex items-center gap-1.5 rounded-full border border-status-warning-border bg-status-warning-bg/60 px-2.5 py-1">
+          <Zap className="h-3 w-3 text-status-warning-content" />
+          <span className="text-11 font-bold uppercase tracking-wide text-status-warning-content">superadmin</span>
         </div>
       </div>
 
@@ -208,10 +208,10 @@ export default function SuperadminLayout({
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="absolute left-0 top-0 h-full w-72 overflow-y-auto bg-white px-4 py-5 shadow-xl">
+          <aside className="absolute left-0 top-0 h-full w-72 overflow-y-auto bg-raised px-4 py-5 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Crown className="h-4 w-4 text-amber-600" />
+                <Crown className="h-4 w-4 text-status-warning-content" />
                 <span className="text-sm font-bold text-surface-900">Super Admin</span>
               </div>
               <button

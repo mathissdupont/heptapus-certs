@@ -20,9 +20,7 @@ export function createThemeInitializerScript(themeEnabled: boolean) {
 `;
 }
 
-export const THEME_INITIALIZER_SCRIPT = createThemeInitializerScript(
-  process.env.NEXT_PUBLIC_THEME_TOGGLE_ENABLED === "true",
-);
+export const THEME_INITIALIZER_SCRIPT = createThemeInitializerScript(true);
 
 export function ThemeInitializer() {
   return <script dangerouslySetInnerHTML={{ __html: THEME_INITIALIZER_SCRIPT }} />;

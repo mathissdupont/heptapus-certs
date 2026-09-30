@@ -123,14 +123,14 @@ export default function RegisterPage() {
     return (
       <div className="flex min-h-[80vh] items-center justify-center py-12">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card w-full max-w-md p-10 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-status-success-bg text-status-success-content">
             <CheckCircle2 className="h-8 w-8" />
           </div>
-          <h2 className="mb-3 text-xl font-bold text-gray-900">{copy.verifyTitle}</h2>
-          <p className="mb-6 text-sm leading-relaxed text-gray-500">
-            <strong className="text-gray-700">{email}</strong> {copy.verifyBody}
+          <h2 className="mb-3 text-xl font-bold text-content-primary">{copy.verifyTitle}</h2>
+          <p className="mb-6 text-sm leading-relaxed text-content-muted">
+            <strong className="text-content-secondary">{email}</strong> {copy.verifyBody}
           </p>
-          <p className="text-xs text-gray-400">{copy.verifyHint}</p>
+          <p className="text-xs text-content-muted">{copy.verifyHint}</p>
           <Link href="/admin/login" className="btn-secondary mt-6 w-full justify-center">
             {copy.goLogin}
           </Link>
@@ -151,15 +151,15 @@ export default function RegisterPage() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-white shadow-brand">
             <ShieldCheck className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">{copy.createAccount}</h1>
-          <p className="mt-1.5 text-sm text-gray-500">{copy.giftBalance}</p>
+          <h1 className="text-2xl font-bold text-content-primary">{copy.createAccount}</h1>
+          <p className="mt-1.5 text-sm text-content-muted">{copy.giftBalance}</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
             <label className="label">{copy.email}</label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
               <input
                 className="input-field pl-10"
                 type="email"
@@ -175,7 +175,7 @@ export default function RegisterPage() {
           <div>
             <label className="label">{copy.password}</label>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
               <input
                 className="input-field pl-10 pr-10"
                 type={showPw ? "text" : "password"}
@@ -185,7 +185,7 @@ export default function RegisterPage() {
                 required
                 autoComplete="new-password"
               />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-content-muted hover:text-content-secondary">
                 {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
@@ -194,7 +194,7 @@ export default function RegisterPage() {
           <div>
             <label className="label">{copy.confirmPassword}</label>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
               <input
                 className="input-field pl-10"
                 type={showPw ? "text" : "password"}
@@ -207,10 +207,10 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <label className="flex items-start gap-3 rounded-xl border border-outline-subtle bg-canvas px-4 py-3 text-sm text-content-secondary">
             <input
               type="checkbox"
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600"
+              className="mt-0.5 h-4 w-4 rounded border-outline-strong text-brand-600"
               checked={termsAccepted}
               onChange={(e) => setTermsAccepted(e.target.checked)}
               required
@@ -227,7 +227,7 @@ export default function RegisterPage() {
               {" "}{copy.termsSuffix}
             </span>
           </label>
-          <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+          <div className="flex flex-wrap gap-3 text-xs text-content-muted">
             <Link href="/kvkk" onClick={() => recordLegalClick("kvkk")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
             <Link href="/gizlilik" onClick={() => recordLegalClick("privacy")} className="font-semibold text-brand-600 hover:text-brand-700">{copy.privacyLink}</Link>
             <Link href="/acik-riza" onClick={() => recordLegalClick("explicit_consent")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
@@ -246,7 +246,7 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-gray-500">
+        <div className="mt-6 text-center text-sm text-content-muted">
           {copy.hasAccount}{" "}
           <Link href="/admin/login" className="font-semibold text-brand-600 hover:text-brand-700">
             {copy.signIn}

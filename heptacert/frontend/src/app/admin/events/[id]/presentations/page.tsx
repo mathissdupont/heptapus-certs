@@ -238,7 +238,7 @@ export default function EventPresentationsPage() {
           </div>
           <input className="input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder={copy.name} />
           <textarea className="input min-h-20" value={description} onChange={(event) => setDescription(event.target.value)} placeholder={copy.description} />
-          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-surface-200 bg-surface-50 px-4 py-8 text-center transition hover:border-surface-300 hover:bg-white">
+          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-surface-200 bg-surface-50 px-4 py-8 text-center transition hover:border-surface-300 hover:bg-raised">
             <Upload className="mb-2 h-6 w-6 text-surface-400" />
             <span className="text-sm font-semibold text-surface-700">{file?.name || copy.choose}</span>
             <span className="mt-1 text-xs text-surface-400">PDF, PPTX, PPT</span>
@@ -306,7 +306,7 @@ export default function EventPresentationsPage() {
                       </div>
                       {deck.description && <p className="body-xs mt-2">{deck.description}</p>}
                       {deck.conversion_status === "failed" && deck.conversion_error && (
-                        <p className="mt-2 text-xs text-red-600">{deck.conversion_error}</p>
+                        <p className="mt-2 text-xs text-status-danger-content">{deck.conversion_error}</p>
                       )}
                       <p className="mt-2 text-xs text-surface-400">{deck.file_filename || "-"} · {formatBytes(deck.file_size)}</p>
                     </div>
@@ -331,7 +331,7 @@ export default function EventPresentationsPage() {
                           {isTr ? "Dönüşümü yeniden dene" : "Retry conversion"}
                         </button>
                       )}
-                      <button type="button" onClick={() => void handleDelete(deck)} className="btn-secondary text-red-600 hover:bg-red-50">
+                      <button type="button" onClick={() => void handleDelete(deck)} className="btn-secondary text-status-danger-content hover:bg-status-danger-bg">
                         <Trash2 className="h-4 w-4" />
                         {copy.remove}
                       </button>

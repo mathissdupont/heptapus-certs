@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useMemo, type ElementType } from "react";
 import { useParams } from "next/navigation";
@@ -59,7 +59,7 @@ export default function EventAutomationsPage() {
   const params = useParams<{ id: string }>();
   const eventId = Number(params.id);
   const { lang } = useI18n();
-  
+
   const copy = lang === "tr" ? {
     gate: "Otomasyon kuralları Growth ve Enterprise planlarında kullanılabilir.",
     title: "Otomasyon Kuralları",
@@ -227,7 +227,7 @@ export default function EventAutomationsPage() {
   return (
     <FeatureGate requiredPlans={["growth", "enterprise"]} message={copy.gate}>
     <div className="w-full flex flex-col gap-5 antialiased text-surface-900">
-      
+
       {/* ÜST NAVİGASYON VE BAŞLIK BARLARI */}
       <EventAdminNav eventId={eventId} active="automations" className="mb-1" />
 
@@ -237,9 +237,9 @@ export default function EventAutomationsPage() {
           <h1 className="text-xl font-bold tracking-tight text-surface-900 sm:text-2xl">{copy.title}</h1>
           <p className="text-xs text-surface-400 font-medium max-w-2xl">{copy.subtitle}</p>
         </div>
-        
+
         <div className="flex items-center gap-2 self-end sm:self-auto">
-          <button type="button" onClick={() => setForm(DEFAULT_FORM)} className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 active:scale-95">
+          <button type="button" onClick={() => setForm(DEFAULT_FORM)} className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 active:scale-95">
             <Plus className="h-4 w-4 stroke-[2.5]" />
             <span>{copy.newRule}</span>
           </button>
@@ -252,13 +252,13 @@ export default function EventAutomationsPage() {
 
       {/* DİNAMİK DURUM BANNERLARI */}
       {error && (
-        <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
+        <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
       {dispatchResult && (
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-xs font-semibold text-emerald-600 flex items-center gap-2">
+        <div className="rounded-xl border border-status-success-border bg-status-success-bg/40 p-4 text-xs font-semibold text-status-success-content flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>{dispatchResult}</span>
         </div>
@@ -275,8 +275,8 @@ export default function EventAutomationsPage() {
               onClick={() => setForm(prev => ({ ...prev, trigger: trigger.value }))}
               className={`rounded-2xl border p-4 text-left transition-all duration-200 ${
                 isSelected
-                  ? "border-gray-900 bg-white shadow-md ring-1 ring-gray-950"
-                  : "border-surface-200 bg-white shadow-sm hover:border-surface-300"
+                  ? "border-outline-strong bg-raised shadow-md ring-1 ring-outline-strong"
+                  : "border-surface-200 bg-raised shadow-sm hover:border-surface-300"
               }`}
             >
               <p className="text-11 font-bold text-surface-400 uppercase tracking-tight truncate">{trigger.label}</p>
@@ -289,9 +289,9 @@ export default function EventAutomationsPage() {
 
       {/* ANA FORM EDITÖRÜ VE AKTİF AKIŞLAR ÇİFT SÜTUNU */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] items-start">
-        
+
         {/* SOL SÜTUN: KURAL OLUŞTURMA & EDİTÖR FORMU */}
-        <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4.5">
+        <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4.5">
           <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
             <Workflow className="h-4 w-4 text-surface-800 stroke-[2]" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{form.id ? "Kuralı Düzenle" : "Yeni Kural Tanımla"}</h2>
@@ -303,7 +303,7 @@ export default function EventAutomationsPage() {
               <input
                 value={form.name}
                 onChange={event => setForm(prev => ({ ...prev, name: event.target.value }))}
-                className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900"
+                className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900"
                 maxLength={120}
               />
             </label>
@@ -314,7 +314,7 @@ export default function EventAutomationsPage() {
                 <select
                   value={form.trigger}
                   onChange={event => setForm(prev => ({ ...prev, trigger: event.target.value as AutomationTrigger }))}
-                  className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 cursor-pointer"
+                  className="w-full min-h-[38px] appearance-none rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 cursor-pointer"
                 >
                   {TRIGGERS.map(trigger => <option key={trigger.value} value={trigger.value}>{trigger.label}</option>)}
                 </select>
@@ -336,8 +336,8 @@ export default function EventAutomationsPage() {
                       onClick={() => setForm(prev => ({ ...prev, action: { type: action.value, reminder_delay_hours: action.value === "create_reminder" ? 24 : 0 } }))}
                       className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border px-2 text-xs font-semibold transition-all active:scale-95 ${
                         isActSelected
-                          ? "border-gray-900 bg-surface-900 text-white shadow-sm"
-                          : "border-surface-200 bg-white text-surface-600 hover:bg-surface-50 hover:text-surface-900"
+                          ? "border-outline-strong bg-surface-900 text-white shadow-sm"
+                          : "border-surface-200 bg-raised text-surface-600 hover:bg-surface-50 hover:text-surface-900"
                       }`}
                     >
                       <Icon className="h-3.5 w-3.5 stroke-[1.8]" />
@@ -369,7 +369,7 @@ export default function EventAutomationsPage() {
                   max={720}
                   value={form.action.reminder_delay_hours ?? 24}
                   onChange={event => setForm(prev => ({ ...prev, action: { ...prev.action, reminder_delay_hours: Number(event.target.value) } }))}
-                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900"
+                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900"
                 />
               </label>
             )}
@@ -381,7 +381,7 @@ export default function EventAutomationsPage() {
                   type="url"
                   value={form.action.webhook_url || ""}
                   onChange={event => setForm(prev => ({ ...prev, action: { ...prev.action, webhook_url: event.target.value } }))}
-                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 placeholder:text-surface-400 font-mono"
+                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 placeholder:text-surface-400 font-mono"
                   placeholder="https://api.kurumunuz.com/webhook"
                 />
               </label>
@@ -407,7 +407,7 @@ export default function EventAutomationsPage() {
         </section>
 
         {/* SAĞ SÜTUN: AKTİF OTOMASYON AKIŞLARI LİSTESİ */}
-        <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+        <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-2.5">
             <div className="flex items-center gap-1.5">
               <Layers className="h-4 w-4 text-surface-800 stroke-[2]" />
@@ -430,11 +430,11 @@ export default function EventAutomationsPage() {
                 const action = rule.actions[0];
                 const actionLabel = action?.label || selectedActionMeta.label;
                 return (
-                  <div key={rule.id} className="rounded-xl border border-surface-100 bg-white p-4 shadow-sm hover:border-surface-200 transition-colors flex flex-col justify-between sm:flex-row sm:items-center gap-3 group">
+                  <div key={rule.id} className="rounded-xl border border-surface-100 bg-raised p-4 shadow-sm hover:border-surface-200 transition-colors flex flex-col justify-between sm:flex-row sm:items-center gap-3 group">
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-bold text-xs text-surface-900 tracking-tight">{rule.name}</p>
-                        <span className={`inline-flex rounded-md border px-1.5 py-0.5 text-11 font-bold uppercase tracking-tight shadow-sm ${rule.enabled ? "border-emerald-100 bg-emerald-50 text-emerald-700" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
+                        <span className={`inline-flex rounded-md border px-1.5 py-0.5 text-11 font-bold uppercase tracking-tight shadow-sm ${rule.enabled ? "border-status-success-border bg-status-success-bg text-status-success-content" : "border-surface-100 bg-surface-50 text-surface-400"}`}>
                           {rule.enabled ? "Aktif" : "Pasif"}
                         </span>
                       </div>
@@ -445,20 +445,20 @@ export default function EventAutomationsPage() {
                         Öngörülen Hedef: {triggerCounts[rule.trigger] ?? 0} tekil alıcı
                       </p>
                     </div>
-                    
+
                     {/* Liste İçi Küçük Aksiyon Düğmeleri */}
                     <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
-                      <button type="button" onClick={() => void previewRule(rule.id)} disabled={busyRuleId === rule.id} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-bold text-surface-700 hover:bg-surface-50 shadow-sm">
+                      <button type="button" onClick={() => void previewRule(rule.id)} disabled={busyRuleId === rule.id} className="rounded-lg border border-surface-200 bg-raised px-2.5 py-1 text-11 font-bold text-surface-700 hover:bg-surface-50 shadow-sm">
                         {copy.dryRun.split(" ")[0]}
                       </button>
-                      <button type="button" onClick={() => editRule(rule)} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-bold text-surface-700 hover:bg-surface-50 shadow-sm">
+                      <button type="button" onClick={() => editRule(rule)} className="rounded-lg border border-surface-200 bg-raised px-2.5 py-1 text-11 font-bold text-surface-700 hover:bg-surface-50 shadow-sm">
                         Düzenle
                       </button>
                       <button
                         type="button"
                         onClick={() => removeRule(rule.id)}
                         disabled={busyRuleId === rule.id}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 hover:bg-red-50 hover:text-red-500 transition-all active:scale-90 shadow-sm"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-raised text-surface-400 hover:bg-status-danger-bg hover:text-status-danger-content transition-all active:scale-90 shadow-sm"
                         title="Sil"
                       >
                         {busyRuleId === rule.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />}
@@ -474,7 +474,7 @@ export default function EventAutomationsPage() {
 
       {/* 6. SİMÜLASYON HEDEF ÖNİZLEME ALANI (Dry Run) */}
       {dryRun && (
-        <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4 animate-in slide-in-from-bottom-2 duration-200">
+        <section className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm space-y-4 animate-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-2.5">
             <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 flex items-center gap-1.5">
               <Workflow className="h-4 w-4 text-surface-400 stroke-[2]" /> {copy.dryRun}
@@ -490,7 +490,7 @@ export default function EventAutomationsPage() {
                   <p className="text-xs font-bold text-surface-900 tracking-tight truncate">{item.name || item.email}</p>
                   <p className="text-11 font-medium text-surface-400 font-mono truncate">{item.email || "-"}</p>
                 </div>
-                {item.suppressed && <span className="rounded-md bg-amber-50 border border-amber-100 px-1.5 py-0.5 text-11 font-bold text-amber-700 uppercase tracking-wide">Bastırıldı</span>}
+                {item.suppressed && <span className="rounded-md bg-status-warning-bg border border-status-warning-border px-1.5 py-0.5 text-11 font-bold text-status-warning-content uppercase tracking-wide">Bastırıldı</span>}
               </div>
             ))}
           </div>
@@ -498,7 +498,7 @@ export default function EventAutomationsPage() {
       )}
 
       {/* 7. TARİHSEL ÇALIŞMA GÜNLÜĞÜ GEÇMİŞİ (Run History Logs) */}
-      <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+      <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-2.5">
           <div className="flex items-center gap-1.5">
             <History className="h-4 w-4 text-surface-800 stroke-[2]" />
@@ -506,34 +506,34 @@ export default function EventAutomationsPage() {
           </div>
           <span className="rounded-md bg-surface-50 border border-surface-100 px-2 py-0.5 text-11 font-bold text-surface-400">{logs.length}</span>
         </div>
-        
+
         <div className="space-y-4">
           {logs.length === 0 ? (
             <p className="text-xs font-semibold text-surface-400 py-4">Henüz kural tetikleme geçmişi kaydedilmedi.</p>
           ) : (
             logs.map((log) => (
-              <div key={`${log.rule_id}-${log.updated_at}`} className="rounded-xl border border-surface-100 bg-white p-4 space-y-3 shadow-inner">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-50/50 pb-2">
+              <div key={`${log.rule_id}-${log.updated_at}`} className="rounded-xl border border-surface-100 bg-raised p-4 space-y-3 shadow-inner">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-outline-subtle/50 pb-2">
                   <p className="text-xs font-bold text-surface-900 tracking-tight font-mono truncate">İş Akışı ID: #{log.rule_id}</p>
                   <div className="flex flex-wrap gap-1.5 text-11 font-bold">
-                    <span className="bg-emerald-50 border border-emerald-100/50 px-2 py-0.5 text-emerald-700 rounded-md">Başarılı: {log.sent}</span>
-                    <span className="bg-amber-50 border border-amber-100/50 px-2 py-0.5 text-amber-700 rounded-md">Atlanan: {log.skipped}</span>
-                    <span className="bg-red-50 border border-red-100/50 px-2 py-0.5 text-red-600 rounded-md">Hata: {log.failed}</span>
+                    <span className="bg-status-success-bg border border-status-success-border/50 px-2 py-0.5 text-status-success-content rounded-md">Başarılı: {log.sent}</span>
+                    <span className="bg-status-warning-bg border border-status-warning-border/50 px-2 py-0.5 text-status-warning-content rounded-md">Atlanan: {log.skipped}</span>
+                    <span className="bg-status-danger-bg border border-status-danger-border/50 px-2 py-0.5 text-status-danger-content rounded-md">Hata: {log.failed}</span>
                   </div>
                 </div>
-                
+
                 {/* Mikro Alıcı Detay Log Ögeleri */}
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl">
                   {log.recent.slice(0, 6).map((item: any) => (
-                    <div key={`${item.id}-${item.status}`} className="rounded-lg border border-gray-50 bg-surface-50/30 p-2.5 space-y-1">
+                    <div key={`${item.id}-${item.status}`} className="rounded-lg border border-outline-subtle bg-surface-50/30 p-2.5 space-y-1">
                       <p className="text-11 font-bold text-surface-900 truncate font-mono">{item.email || `#${item.attendee_id}`}</p>
-                      <p className="text-11 font-medium text-surface-400 flex items-center justify-between gap-2 pt-0.5 border-t border-gray-50/50">
+                      <p className="text-11 font-medium text-surface-400 flex items-center justify-between gap-2 pt-0.5 border-t border-outline-subtle/50">
                         <span className="capitalize">{item.action_type.replace("_", " ")}</span>
-                        <span className={`font-semibold ${item.status === "success" ? "text-emerald-500" : "text-surface-500"}`}>
+                        <span className={`font-semibold ${item.status === "success" ? "text-status-success-content" : "text-surface-500"}`}>
                           {item.status} · {item.attempts || 0} deneme
                         </span>
                       </p>
-                      {item.message && <p className="text-11 font-semibold text-red-500 line-clamp-1 pt-0.5" title={item.message}>{item.message}</p>}
+                      {item.message && <p className="text-11 font-semibold text-status-danger-content line-clamp-1 pt-0.5" title={item.message}>{item.message}</p>}
                     </div>
                   ))}
                 </div>

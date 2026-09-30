@@ -146,7 +146,7 @@ export function LanguageToggle({ className }: { className?: string }) {
         title={langLabels[nextLang]}
         className={
           className ??
-          "inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-raised px-3 py-1.5 text-xs font-bold text-surface-700 shadow-sm transition-colors hover:bg-surface-50 hover:text-surface-900"
+ "inline-flex items-center gap-2 rounded-lg border border-surface-200 bg-raised px-3 py-1.5 text-xs font-bold text-surface-700 shadow-sm transition-colors hover:bg-surface-50 hover:text-surface-900"
         }
         aria-label={langLabels[nextLang]}
       >

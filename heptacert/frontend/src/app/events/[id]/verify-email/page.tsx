@@ -73,18 +73,18 @@ function VerifyAttendeeEmailContent() {
         {status === "loading" && (
           <>
             <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-brand-500" />
-            <h2 className="text-lg font-semibold text-gray-900">{copy.verifying}</h2>
-            <p className="mt-2 text-sm text-gray-500">{copy.pleaseWait}</p>
+            <h2 className="text-lg font-semibold text-content-primary">{copy.verifying}</h2>
+            <p className="mt-2 text-sm text-content-muted">{copy.pleaseWait}</p>
           </>
         )}
 
         {status === "success" && (
           <>
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-status-success-bg text-status-success-content">
               <CheckCircle2 className="h-8 w-8" />
             </div>
-            <h2 className="mb-2 text-xl font-bold text-gray-900">{copy.successTitle}</h2>
-            <p className="mb-6 text-sm text-gray-500">{message}</p>
+            <h2 className="mb-2 text-xl font-bold text-content-primary">{copy.successTitle}</h2>
+            <p className="mb-6 text-sm text-content-muted">{message}</p>
             <Link href={statusUrl || `/events/${eventId}/status`} className="btn-primary w-full justify-center gap-2">
               {copy.openStatus}
               <ArrowRight className="h-4 w-4" />
@@ -94,11 +94,11 @@ function VerifyAttendeeEmailContent() {
 
         {status === "error" && (
           <>
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-status-danger-bg text-status-danger-content">
               <XCircle className="h-8 w-8" />
             </div>
-            <h2 className="mb-2 text-xl font-bold text-gray-900">{copy.errorTitle}</h2>
-            <p className="mb-6 text-sm text-gray-500">{message}</p>
+            <h2 className="mb-2 text-xl font-bold text-content-primary">{copy.errorTitle}</h2>
+            <p className="mb-6 text-sm text-content-muted">{message}</p>
             <Link href={`/events/${eventId}/register`} className="btn-secondary w-full justify-center">
               {copy.backToRegister}
             </Link>

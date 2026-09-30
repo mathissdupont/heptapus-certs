@@ -223,7 +223,7 @@ export default function EventPresentationStagePage() {
 
   return (
     <main className="fixed inset-0 z-[220] overflow-hidden bg-surface-100 text-surface-950">
-      <header className="absolute left-3 right-3 top-3 z-30 flex items-center justify-between gap-3 rounded-2xl border border-surface-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
+      <header className="absolute left-3 right-3 top-3 z-30 flex items-center justify-between gap-3 rounded-2xl border border-surface-200 bg-raised/95 px-4 py-3 shadow-sm backdrop-blur">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-surface-200 bg-surface-50 p-1.5">
             {branding?.brand_logo ? (
@@ -250,9 +250,9 @@ export default function EventPresentationStagePage() {
               <span className="hidden sm:inline">{copy.phoneQr}</span>
             </button>
             {qrOpen && (
-              <div className="absolute right-0 top-12 w-64 rounded-2xl border border-surface-200 bg-white p-4 text-center shadow-xl">
+              <div className="absolute right-0 top-12 w-64 rounded-2xl border border-surface-200 bg-raised p-4 text-center shadow-xl">
                 {qrImageUrl ? (
-                  <img src={qrImageUrl} alt={copy.phoneQr} className="mx-auto h-44 w-44 rounded-xl border border-surface-100 bg-white object-contain" />
+                  <img src={qrImageUrl} alt={copy.phoneQr} className="mx-auto h-44 w-44 rounded-xl border border-surface-100 bg-raised object-contain" />
                 ) : (
                   <div className="mx-auto flex h-44 w-44 items-center justify-center rounded-xl border border-surface-100 bg-surface-50">
                     <Loader2 className="h-5 w-5 animate-spin text-surface-400" />
@@ -292,9 +292,9 @@ export default function EventPresentationStagePage() {
         {loading ? (
           <Loader2 className="h-8 w-8 animate-spin text-surface-400" />
         ) : error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center font-semibold text-red-700">{error}</div>
+          <div className="rounded-2xl border border-status-danger-border bg-status-danger-bg p-6 text-center font-semibold text-status-danger-content">{error}</div>
         ) : !deck || !fileUrl ? (
-          <div className="rounded-2xl border border-surface-200 bg-white p-8 text-center shadow-sm">
+          <div className="rounded-2xl border border-surface-200 bg-raised p-8 text-center shadow-sm">
             <FileText className="mx-auto mb-4 h-10 w-10 text-surface-300" />
             <p className="font-bold">{copy.noFile}</p>
           </div>
@@ -330,13 +330,13 @@ export default function EventPresentationStagePage() {
             )}
           </div>
         ) : isConverting(deck) ? (
-          <div className="max-w-2xl rounded-2xl border border-surface-200 bg-white p-8 text-center shadow-sm">
+          <div className="max-w-2xl rounded-2xl border border-surface-200 bg-raised p-8 text-center shadow-sm">
             <Loader2 className="mx-auto mb-5 h-14 w-14 animate-spin text-surface-400" />
             <h2 className="text-3xl font-black">{copy.convertingTitle}</h2>
             <p className="mt-4 text-sm leading-relaxed text-surface-500">{copy.convertingBody}</p>
           </div>
         ) : (
-          <div className="max-w-2xl rounded-2xl border border-surface-200 bg-white p-8 text-center shadow-sm">
+          <div className="max-w-2xl rounded-2xl border border-surface-200 bg-raised p-8 text-center shadow-sm">
             <Presentation className="mx-auto mb-5 h-14 w-14 text-surface-400" />
             <h2 className="text-3xl font-black">{deck.conversion_status === "failed" ? copy.failedTitle : copy.pptxTitle}</h2>
             <p className="mt-4 text-sm leading-relaxed text-surface-500">{deck.conversion_error || copy.pptxBody}</p>

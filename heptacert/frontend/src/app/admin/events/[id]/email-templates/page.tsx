@@ -315,7 +315,7 @@ export default function EmailTemplatesPage() {
       )}
 
       <div className="overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="inline-flex min-w-full gap-2 rounded-3xl border border-surface-200 bg-white p-2 shadow-soft sm:min-w-0">
+        <div className="inline-flex min-w-full gap-2 rounded-3xl border border-surface-200 bg-raised p-2 shadow-soft sm:min-w-0">
           <button
             onClick={() => setSelectedTab("custom")}
             className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
@@ -372,7 +372,7 @@ export default function EmailTemplatesPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="truncate text-lg font-bold text-surface-900">{template.name}</h3>
                     {template.is_system && (
-                      <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-11 font-semibold text-blue-700">
+                      <span className="rounded-full border border-status-info-border bg-status-info-bg px-2.5 py-1 text-11 font-semibold text-status-info-content">
                         {copy.system}
                       </span>
                     )}
@@ -389,7 +389,7 @@ export default function EmailTemplatesPage() {
                   </div>
                 </div>
                 {!template.is_system && (
-                  <button onClick={() => setDeleteTarget(template)} className="rounded-2xl p-2 text-rose-600 transition hover:bg-rose-50">
+                  <button onClick={() => setDeleteTarget(template)} className="rounded-2xl p-2 text-status-danger-content transition hover:bg-status-danger-bg">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 )}
@@ -431,7 +431,7 @@ export default function EmailTemplatesPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 16 }}
-              className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-surface-200 bg-white shadow-lifted"
+              className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-surface-200 bg-raised shadow-lifted"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex items-center justify-between border-b border-surface-100 px-5 py-5 sm:px-6">
@@ -529,7 +529,7 @@ export default function EmailTemplatesPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 16 }}
-              className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-surface-200 bg-white shadow-lifted"
+              className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-surface-200 bg-raised shadow-lifted"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex items-center justify-between border-b border-surface-100 px-5 py-5 sm:px-6">
@@ -566,7 +566,7 @@ export default function EmailTemplatesPage() {
                   <iframe
                     title={copy.previewTitle}
                     sandbox=""
-                    className="mt-5 min-h-[320px] w-full rounded-xl border border-surface-200 bg-white"
+                    className="mt-5 min-h-[320px] w-full rounded-xl border border-surface-200 bg-raised"
                     srcDoc={previewTemplate.body_html
                       .replace(/{{recipient_name}}/g, copy.sampleName)
                       .replace(/{{event_name}}/g, copy.sampleEvent)

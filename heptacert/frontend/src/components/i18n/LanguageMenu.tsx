@@ -117,7 +117,7 @@ export default function LanguageMenu({
         }}
         className={
           className ??
-          "inline-flex min-h-9 items-center gap-2 rounded-lg border border-outline-subtle bg-raised px-2.5 text-xs font-bold text-content-secondary shadow-sm transition-colors hover:bg-sunken hover:text-content-primary"
+ "inline-flex min-h-9 items-center gap-2 rounded-lg border border-outline-subtle bg-raised px-2.5 text-xs font-bold text-content-secondary shadow-sm transition-colors hover:bg-sunken hover:text-content-primary"
         }
       >
         <Globe className="h-4 w-4 shrink-0 text-content-muted" aria-hidden />

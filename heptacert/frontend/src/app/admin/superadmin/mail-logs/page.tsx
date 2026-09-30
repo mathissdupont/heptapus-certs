@@ -172,11 +172,11 @@ export default function SuperadminMailLogsPage() {
         </div>
         <div className="card p-4">
           <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.sent}</p>
-          <p className="mt-2 text-3xl font-black text-emerald-700">{totalSent}</p>
+          <p className="mt-2 text-3xl font-black text-status-success-content">{totalSent}</p>
         </div>
         <div className="card p-4">
           <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.failed}</p>
-          <p className="mt-2 text-3xl font-black text-rose-700">{totalFailed}</p>
+          <p className="mt-2 text-3xl font-black text-status-danger-content">{totalFailed}</p>
         </div>
       </div>
 

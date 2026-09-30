@@ -19,8 +19,8 @@ type SsoConfig = {
 };
 
 const PROVIDER_INFO: Record<string, { label: string; color: string; icon: string }> = {
-  google: { label: "Google", color: "bg-red-50 border-red-200 text-red-700", icon: "G" },
-  microsoft: { label: "Microsoft / Azure AD", color: "bg-blue-50 border-blue-200 text-blue-700", icon: "M" },
+  google: { label: "Google", color: "bg-status-danger-bg border-status-danger-border text-status-danger-content", icon: "G" },
+  microsoft: { label: "Microsoft / Azure AD", color: "bg-status-info-bg border-status-info-border text-status-info-content", icon: "M" },
   generic_oidc: { label: "Generic OIDC", color: "bg-surface-100 border-surface-200 text-surface-600", icon: "⚙" },
 };
 
@@ -136,7 +136,7 @@ export default function SsoSettingsPage() {
 
       {/* New config form */}
       {showNew && (
-        <div className="space-y-4 rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+        <div className="space-y-4 rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold tracking-tight text-surface-900">Yeni SSO Sağlayıcısı</h2>
             <button onClick={() => setShowNew(false)} className="text-surface-400 transition-colors hover:text-surface-700">
@@ -147,7 +147,7 @@ export default function SsoSettingsPage() {
             <div>
               <label className="mb-1 block text-xs font-semibold text-surface-700">Sağlayıcı</label>
               <select
-                className="min-h-[38px] w-full appearance-none rounded-xl border border-surface-200 bg-white px-3 text-xs font-semibold outline-none transition focus:border-surface-900"
+                className="min-h-[38px] w-full appearance-none rounded-xl border border-surface-200 bg-raised px-3 text-xs font-semibold outline-none transition focus:border-surface-900"
                 value={form.provider}
                 onChange={(e) => setForm((p) => ({ ...p, provider: e.target.value }))}
               >
@@ -161,7 +161,7 @@ export default function SsoSettingsPage() {
             <div>
               <label className="mb-1 block text-xs font-semibold text-surface-700">Client ID *</label>
               <input
-                className="min-h-[38px] w-full rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 placeholder:text-surface-400"
+                className="min-h-[38px] w-full rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 placeholder:text-surface-400"
                 placeholder="OAuth2 Client ID"
                 value={form.client_id}
                 onChange={(e) => setForm((p) => ({ ...p, client_id: e.target.value }))}
@@ -171,7 +171,7 @@ export default function SsoSettingsPage() {
               <label className="mb-1 block text-xs font-semibold text-surface-700">Client Secret *</label>
               <input
                 type="password"
-                className="min-h-[38px] w-full rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 placeholder:text-surface-400"
+                className="min-h-[38px] w-full rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 placeholder:text-surface-400"
                 placeholder="OAuth2 Client Secret"
                 value={form.client_secret}
                 onChange={(e) => setForm((p) => ({ ...p, client_secret: e.target.value }))}
@@ -181,7 +181,7 @@ export default function SsoSettingsPage() {
               <div>
                 <label className="mb-1 block text-xs font-semibold text-surface-700">Azure Tenant ID</label>
                 <input
-                  className="min-h-[38px] w-full rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 placeholder:text-surface-400"
+                  className="min-h-[38px] w-full rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 placeholder:text-surface-400"
                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                   value={form.tenant_id}
                   onChange={(e) => setForm((p) => ({ ...p, tenant_id: e.target.value }))}
@@ -207,7 +207,7 @@ export default function SsoSettingsPage() {
           <Loader2 className="h-5 w-5 animate-spin text-surface-400" />
         </div>
       ) : configs.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-surface-200 bg-white py-16 text-center">
+        <div className="rounded-2xl border border-dashed border-surface-200 bg-raised py-16 text-center">
           <KeyRound className="mx-auto mb-3 h-8 w-8 text-surface-300" />
           <p className="text-sm font-semibold text-surface-500">Henüz SSO yapılandırması yok.</p>
           <p className="mt-1 text-xs text-surface-400">
@@ -221,7 +221,7 @@ export default function SsoSettingsPage() {
             return (
               <div
                 key={c.id}
-                className={`flex items-center justify-between gap-3 rounded-2xl border border-surface-200 bg-white p-4 shadow-sm ${c.is_active ? "" : "opacity-60"}`}
+                className={`flex items-center justify-between gap-3 rounded-2xl border border-surface-200 bg-raised p-4 shadow-sm ${c.is_active ? "" : "opacity-60"}`}
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border text-sm font-bold ${info.color}`}>
@@ -231,7 +231,7 @@ export default function SsoSettingsPage() {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-surface-900">{info.label}</p>
                       {c.is_active && (
-                        <span className="flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-11 font-semibold text-emerald-700">
+                        <span className="flex items-center gap-0.5 rounded-full bg-status-success-bg px-1.5 py-0.5 text-11 font-semibold text-status-success-content">
                           <Check className="h-2.5 w-2.5" /> Aktif
                         </span>
                       )}
@@ -250,7 +250,7 @@ export default function SsoSettingsPage() {
                       : <ToggleLeft className="h-6 w-6" />
                     }
                   </button>
-                  <button onClick={() => deleteConfig(c.id)} className="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-rose-50 hover:text-rose-500" aria-label="Sil">
+                  <button onClick={() => deleteConfig(c.id)} className="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-status-danger-bg hover:text-status-danger-content" aria-label="Sil">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>

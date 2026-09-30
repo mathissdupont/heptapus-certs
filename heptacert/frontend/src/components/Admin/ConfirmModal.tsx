@@ -57,14 +57,14 @@ export function ConfirmModal({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="relative z-10 w-full overflow-hidden rounded-t-2xl border border-surface-200 bg-white shadow-modal sm:max-w-md sm:rounded-2xl"
+            className="relative z-10 w-full overflow-hidden rounded-t-2xl border border-surface-200 bg-raised shadow-modal sm:max-w-md sm:rounded-2xl"
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="confirm-modal-title"
           >
             <div className="flex items-start gap-3.5 border-b border-surface-100 px-5 py-4">
               {danger && (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-500">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-status-danger-border bg-status-danger-bg text-status-danger-content">
                   <AlertTriangle className="h-4 w-4 stroke-[2]" />
                 </div>
               )}

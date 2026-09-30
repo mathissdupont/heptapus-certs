@@ -54,7 +54,7 @@ function AdminTeamInviteContent() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface-50 px-4 py-12">
-      <section className="w-full max-w-lg rounded-lg border border-surface-200 bg-white p-8 text-center shadow-card">
+      <section className="w-full max-w-lg rounded-lg border border-surface-200 bg-raised p-8 text-center shadow-card">
         {state.status === "loading" && (
           <>
             <Loader2 className="mx-auto h-10 w-10 animate-spin text-brand-600" />
@@ -64,7 +64,7 @@ function AdminTeamInviteContent() {
         )}
         {state.status === "success" && (
           <>
-            <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
+            <CheckCircle2 className="mx-auto h-12 w-12 text-status-success-content" />
             <h1 className="mt-5 text-2xl font-bold text-surface-900">{copy.accepted}</h1>
             <p className="mt-2 text-sm text-surface-500">
               {copy.accessReady(state.email, state.eventName)}
@@ -80,7 +80,7 @@ function AdminTeamInviteContent() {
         )}
         {state.status === "error" && (
           <>
-            <XCircle className="mx-auto h-12 w-12 text-red-500" />
+            <XCircle className="mx-auto h-12 w-12 text-status-danger-content" />
             <h1 className="mt-5 text-2xl font-bold text-surface-900">{copy.failed}</h1>
             <p className="mt-2 text-sm text-surface-500">{state.message}</p>
             <Link href="/admin/login" className="btn-secondary mt-6">{copy.backToPanel}</Link>

@@ -43,9 +43,9 @@ type CertificateOut = {
 type CertificateListOut = { items: CertificateOut[]; total: number; page: number; limit: number };
 
 const STATUS_CONFIG: Record<CertStatus, { dot: string; text: string; label: { tr: string; en: string } }> = {
-  active:  { dot: "bg-emerald-500", text: "text-emerald-700", label: { tr: "Aktif",          en: "Active"  } },
-  revoked: { dot: "bg-red-400",     text: "text-red-600",     label: { tr: "İptal Edildi",    en: "Revoked" } },
-  expired: { dot: "bg-amber-400",   text: "text-amber-700",   label: { tr: "Süresi Dolmuş",   en: "Expired" } },
+  active:  { dot: "bg-emerald-500", text: "text-status-success-content", label: { tr: "Aktif",          en: "Active"  } },
+  revoked: { dot: "bg-red-400",     text: "text-status-danger-content",     label: { tr: "İptal Edildi",    en: "Revoked" } },
+  expired: { dot: "bg-amber-400",   text: "text-status-warning-content",   label: { tr: "Süresi Dolmuş",   en: "Expired" } },
 };
 
 export default function CertificatesPage() {
@@ -320,7 +320,7 @@ export default function CertificatesPage() {
       </AnimatePresence>
 
       {/* Certificate list */}
-      <div className="overflow-hidden rounded-xl border border-surface-200 bg-white shadow-card">
+      <div className="overflow-hidden rounded-xl border border-surface-200 bg-raised shadow-card">
         {/* Table header */}
         <div className="flex items-center gap-3 border-b border-surface-100 bg-surface-50 px-5 py-3">
           <button onClick={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(items.map((c) => c.id)))} aria-label={allSelected ? (lang === "tr" ? "Tümünü kaldır" : "Deselect all") : (lang === "tr" ? "Tümünü seç" : "Select all")} className="text-surface-400 hover:text-surface-900 transition-colors">
@@ -379,7 +379,7 @@ export default function CertificatesPage() {
                       {c.hosting_term && <span className="uppercase">{c.hosting_term}</span>}
                       <span>{copy.remaining}: {formatRemaining(c)}</span>
                       <span>{formatHc(c.total_cost_units)}</span>
-                      <span className={c.auto_renew_enabled ? "text-emerald-600" : ""}>
+                      <span className={c.auto_renew_enabled ? "text-status-success-content" : ""}>
                         {c.auto_renew_enabled ? copy.autoRenewOn : copy.autoRenewOff}
                       </span>
                     </div>
@@ -391,7 +391,7 @@ export default function CertificatesPage() {
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                     {canDownload ? (
-                      <a href={c.pdf_url!} target="_blank" rel="noreferrer" aria-label={copy.download} className="btn-ghost px-2 py-1.5 text-xs text-emerald-600 hover:bg-emerald-50" title={copy.download}>
+                      <a href={c.pdf_url!} target="_blank" rel="noreferrer" aria-label={copy.download} className="btn-ghost px-2 py-1.5 text-xs text-status-success-content hover:bg-status-success-bg" title={copy.download}>
                         <Download className="h-3.5 w-3.5" />
                       </a>
                     ) : (
@@ -408,28 +408,28 @@ export default function CertificatesPage() {
                       <AnimatePresence>
                         {menuOpen && (
                           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.1 }}
-                            className="absolute right-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-xl border border-surface-200 bg-white py-1 shadow-float">
+                            className="absolute right-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-xl border border-surface-200 bg-raised py-1 shadow-float">
                             <button onClick={() => { patchAutoRenew(c.id, !c.auto_renew_enabled); setRowMenuId(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm text-surface-600 hover:bg-surface-50 hover:text-surface-900 transition-colors">
                               <RefreshCcw className="h-3.5 w-3.5 text-surface-400" />
                               {c.auto_renew_enabled ? copy.autoRenewDisable : copy.autoRenewEnable}
                             </button>
                             {c.status !== "active" && (
-                              <button onClick={() => { patchStatus(c.id, "active"); setRowMenuId(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm text-emerald-700 hover:bg-emerald-50 transition-colors">
+                              <button onClick={() => { patchStatus(c.id, "active"); setRowMenuId(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm text-status-success-content hover:bg-status-success-bg transition-colors">
                                 <CheckCircle2 className="h-3.5 w-3.5" /> {copy.setActive}
                               </button>
                             )}
                             {c.status !== "revoked" && (
-                              <button onClick={() => { patchStatus(c.id, "revoked"); setRowMenuId(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                              <button onClick={() => { patchStatus(c.id, "revoked"); setRowMenuId(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm text-status-danger-content hover:bg-status-danger-bg transition-colors">
                                 <ShieldOff className="h-3.5 w-3.5" /> {copy.revoke}
                               </button>
                             )}
                             {c.status !== "expired" && (
-                              <button onClick={() => { patchStatus(c.id, "expired"); setRowMenuId(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm text-amber-700 hover:bg-amber-50 transition-colors">
+                              <button onClick={() => { patchStatus(c.id, "expired"); setRowMenuId(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm text-status-warning-content hover:bg-status-warning-bg transition-colors">
                                 <Clock className="h-3.5 w-3.5" /> {copy.expire}
                               </button>
                             )}
                             <div className="my-1 border-t border-surface-100" />
-                            <button onClick={() => { setDeleteTargetId(c.id); setRowMenuId(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                            <button onClick={() => { setDeleteTargetId(c.id); setRowMenuId(null); }} className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm text-status-danger-content hover:bg-status-danger-bg transition-colors">
                               <Trash2 className="h-3.5 w-3.5" /> {copy.delete}
                             </button>
                           </motion.div>
@@ -460,7 +460,7 @@ export default function CertificatesPage() {
             <div className="flex flex-wrap items-center gap-1.5">
               {(["enable_auto_renew", "disable_auto_renew", "revoke", "expire", "delete"] as const).map((action) => (
                 <button key={action} onClick={() => setBulkTarget(action)} disabled={bulkLoading}
-                  className={`inline-flex min-h-[32px] items-center gap-1 rounded-lg border border-white/20 px-2.5 text-11 font-medium text-white transition hover:bg-white/20 ${action === "delete" || action === "revoke" ? "bg-red-700/80" : "bg-white/10"}`}>
+                  className={`inline-flex min-h-[32px] items-center gap-1 rounded-lg border border-white/20 px-2.5 text-11 font-medium text-white transition hover:bg-raised/20 ${action === "delete" || action === "revoke" ? "bg-red-700/80" : "bg-raised/10"}`}>
                   {bulkActionTitle[action]}
                 </button>
               ))}

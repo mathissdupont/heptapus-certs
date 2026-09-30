@@ -91,7 +91,7 @@ export default function RetentionPolicySection({ eventId }: { eventId: number })
   if (loading) return null;
 
   return (
-    <section className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+    <section className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
       <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
         <ShieldCheck className="h-4 w-4 text-surface-800 stroke-[1.8]" />
         <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{t("retention_title")}</h2>
@@ -99,12 +99,12 @@ export default function RetentionPolicySection({ eventId }: { eventId: number })
       <p className="text-11 leading-relaxed text-surface-400 font-medium">{t("retention_desc")}</p>
 
       {policy.enabled && policy.trigger === "approve" && status && status.pending > 0 && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3.5 space-y-2">
-          <div className="flex items-center gap-2 text-amber-800">
+        <div className="rounded-xl border border-status-warning-border bg-status-warning-bg p-3.5 space-y-2">
+          <div className="flex items-center gap-2 text-status-warning-content">
             <AlertTriangle className="h-4 w-4" />
             <span className="text-xs font-bold">{t("retention_pending", { count: status.pending })}</span>
           </div>
-          <p className="text-11 text-amber-700">{t("retention_pending_hint")}</p>
+          <p className="text-11 text-status-warning-content">{t("retention_pending_hint")}</p>
           <button
             type="button"
             onClick={approve}

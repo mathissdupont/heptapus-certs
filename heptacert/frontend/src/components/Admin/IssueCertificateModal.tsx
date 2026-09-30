@@ -129,7 +129,7 @@ export default function IssueCertificateModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-modal"
+            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-surface-200 bg-raised shadow-modal"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-surface-100 px-5 py-4">

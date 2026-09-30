@@ -77,7 +77,7 @@ export default function NewEventPage() {
         <aside className="col-span-1">
           <div className="card p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
+              <div className="rounded-lg bg-status-success-bg p-2 text-status-success-content">
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
@@ -88,10 +88,10 @@ export default function NewEventPage() {
 
             <div className="mt-4 flex flex-col gap-2">
               {[
-                "3 saatlik eğitim: içerik, hedef kitle, kayıt ücreti 50₺",
-                "Webinar: 45 dakika, ücretsiz, kayıt şartı e-posta",
-                "Workshop: 2 günlük, katılımcı başına ücret, kontenjan 30",
-                "KVKK metni ekle: kişisel veriler 6 ay saklanacak, veri sorumlusu ACME A.Ş.",
+ "3 saatlik eğitim: içerik, hedef kitle, kayıt ücreti 50₺",
+ "Webinar: 45 dakika, ücretsiz, kayıt şartı e-posta",
+ "Workshop: 2 günlük, katılımcı başına ücret, kontenjan 30",
+ "KVKK metni ekle: kişisel veriler 6 ay saklanacak, veri sorumlusu ACME A.Ş.",
               ].map((p) => (
                 <button
                   key={p}

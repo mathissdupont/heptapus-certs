@@ -9,25 +9,25 @@ const intlMiddleware = createMiddleware(routing);
 const LOCALE_PREFIX_RE = /^\/(tr|en|de|fr|es|nl|ru|it|pt)(\/|$)/;
 
 const PRIMARY_APP_HOSTS = new Set([
-  "localhost",
-  "127.0.0.1",
-  "heptacert.com",
-  "www.heptacert.com",
-  "heptacert.com",
+ "localhost",
+ "127.0.0.1",
+ "heptacert.com",
+ "www.heptacert.com",
+ "heptacert.com",
 ]);
 
 const WHITE_LABEL_BLOCKED_AUTH_PATHS = [
-  "/login",
-  "/register",
-  "/admin/login",
-  "/admin/magic-verify",
-  "/forgot-password",
-  "/reset-password",
-  "/auth/google/callback",
-  "/profile",
-  "/post/create",
-  "/member/verify-email",
-  "/verify-email",
+ "/login",
+ "/register",
+ "/admin/login",
+ "/admin/magic-verify",
+ "/forgot-password",
+ "/reset-password",
+ "/auth/google/callback",
+ "/profile",
+ "/post/create",
+ "/member/verify-email",
+ "/verify-email",
 ];
 
 const LEGACY_TOKEN_ROUTES = [

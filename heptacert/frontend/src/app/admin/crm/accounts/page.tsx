@@ -13,13 +13,13 @@ import {
 import { useI18n } from "@/lib/i18n";
 
 const INDUSTRY_OPTIONS_TR = [
-  "Teknoloji", "Finans", "Sağlık", "Eğitim", "Üretim",
-  "Perakende", "İnşaat", "Lojistik", "Danışmanlık", "Diğer",
+ "Teknoloji", "Finans", "Sağlık", "Eğitim", "Üretim",
+ "Perakende", "İnşaat", "Lojistik", "Danışmanlık", "Diğer",
 ];
 
 const INDUSTRY_OPTIONS_EN = [
-  "Technology", "Finance", "Healthcare", "Education", "Manufacturing",
-  "Retail", "Construction", "Logistics", "Consulting", "Other",
+ "Technology", "Finance", "Healthcare", "Education", "Manufacturing",
+ "Retail", "Construction", "Logistics", "Consulting", "Other",
 ];
 
 const SIZE_OPTIONS_TR = [
@@ -172,7 +172,7 @@ export default function CrmAccountsPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-gray-900 text-white text-sm rounded-xl px-4 py-2.5 shadow-lg">
+        <div className="fixed top-4 right-4 z-50 bg-inverse-surface text-white text-sm rounded-xl px-4 py-2.5 shadow-lg">
           {toast}
         </div>
       )}
@@ -180,10 +180,10 @@ export default function CrmAccountsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Building2 className="h-6 w-6 text-indigo-600" />
+          <Building2 className="h-6 w-6 text-status-info-content" />
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">{copy.pageTitle}</h1>
-            <p className="text-sm text-gray-500">{copy.pageSubtitle}</p>
+            <h1 className="text-xl font-semibold text-content-primary">{copy.pageTitle}</h1>
+            <p className="text-sm text-content-muted">{copy.pageSubtitle}</p>
           </div>
         </div>
         <button
@@ -196,14 +196,14 @@ export default function CrmAccountsPage() {
 
       {/* Create form */}
       {showForm && (
-        <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-5 space-y-4">
-          <p className="text-sm font-medium text-indigo-800">{copy.newAccountForm}</p>
+        <div className="rounded-2xl border border-status-info-border bg-status-info-bg p-5 space-y-4">
+          <p className="text-sm font-medium text-status-info-content">{copy.newAccountForm}</p>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.companyName}</label>
+              <label className="block text-xs font-medium text-content-muted mb-1">{copy.companyName}</label>
               <input
                 autoFocus
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 placeholder={copy.companyNamePlaceholder}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
@@ -211,18 +211,18 @@ export default function CrmAccountsPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.domain}</label>
+              <label className="block text-xs font-medium text-content-muted mb-1">{copy.domain}</label>
               <input
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 placeholder={copy.domainPlaceholder}
                 value={newDomain}
                 onChange={(e) => setNewDomain(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.industry}</label>
+              <label className="block text-xs font-medium text-content-muted mb-1">{copy.industry}</label>
               <select
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 value={newIndustry}
                 onChange={(e) => setNewIndustry(e.target.value)}
               >
@@ -231,9 +231,9 @@ export default function CrmAccountsPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">{copy.companySize}</label>
+              <label className="block text-xs font-medium text-content-muted mb-1">{copy.companySize}</label>
               <select
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                 value={newSize}
                 onChange={(e) => setNewSize(e.target.value)}
               >
@@ -252,7 +252,7 @@ export default function CrmAccountsPage() {
             </button>
             <button
               onClick={() => { setShowForm(false); setNewName(""); setNewDomain(""); setNewIndustry(""); setNewSize(""); }}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500"
+              className="rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm text-content-muted"
             >
               {copy.cancel}
             </button>
@@ -262,9 +262,9 @@ export default function CrmAccountsPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-content-muted pointer-events-none" />
         <input
-          className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="w-full rounded-xl border border-outline-subtle bg-raised pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
           placeholder={copy.searchPlaceholder}
           value={search}
           onChange={(e) => handleSearchChange(e.target.value)}
@@ -274,56 +274,56 @@ export default function CrmAccountsPage() {
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+          <Loader2 className="h-5 w-5 animate-spin text-content-muted" />
         </div>
       ) : accounts.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-content-muted">
           <Building2 className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">{search ? copy.noResults : copy.noAccounts}</p>
         </div>
       ) : (
-        <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-outline-subtle bg-raised shadow-sm overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-canvas border-b border-outline-subtle">
               <tr>
-                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500">{copy.colCompany}</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">{copy.colIndustry}</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">{copy.colSize}</th>
-                <th className="text-center px-4 py-3 text-xs font-medium text-gray-500">{copy.colContacts}</th>
-                <th className="text-center px-4 py-3 text-xs font-medium text-gray-500">{copy.colDeals}</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-content-muted">{copy.colCompany}</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-content-muted">{copy.colIndustry}</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-content-muted">{copy.colSize}</th>
+                <th className="text-center px-4 py-3 text-xs font-medium text-content-muted">{copy.colContacts}</th>
+                <th className="text-center px-4 py-3 text-xs font-medium text-content-muted">{copy.colDeals}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-outline-subtle">
               {accounts.map((acct) => (
-                <tr key={acct.id} className="hover:bg-gray-50">
+                <tr key={acct.id} className="hover:bg-canvas">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700 flex-shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-status-info-bg flex items-center justify-center text-xs font-bold text-status-info-content flex-shrink-0">
                         {acct.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <Link
                           href={`/admin/crm/accounts/${acct.id}`}
-                          className="font-medium text-gray-900 hover:text-indigo-600"
+                          className="font-medium text-content-primary hover:text-status-info-content"
                         >
                           {acct.name}
                         </Link>
                         {acct.domain && (
-                          <p className="text-xs text-gray-400">{acct.domain}</p>
+                          <p className="text-xs text-content-muted">{acct.domain}</p>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-gray-500">{acct.industry || "—"}</td>
-                  <td className="px-4 py-4 text-gray-500">{acct.size_bucket || "—"}</td>
+                  <td className="px-4 py-4 text-content-muted">{acct.industry || "—"}</td>
+                  <td className="px-4 py-4 text-content-muted">{acct.size_bucket || "—"}</td>
                   <td className="px-4 py-4 text-center">
-                    <span className="inline-flex items-center gap-1 text-gray-500">
+                    <span className="inline-flex items-center gap-1 text-content-muted">
                       <Users className="h-3.5 w-3.5" /> {acct.contact_count}
                     </span>
                   </td>
                   <td className="px-4 py-4 text-center">
-                    <span className="inline-flex items-center gap-1 text-gray-500">
+                    <span className="inline-flex items-center gap-1 text-content-muted">
                       <Briefcase className="h-3.5 w-3.5" /> {acct.deal_count}
                     </span>
                   </td>
@@ -331,13 +331,13 @@ export default function CrmAccountsPage() {
                     <div className="flex items-center justify-end gap-2">
                       <Link
                         href={`/admin/crm/accounts/${acct.id}`}
-                        className="flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+                        className="flex items-center gap-1 rounded-lg border border-outline-subtle px-2.5 py-1.5 text-xs text-content-secondary hover:bg-canvas"
                       >
                         {copy.detail} <ChevronRight className="h-3 w-3" />
                       </Link>
                       <button
                         onClick={() => handleDelete(acct.id)}
-                        className="rounded-lg border border-gray-200 p-1.5 text-red-400 hover:bg-red-50"
+                        className="rounded-lg border border-outline-subtle p-1.5 text-status-danger-content hover:bg-status-danger-bg"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>

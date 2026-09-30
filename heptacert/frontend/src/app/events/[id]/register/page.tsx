@@ -387,7 +387,7 @@ export default function EventRegisterPage() {
         radial-gradient(circle at top left, ${brandColor}18 0%, transparent 28%),
         radial-gradient(circle at top right, ${brandColor}14 0%, transparent 22%),
         linear-gradient(180deg, #070b14 0%, #0b1120 38%, #0f172a 100%)
-      `,
+ `,
     }),
     [brandColor]
   );
@@ -562,7 +562,7 @@ export default function EventRegisterPage() {
   if (error || !event) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4" style={pageBg}>
-        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-2xl backdrop-blur-xl">
+        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-raised/5 p-8 text-center shadow-2xl backdrop-blur-xl">
           <p className="mb-4 text-5xl">:(</p>
           <p className="text-lg font-semibold text-white">{error || copy.eventNotFound}</p>
           <div className="mt-6 flex items-center justify-center gap-2 text-xs text-white/50">
@@ -585,25 +585,25 @@ export default function EventRegisterPage() {
           <div className="absolute inset-0" style={heroFallbackBg} />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-[#0f172a]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-inverse-surface" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_32%)]" />
         {hasBanner && <div className="absolute inset-0 backdrop-blur-[2px]" />}
 
         <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 md:px-6 md:pb-24 md:pt-20">
           <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }} className="max-w-3xl rounded-[28px] border border-white/12 bg-black/30 p-6 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl md:p-8">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white/85 backdrop-blur-sm">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-raised/10 px-4 py-1.5 text-xs font-semibold text-white/85 backdrop-blur-sm">
               <Shield className="h-3.5 w-3.5" style={{ color: brandColor }} />
               {ticketingEnabled ? copy.ticketedEvent : certificateEnabled ? copy.certifiedEvent : copy.standardEvent} · {brandName}
             </div>
 
             <div className="mb-5 flex items-center gap-3">
               {branding?.brand_logo ? (
-                <div className="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 backdrop-blur-sm">
+                <div className="rounded-2xl border border-white/10 bg-raised/10 px-3 py-2 backdrop-blur-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={branding.brand_logo} alt={brandName} className="h-10 w-auto object-contain" />
                 </div>
               ) : (
-                <div className="rounded-2xl border border-white/10 bg-white/10 p-3" style={{ boxShadow: `0 10px 30px ${brandColor}22` }}>
+                <div className="rounded-2xl border border-white/10 bg-raised/10 p-3" style={{ boxShadow: `0 10px 30px ${brandColor}22` }}>
                   {ticketingEnabled ? <Ticket className="h-7 w-7" style={{ color: brandColor }} /> : <Award className="h-7 w-7" style={{ color: brandColor }} />}
                 </div>
               )}
@@ -613,7 +613,7 @@ export default function EventRegisterPage() {
 
             <div className="mb-4 flex flex-wrap gap-3">
               {event.event_date && (
-                <span className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-sm text-white/85 backdrop-blur-sm">
+                <span className="flex items-center gap-2 rounded-full border border-white/15 bg-raised/10 px-3.5 py-1.5 text-sm text-white/85 backdrop-blur-sm">
                   <Calendar className="h-3.5 w-3.5" style={{ color: brandColor }} />
                   {new Date(event.event_date).toLocaleDateString(locale, {
                     day: "numeric",
@@ -624,7 +624,7 @@ export default function EventRegisterPage() {
               )}
 
               {event.event_location && (
-                <span className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-sm text-white/85 backdrop-blur-sm">
+                <span className="flex items-center gap-2 rounded-full border border-white/15 bg-raised/10 px-3.5 py-1.5 text-sm text-white/85 backdrop-blur-sm">
                   <MapPin className="h-3.5 w-3.5" style={{ color: brandColor }} />
                   {event.event_location}
                 </span>
@@ -645,12 +645,12 @@ export default function EventRegisterPage() {
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-5">
           {event.sessions.length > 0 && (
             <motion.div className="lg:col-span-2" initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.45, delay: 0.08 }}>
-              <div className="rounded-[28px] border border-white/10 bg-white/6 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+              <div className="rounded-[28px] border border-white/10 bg-raised/6 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl">
                 <h2 className="mb-5 text-xs font-bold uppercase tracking-[0.22em] text-white/45">{copy.sessionsTitle}</h2>
 
                 <div className="space-y-3">
                   {event.sessions.map((session, index) => (
-                    <div key={session.id} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/7 p-4 transition-all hover:bg-white/10">
+                    <div key={session.id} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-raised/7 p-4 transition-all hover:bg-raised/10">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-bold" style={{ backgroundColor: `${brandColor}22`, color: brandColor }}>
                         {index + 1}
                       </div>
@@ -685,10 +685,10 @@ export default function EventRegisterPage() {
           <motion.div className={event.sessions.length > 0 ? "lg:col-span-3" : "mx-auto w-full max-w-2xl lg:col-span-5"} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.45, delay: 0.12 }}>
             <AnimatePresence mode="wait">
               {success ? (
-                <motion.div key="success" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="rounded-[28px] border border-emerald-400/25 bg-white/8 p-8 text-center shadow-[0_20px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl md:p-10">
+                <motion.div key="success" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className="rounded-[28px] border border-status-success-border/25 bg-raised/8 p-8 text-center shadow-[0_20px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl md:p-10">
                   <div className="mb-5 flex justify-center">
-                    <div className="rounded-full border border-emerald-400/15 bg-emerald-500/15 p-5">
-                      <CheckCircle2 className="h-12 w-12 text-emerald-400" />
+                    <div className="rounded-full border border-status-success-border/15 bg-emerald-500/15 p-5">
+                      <CheckCircle2 className="h-12 w-12 text-status-success-content" />
                     </div>
                   </div>
 
@@ -712,52 +712,52 @@ export default function EventRegisterPage() {
                     </div>
 
                     <div className="mt-5 grid gap-3 md:grid-cols-3">
-                      <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
+                      <div className="rounded-2xl border border-white/10 bg-raised/8 px-4 py-3">
                         <p className="text-11 uppercase tracking-[0.18em] text-white/45">{copy.cardOwner}</p>
                         <p className="mt-2 text-sm font-semibold text-white">{name}</p>
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
+                      <div className="rounded-2xl border border-white/10 bg-raised/8 px-4 py-3">
                         <p className="text-11 uppercase tracking-[0.18em] text-white/45">{copy.participationRule}</p>
                         <p className="mt-2 text-sm font-semibold text-white">{copy.cardRuleLabel.replace("{count}", String(event.min_sessions_required))}</p>
                       </div>
-                      <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
+                      <div className="rounded-2xl border border-white/10 bg-raised/8 px-4 py-3">
                         <p className="text-11 uppercase tracking-[0.18em] text-white/45">{copy.status}</p>
                         <p className="mt-2 text-sm font-semibold text-white">{alreadyRegistered ? copy.registrationExists : copy.newRegistrationCreated}</p>
                       </div>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-11 font-semibold uppercase tracking-[0.18em] text-white/65">
+                      <span className="rounded-full border border-white/10 bg-raised/10 px-3 py-1 text-11 font-semibold uppercase tracking-[0.18em] text-white/65">
                         {ticketingEnabled ? copy.entryPass : certificateEnabled ? copy.certifiedEvent : copy.standardEvent}
                       </span>
-                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-11 font-semibold uppercase tracking-[0.18em] text-white/65">
+                      <span className="rounded-full border border-white/10 bg-raised/10 px-3 py-1 text-11 font-semibold uppercase tracking-[0.18em] text-white/65">
                         {surveyEnabled ? copy.surveyFlow : copy.directAccess}
                       </span>
                     </div>
 
                     {issuedTicket && (
-                      <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-white/8">
+                      <div className="mt-5 overflow-hidden rounded-2xl border border-white/10 bg-raised/8">
                         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
                           <p className="flex items-center gap-2 text-sm font-semibold text-white">
                             <Ticket className="h-4 w-4" style={{ color: brandColor }} />
                             {copy.ticketReady}
                           </p>
-                          <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-11 font-semibold uppercase tracking-[0.16em] text-emerald-100">
+                          <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-11 font-semibold uppercase tracking-[0.16em] text-status-success-content">
                             {copy.entryPass}
                           </span>
                         </div>
                         <div className="grid gap-4 p-4 sm:grid-cols-[132px_minmax(0,1fr)] sm:items-center">
-                          <div className="mx-auto flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl bg-white p-2 shadow-lg sm:mx-0">
+                          <div className="mx-auto flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl bg-raised p-2 shadow-lg sm:mx-0">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={apiUrl(`/tickets/${issuedTicket.token}/qr`)} alt={copy.ticketQr} className="h-full w-full object-contain" />
                           </div>
                           <div className="min-w-0 text-center sm:text-left">
-                            <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold text-white/75">
+                            <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-raised/10 px-3 py-1 text-xs font-semibold text-white/75">
                               <QrCode className="h-3.5 w-3.5" />
                               {copy.ticketQr}
                             </p>
                             <p className="mt-3 break-all rounded-xl bg-black/15 px-3 py-2 text-xs text-white/60">{issuedTicket.qr_payload}</p>
-                            <a href={issuedTicket.qr_payload} className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition-opacity hover:opacity-90">
+                            <a href={issuedTicket.qr_payload} className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-raised px-4 py-2.5 text-sm font-semibold text-content-primary transition-opacity hover:opacity-90">
                               {copy.openCard}
                               <ArrowRight className="h-4 w-4" />
                             </a>
@@ -767,17 +767,17 @@ export default function EventRegisterPage() {
                     )}
 
                     {verificationRequired ? (
-                      <div className="mt-5 rounded-2xl border border-sky-300/30 bg-sky-400/10 px-4 py-4">
-                        <p className="text-sm font-semibold text-sky-100">{copy.verifyEmailTitle}</p>
-                        <p className="mt-1 text-xs leading-relaxed text-sky-50/85">{copy.verifyEmailBody}</p>
+                      <div className="mt-5 rounded-2xl border border-status-info-border/30 bg-sky-400/10 px-4 py-4">
+                        <p className="text-sm font-semibold text-status-info-content">{copy.verifyEmailTitle}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-status-info-content/85">{copy.verifyEmailBody}</p>
                         {resendVerificationMessage ? (
-                          <p className="mt-3 text-xs leading-relaxed text-sky-50/80">{resendVerificationMessage}</p>
+                          <p className="mt-3 text-xs leading-relaxed text-status-info-content/80">{resendVerificationMessage}</p>
                         ) : null}
                         <button
                           type="button"
                           onClick={handleResendVerification}
                           disabled={resendVerificationLoading || resendVerificationCooldown > 0}
-                          className="mt-4 inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="mt-4 inline-flex items-center justify-center rounded-xl bg-raised px-4 py-2.5 text-sm font-semibold text-content-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {resendVerificationLoading
                             ? copy.documentUploading
@@ -788,7 +788,7 @@ export default function EventRegisterPage() {
                       </div>
                     ) : (
                       <div className="mt-5 flex flex-wrap gap-3">
-                          <a href={statusUrl || `/events/${eventId}/status`} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:opacity-90">
+                          <a href={statusUrl || `/events/${eventId}/status`} className="inline-flex items-center gap-2 rounded-xl bg-raised px-4 py-2.5 text-sm font-semibold text-content-primary transition hover:opacity-90">
                           {copy.openCard}
                           <ArrowRight className="h-4 w-4" />
                         </a>
@@ -803,12 +803,12 @@ export default function EventRegisterPage() {
                   </div>
 
                   {!verificationRequired && event.survey?.is_required && (
-                    <div className="mx-auto mt-6 max-w-md rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4 text-left">
-                      <p className="text-sm font-semibold text-amber-200">{copy.surveyRequired}</p>
-                      <p className="mt-1 text-xs leading-relaxed text-amber-100/85">{certificateEnabled ? copy.surveyRequiredBody : copy.surveyRequiredBodyGeneric}</p>
+                    <div className="mx-auto mt-6 max-w-md rounded-2xl border border-status-warning-border/25 bg-amber-400/10 p-4 text-left">
+                      <p className="text-sm font-semibold text-status-warning-content">{copy.surveyRequired}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-status-warning-content/85">{certificateEnabled ? copy.surveyRequiredBody : copy.surveyRequiredBodyGeneric}</p>
 
                       <div className="mt-4 flex flex-wrap gap-3">
-                        <a href={`/events/${eventId}/status`} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition-opacity hover:opacity-90">
+                        <a href={`/events/${eventId}/status`} className="inline-flex items-center gap-2 rounded-xl bg-raised px-4 py-2.5 text-sm font-semibold text-content-primary transition-opacity hover:opacity-90">
                           {copy.statusPage}
                           <ArrowRight className="h-4 w-4" />
                         </a>
@@ -828,8 +828,8 @@ export default function EventRegisterPage() {
                   )}
                 </motion.div>
               ) : (
-                <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="rounded-[28px] border border-white bg-white/95 p-7 text-gray-900 shadow-[0_24px_70px_rgba(15,23,42,0.18)] md:p-8" style={{ colorScheme: "light" }}>
-                  <h2 className="mb-6 flex items-center gap-3 text-xl font-bold text-gray-900">
+                <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="rounded-[28px] border border-white bg-raised/95 p-7 text-content-primary shadow-[0_24px_70px_rgba(15,23,42,0.18)] md:p-8" style={{ colorScheme: "light" }}>
+                  <h2 className="mb-6 flex items-center gap-3 text-xl font-bold text-content-primary">
                     <div className="rounded-xl p-2" style={{ backgroundColor: `${brandColor}20` }}>
                       <UserPlus className="h-4 w-4" style={{ color: brandColor }} />
                     </div>
@@ -838,7 +838,7 @@ export default function EventRegisterPage() {
 
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{copy.fullName}</label>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-content-muted">{copy.fullName}</label>
                       <input
                         type="text"
                         value={name}
@@ -846,13 +846,13 @@ export default function EventRegisterPage() {
                         placeholder={copy.fullNamePlaceholder}
                         required
                         minLength={2}
-                        className="w-full rounded-2xl border bg-gray-50/80 px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2"
+                        className="w-full rounded-2xl border bg-canvas/80 px-4 py-3.5 text-sm text-content-primary placeholder-content-faint transition-all focus:outline-none focus:ring-2"
                         style={inputFocusStyle}
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{copy.email}</label>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-content-muted">{copy.email}</label>
                       <input
                         type="email"
                         value={email}
@@ -860,11 +860,11 @@ export default function EventRegisterPage() {
                         readOnly={memberLocked}
                         placeholder={copy.emailPlaceholder}
                         required
-                        className="w-full rounded-2xl border bg-gray-50/80 px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2"
+                        className="w-full rounded-2xl border bg-canvas/80 px-4 py-3.5 text-sm text-content-primary placeholder-content-faint transition-all focus:outline-none focus:ring-2"
                         style={inputFocusStyle}
                       />
                       {memberLocked && (
-                        <p className="mt-2 text-xs text-gray-500">
+                        <p className="mt-2 text-xs text-content-muted">
                           {lang === "tr"
                             ? "Giriş yaptığın üye hesabının e-postası kullanılacak."
                             : "Your signed-in member email will be used for this registration."}
@@ -873,16 +873,16 @@ export default function EventRegisterPage() {
                     </div>
 
                     {nonFileFields.length > 0 && (
-                      <div className="space-y-4 rounded-[24px] border border-gray-200 bg-gray-50/70 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{copy.customInfo}</p>
+                      <div className="space-y-4 rounded-[24px] border border-outline-subtle bg-canvas/70 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-content-muted">{copy.customInfo}</p>
                         {nonFileFields.map((field) => (
                           <div key={field.id}>
-                            <label className="mb-2 block text-sm font-semibold text-gray-700">
+                            <label className="mb-2 block text-sm font-semibold text-content-secondary">
                               {field.label}
-                              {field.required ? <span className="ml-1 text-red-500">*</span> : null}
+                              {field.required ? <span className="ml-1 text-status-danger-content">*</span> : null}
                             </label>
                             {field.helper_text && (
-                              <div className="mb-2 text-xs text-gray-500 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: field.helper_text }} />
+                              <div className="mb-2 text-xs text-content-muted prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: field.helper_text }} />
                             )}
                             {field.type === "textarea" ? (
                               <textarea
@@ -890,12 +890,12 @@ export default function EventRegisterPage() {
                                 onChange={(e) => handleRegistrationAnswerChange(field.id, e.target.value)}
                                 placeholder={field.placeholder || ""}
                                 required={field.required}
-                                className="min-h-28 w-full rounded-2xl border bg-white px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2"
+                                className="min-h-28 w-full rounded-2xl border bg-raised px-4 py-3.5 text-sm text-content-primary placeholder-content-faint transition-all focus:outline-none focus:ring-2"
                                 style={inputFocusStyle}
                               />
                             ) : field.type === "select" ? (
                               field.selection_mode === "multiple" ? (
-                                <div className="space-y-2 rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                                <div className="space-y-2 rounded-2xl border border-outline-subtle bg-raised px-4 py-3">
                                   {(field.options || []).map((option) => {
                                     const label = typeof option === "string" ? option : option.label;
                                     const selectedValues = Array.isArray(registrationAnswers[field.id])
@@ -905,13 +905,13 @@ export default function EventRegisterPage() {
                                     const remaining = capacitiesByField[field.id]?.find((c) => c.label === label)?.remaining;
                                     const disabled = typeof remaining === "number" && remaining <= 0;
                                     return (
-                                      <label key={label} className="flex items-center gap-2 text-sm text-gray-800">
+                                      <label key={label} className="flex items-center gap-2 text-sm text-content-primary">
                                         <input
                                           type="checkbox"
                                           checked={checked}
                                           disabled={disabled}
                                           onChange={(eventArg) => toggleMultiSelectAnswer(field.id, label, eventArg.target.checked)}
-                                          className="h-4 w-4 rounded border-gray-300 text-brand-600"
+                                          className="h-4 w-4 rounded border-outline-strong text-brand-600"
                                         />
                                         <span>
                                           {label}
@@ -927,7 +927,7 @@ export default function EventRegisterPage() {
                                   value={getRegistrationAnswerTextValue(registrationAnswers, field.id)}
                                   onChange={(e) => handleRegistrationAnswerChange(field.id, e.target.value)}
                                   required={field.required}
-                                  className="w-full rounded-2xl border bg-white px-4 py-3.5 text-sm text-gray-900 transition-all focus:outline-none focus:ring-2"
+                                  className="w-full rounded-2xl border bg-raised px-4 py-3.5 text-sm text-content-primary transition-all focus:outline-none focus:ring-2"
                                   style={inputFocusStyle}
                                 >
                                   <option value="">{field.placeholder || field.label}</option>
@@ -950,7 +950,7 @@ export default function EventRegisterPage() {
                                 onChange={(e) => handleRegistrationAnswerChange(field.id, e.target.value)}
                                 placeholder={field.placeholder || ""}
                                 required={field.required}
-                                className="w-full rounded-2xl border bg-white px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:outline-none focus:ring-2"
+                                className="w-full rounded-2xl border bg-raised px-4 py-3.5 text-sm text-content-primary placeholder-content-faint transition-all focus:outline-none focus:ring-2"
                                 style={inputFocusStyle}
                               />
                             )}
@@ -960,21 +960,21 @@ export default function EventRegisterPage() {
                     )}
 
                     {fileFields.length > 0 && (
-                      <div className="space-y-4 rounded-[24px] border border-gray-200 bg-gray-50/70 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{copy.documentTitle}</p>
-                        <p className="text-xs text-gray-500">{copy.documentHint}</p>
+                      <div className="space-y-4 rounded-[24px] border border-outline-subtle bg-canvas/70 p-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-content-muted">{copy.documentTitle}</p>
+                        <p className="text-xs text-content-muted">{copy.documentHint}</p>
                         <div className="space-y-3">
                           {fileFields.map((field) => {
                             const fieldFiles = registrationFilesByField[field.id] || [];
                             const isRequired = field.required || isFieldConditionMet(field, registrationAnswers);
                             return (
-                              <div key={field.id} className="rounded-2xl border border-gray-200 bg-white p-3">
-                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                              <div key={field.id} className="rounded-2xl border border-outline-subtle bg-raised p-3">
+                                <label className="mb-2 block text-sm font-semibold text-content-secondary">
                                   {field.label}
-                                  {isRequired ? <span className="ml-1 text-red-500">*</span> : null}
+                                  {isRequired ? <span className="ml-1 text-status-danger-content">*</span> : null}
                                 </label>
-                                {field.helper_text && <div className="mb-2 text-xs text-gray-500 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: field.helper_text }} />}
-                                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100">
+                                {field.helper_text && <div className="mb-2 text-xs text-content-muted prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: field.helper_text }} />}
+                                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-outline-subtle bg-raised px-4 py-2.5 text-sm font-semibold text-content-secondary transition hover:bg-sunken">
                                   {copy.documentPick}
                                   <input
                                     type="file"
@@ -1006,7 +1006,7 @@ export default function EventRegisterPage() {
                                 {fieldFiles.length > 0 && (
                                   <div className="mt-2 space-y-2">
                                     {fieldFiles.map((file, index) => (
-                                      <div key={`${field.id}-${file.name}-${index}`} className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                                      <div key={`${field.id}-${file.name}-${index}`} className="flex items-center justify-between rounded-xl border border-outline-subtle bg-canvas px-3 py-2 text-xs text-content-secondary">
                                         <span className="truncate pr-3">{file.name}</span>
                                         <button
                                           type="button"
@@ -1016,7 +1016,7 @@ export default function EventRegisterPage() {
                                               [field.id]: (current[field.id] || []).filter((_, idx) => idx !== index),
                                             }))
                                           }
-                                          className="rounded p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
+                                          className="rounded p-1 text-content-muted transition hover:bg-sunken hover:text-content-secondary"
                                           aria-label="remove file"
                                         >
                                           <X className="h-3.5 w-3.5" />
@@ -1032,16 +1032,16 @@ export default function EventRegisterPage() {
                       </div>
                     )}
 
-                    <div className="space-y-3 rounded-[24px] border border-gray-200 bg-gray-50/70 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{copy.kvkkTitle}</p>
+                    <div className="space-y-3 rounded-[24px] border border-outline-subtle bg-canvas/70 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-content-muted">{copy.kvkkTitle}</p>
                       <button
                         type="button"
                         onClick={openKvkkModal}
-                        className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                        className="inline-flex items-center gap-2 rounded-xl border border-outline-subtle bg-raised px-4 py-2.5 text-sm font-semibold text-content-secondary transition hover:bg-sunken"
                       >
                         {copy.kvkkRead}
                       </button>
-                      <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+                      <label className="flex items-start gap-3 rounded-xl border border-outline-subtle bg-raised px-4 py-3">
                         <input
                           type="checkbox"
                           checked={requiredNoticesAcknowledged}
@@ -1053,31 +1053,31 @@ export default function EventRegisterPage() {
                           }}
                           className="mt-1 h-4 w-4"
                         />
-                        <span className="text-sm text-gray-700">{copy.privacyNoticesAccept}</span>
+                        <span className="text-sm text-content-secondary">{copy.privacyNoticesAccept}</span>
                       </label>
 
-                      <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                      <div className="flex flex-wrap gap-3 text-xs text-content-muted">
                         <Link href="/kvkk" onClick={() => recordLegalClick("kvkk")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
                         <Link href="/gizlilik" onClick={() => recordLegalClick("privacy")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Gizlilik Politikası" : "Privacy Policy"}</Link>
                         <Link href="/acik-riza" onClick={() => recordLegalClick("explicit_consent")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
                       </div>
 
                         {crossBorderConsentRequired && (
-                          <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3">
+                          <label className="flex items-start gap-3 rounded-xl border border-outline-subtle bg-raised px-4 py-3">
                             <input
                               type="checkbox"
                               checked={crossBorderTransferConsent}
                               onChange={(eventArg) => setCrossBorderTransferConsent(eventArg.target.checked)}
                               className="mt-1 h-4 w-4"
                             />
-                            <span className="text-sm text-gray-700">{copy.crossBorderConsent}</span>
+                            <span className="text-sm text-content-secondary">{copy.crossBorderConsent}</span>
                           </label>
                         )}
                     </div>
 
                     <AnimatePresence>
                       {submitError && (
-                        <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                        <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="rounded-2xl border border-status-danger-border bg-status-danger-bg px-4 py-3 text-sm text-status-danger-content">
                           {submitError}
                         </motion.p>
                       )}
@@ -1101,35 +1101,35 @@ export default function EventRegisterPage() {
 
       {showKvkkModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setShowKvkkModal(false)}>
-          <div className="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 text-gray-900 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-2xl rounded-2xl border border-outline-subtle bg-raised p-6 text-content-primary shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h3 className="text-lg font-bold text-gray-900">{copy.kvkkTitle}</h3>
-              <button type="button" onClick={() => setShowKvkkModal(false)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+              <h3 className="text-lg font-bold text-content-primary">{copy.kvkkTitle}</h3>
+              <button type="button" onClick={() => setShowKvkkModal(false)} className="rounded-lg p-2 text-content-muted hover:bg-sunken hover:text-content-secondary">
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="max-h-[60vh] space-y-4 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-4">
-              <section className="space-y-2 rounded-xl border border-gray-200 bg-white p-4">
-                <h4 className="text-sm font-semibold text-gray-900">{copy.kvkkTitle}</h4>
-                <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{event.kvkk_consent_text || copy.kvkkAccept}</p>
+            <div className="max-h-[60vh] space-y-4 overflow-y-auto rounded-xl border border-outline-subtle bg-canvas p-4">
+              <section className="space-y-2 rounded-xl border border-outline-subtle bg-raised p-4">
+                <h4 className="text-sm font-semibold text-content-primary">{copy.kvkkTitle}</h4>
+                <p className="whitespace-pre-wrap text-sm leading-6 text-content-secondary">{event.kvkk_consent_text || copy.kvkkAccept}</p>
               </section>
               {organizerNoticeEnabled && (
-                <section className="space-y-2 rounded-xl border border-gray-200 bg-white p-4">
-                  <h4 className="text-sm font-semibold text-gray-900">{copy.organizerNoticeTitle}</h4>
+                <section className="space-y-2 rounded-xl border border-outline-subtle bg-raised p-4">
+                  <h4 className="text-sm font-semibold text-content-primary">{copy.organizerNoticeTitle}</h4>
                   {event.organizer_privacy_notice_text ? (
                     <div
-                      className="rich-text-content text-sm leading-6 text-gray-700"
+                      className="rich-text-content text-sm leading-6 text-content-secondary"
                       dangerouslySetInnerHTML={{ __html: event.organizer_privacy_notice_text }}
                     />
                   ) : (
-                    <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">{copy.organizerNoticeAccept}</p>
+                    <p className="whitespace-pre-wrap text-sm leading-6 text-content-secondary">{copy.organizerNoticeAccept}</p>
                   )}
                 </section>
               )}
               {crossBorderNoticeEnabled && (
-                <section className="space-y-2 rounded-xl border border-gray-200 bg-white p-4">
-                  <h4 className="text-sm font-semibold text-gray-900">{copy.crossBorderNoticeTitle}</h4>
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                <section className="space-y-2 rounded-xl border border-outline-subtle bg-raised p-4">
+                  <h4 className="text-sm font-semibold text-content-primary">{copy.crossBorderNoticeTitle}</h4>
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-content-secondary">
                     {lang === "tr"
                       ? "HeptaCert altyapısında kullanılan bazı hizmetler yurt dışında bulunan sunucular üzerinden sağlanabilmektedir. Bu nedenle kişisel verileriniz, hizmetin sunulması, güvenlik, yedekleme ve sistem sürekliliği amaçlarıyla yurt dışındaki altyapı hizmetlerinde işlenebilir."
                       : "Some services used by HeptaCert may be delivered through servers located outside the country. As a result, your personal data may be processed by overseas infrastructure services for service delivery, security, backup, and continuity purposes."}
@@ -1137,11 +1137,11 @@ export default function EventRegisterPage() {
                 </section>
               )}
               {(event.data_controller_name || event.data_controller_contact_email || event.data_retention_note) && (
-                <section className="space-y-2 rounded-xl border border-gray-200 bg-white p-4">
-                  <h4 className="text-sm font-semibold text-gray-900">
+                <section className="space-y-2 rounded-xl border border-outline-subtle bg-raised p-4">
+                  <h4 className="text-sm font-semibold text-content-primary">
                     {lang === "tr" ? "Etkinlik veri sorumlusu bilgileri" : "Event controller details"}
                   </h4>
-                  <div className="space-y-2 text-sm leading-6 text-gray-700">
+                  <div className="space-y-2 text-sm leading-6 text-content-secondary">
                     {event.data_controller_name && (
                       <p><span className="font-semibold">{copy.dataController}:</span> {event.data_controller_name}</p>
                     )}
@@ -1162,7 +1162,7 @@ export default function EventRegisterPage() {
       <footer className="border-t border-white/5 py-8">
         <div className="mx-auto max-w-6xl px-4 text-center md:px-6">
               <div className="inline-flex items-center gap-2 text-xs font-medium text-white/55">
-              <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+              <div className="flex flex-wrap gap-3 text-xs text-content-muted">
                 <Link href="/kvkk" onClick={() => recordLegalClick("kvkk")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
                 <Link href="/gizlilik" onClick={() => recordLegalClick("privacy")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Gizlilik Politikası" : "Privacy Policy"}</Link>
                 <Link href="/acik-riza" onClick={() => recordLegalClick("explicit_consent")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>

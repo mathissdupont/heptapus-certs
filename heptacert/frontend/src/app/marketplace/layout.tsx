@@ -6,15 +6,15 @@ export const metadata: Metadata = {
     template: "%s — HeptaCert Marketplace",
   },
   description:
-    "Türkiye'nin kurumsal eğitim marketplace'i. Sertifikalı program, profesyonel gelişim kursu ve akreditasyonlu eğitimleri keşfedin. Organizasyonlara başvurun, dijital sertifikanızı alın.",
+ "Türkiye'nin kurumsal eğitim marketplace'i. Sertifikalı program, profesyonel gelişim kursu ve akreditasyonlu eğitimleri keşfedin. Organizasyonlara başvurun, dijital sertifikanızı alın.",
   keywords: [
-    "sertifikalı eğitim",
-    "kurumsal eğitim marketplace",
-    "dijital sertifika programı",
-    "online kurs Türkiye",
-    "akreditasyonlu eğitim",
-    "mesleki gelişim kursu",
-    "certificate training Turkey",
+ "sertifikalı eğitim",
+ "kurumsal eğitim marketplace",
+ "dijital sertifika programı",
+ "online kurs Türkiye",
+ "akreditasyonlu eğitim",
+ "mesleki gelişim kursu",
+ "certificate training Turkey",
   ],
   alternates: {
     canonical: "/marketplace",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Eğitim Marketplace — HeptaCert",
     description:
-      "Sertifikalı kurumsal eğitim programlarını keşfedin. Akreditasyonlu kurslar, dijital sertifika ve profesyonel gelişim fırsatları bir arada.",
+ "Sertifikalı kurumsal eğitim programlarını keşfedin. Akreditasyonlu kurslar, dijital sertifika ve profesyonel gelişim fırsatları bir arada.",
     url: "/marketplace",
     type: "website",
   },

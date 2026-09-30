@@ -94,9 +94,9 @@ function MetricCard({
 }) {
   const toneClass = {
     brand: "bg-brand-50 text-brand-700",
-    green: "bg-emerald-50 text-emerald-700",
-    amber: "bg-amber-50 text-amber-700",
-    blue: "bg-blue-50 text-blue-700",
+    green: "bg-status-success-bg text-status-success-content",
+    amber: "bg-status-warning-bg text-status-warning-content",
+    blue: "bg-status-info-bg text-status-info-content",
   }[tone];
 
   return (
@@ -471,7 +471,7 @@ export default function OrgAnalyticsPage() {
                         <div className="text-xs text-surface-400">{copy.lpEnrolled}</div>
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-emerald-600">{lp.completed}</div>
+                        <div className="text-lg font-bold text-status-success-content">{lp.completed}</div>
                         <div className="text-xs text-surface-400">{copy.lpCompleted}</div>
                       </div>
                       <div>

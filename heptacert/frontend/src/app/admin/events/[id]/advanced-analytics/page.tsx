@@ -99,11 +99,11 @@ type StatTone = "brand" | "emerald" | "amber" | "sky";
 function toneStyles(tone: StatTone) {
   switch (tone) {
     case "emerald":
-      return "border-emerald-100 bg-emerald-50/50 text-emerald-600";
+      return "border-status-success-border bg-status-success-bg/50 text-status-success-content";
     case "amber":
-      return "border-amber-100 bg-amber-50/50 text-amber-600";
+      return "border-status-warning-border bg-status-warning-bg/50 text-status-warning-content";
     case "sky":
-      return "border-sky-100 bg-sky-50/50 text-sky-600";
+      return "border-status-info-border bg-status-info-bg/50 text-status-info-content";
     default:
       return "border-surface-100 bg-surface-50 text-surface-900";
   }
@@ -127,7 +127,7 @@ function StatCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm antialiased"
+      className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm antialiased"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1 space-y-1">
@@ -157,7 +157,7 @@ function TimelineCard({
   tone: StatTone;
 }) {
   return (
-    <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm antialiased flex flex-col">
+    <div className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm antialiased flex flex-col">
       <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-50 border border-surface-100 shadow-sm text-surface-900">
           <Icon className="h-3.5 w-3.5 stroke-[2]" />
@@ -385,7 +385,7 @@ export default function AdvancedAnalyticsPage() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <Link href={`/admin/events/${eventId}`}>
-            <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-surface-200 bg-white text-surface-500 shadow-sm hover:bg-surface-50 active:scale-95 transition-all">
+            <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-surface-200 bg-raised text-surface-500 shadow-sm hover:bg-surface-50 active:scale-95 transition-all">
               <ChevronLeft className="h-4 w-4 stroke-[2.5]" />
             </button>
           </Link>
@@ -414,7 +414,7 @@ export default function AdvancedAnalyticsPage() {
         <>
           {/* HATA BANNERI */}
           {error && (
-            <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
+            <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content flex items-center gap-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -440,8 +440,8 @@ export default function AdvancedAnalyticsPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`inline-flex items-center gap-2 rounded-lg px-4 py-1.5 text-xs font-semibold tracking-tight transition-all ${
                       isAct
-                        ? "bg-white text-surface-900 shadow-sm border border-surface-200/60"
-                        : "border border-transparent text-surface-500 hover:text-surface-900 hover:bg-white/40"
+                        ? "bg-raised text-surface-900 shadow-sm border border-surface-200/60"
+                        : "border border-transparent text-surface-500 hover:text-surface-900 hover:bg-raised/40"
                     }`}
                   >
                     <Icon className={`h-3.5 w-3.5 shrink-0 ${isAct ? "text-surface-900 stroke-[2]" : "text-surface-400 stroke-[1.8]"}`} />
@@ -457,7 +457,7 @@ export default function AdvancedAnalyticsPage() {
           {/* TAB 1: KATILIM VE ANKET RAPORU */}
           {activeTab === "engagement" && engagement && (
             <div className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                   <UserCheck className="h-4 w-4 text-surface-800 stroke-[2]" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.engagementSectionTitle}</h3>
@@ -475,16 +475,16 @@ export default function AdvancedAnalyticsPage() {
                     <span className="text-surface-400 font-medium">{copy.engagementNotAttended}</span>
                     <span className="text-surface-900 tabular-nums">{engagement.attendance.not_attended}</span>
                   </div>
-                  <div className="flex items-center justify-between pt-1 border-t border-gray-50">
+                  <div className="flex items-center justify-between pt-1 border-t border-outline-subtle">
                     <span className="text-surface-400 font-medium">{copy.engagementNoShowRate}</span>
-                    <span className="text-red-500 tabular-nums">%{(engagement.attendance.no_show_rate || 0).toFixed(1)}</span>
+                    <span className="text-status-danger-content tabular-nums">%{(engagement.attendance.no_show_rate || 0).toFixed(1)}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 stroke-[2]" />
+                  <CheckCircle2 className="h-4 w-4 text-status-success-content stroke-[2]" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.surveySectionTitle}</h3>
                 </div>
                 <div className="space-y-3.5 text-xs font-semibold text-surface-600">
@@ -508,7 +508,7 @@ export default function AdvancedAnalyticsPage() {
           {/* TAB 2: BİLETLİ GİRİŞ RAPORU */}
           {activeTab === "tickets" && engagement?.tickets && (
             <div className="grid gap-4 lg:grid-cols-2 items-start">
-              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                   <Ticket className="h-4 w-4 text-surface-800 stroke-[2]" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.ticketUsageSectionTitle}</h3>
@@ -534,7 +534,7 @@ export default function AdvancedAnalyticsPage() {
               </div>
 
               {/* Bilet Alt Matris Dağılım Kartları */}
-              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                   <BarChart3 className="h-4 w-4 text-surface-800 stroke-[2]" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.ticketSegmentation}</h3>
@@ -553,7 +553,7 @@ export default function AdvancedAnalyticsPage() {
           {/* TAB 3: OYUNLAŞTIRMA VE ROZET RAPORU */}
           {activeTab === "badges" && badges && (
             <div className="grid gap-4 lg:grid-cols-2 items-start">
-              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                   <Badge className="h-4 w-4 text-surface-800 stroke-[1.8]" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.badgeDistributionTitle}</h3>
@@ -572,7 +572,7 @@ export default function AdvancedAnalyticsPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                   <Target className="h-4 w-4 text-surface-800 stroke-[2]" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.badgeMethodTitle}</h3>
@@ -588,7 +588,7 @@ export default function AdvancedAnalyticsPage() {
           {/* TAB 4: AKILLI SERTİFİKA VE SEVİYE ANALİZİ */}
           {activeTab === "tiers" && tiers && (
             <div className="grid gap-4 lg:grid-cols-2 items-start">
-              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                   <Award className="h-4 w-4 text-surface-800 stroke-[1.8]" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.tierDistributionTitle}</h3>
@@ -613,7 +613,7 @@ export default function AdvancedAnalyticsPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                   <BarChart3 className="h-4 w-4 text-surface-800 stroke-[2]" />
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.tierVerificationTitle}</h3>

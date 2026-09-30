@@ -382,7 +382,7 @@ export default function SuperadminOrgsPage() {
                   type="color"
                   value={form.brand_color}
                   onChange={(event) => setForm((current) => ({ ...current, brand_color: event.target.value }))}
-                  className="h-11 w-14 rounded-2xl border border-surface-200 bg-white"
+                  className="h-11 w-14 rounded-2xl border border-surface-200 bg-raised"
                 />
               </div>
             </label>
@@ -418,7 +418,7 @@ export default function SuperadminOrgsPage() {
                   <button onClick={() => startEdit(org)} className="btn-secondary h-10 w-10 px-0" aria-label={copy.edit}>
                     <PencilLine className="h-4 w-4" />
                   </button>
-                  <button onClick={() => setDeletingId(org.id)} className="h-10 w-10 rounded-2xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100" aria-label={copy.deleteTitle}>
+                  <button onClick={() => setDeletingId(org.id)} className="h-10 w-10 rounded-2xl border border-status-danger-border bg-status-danger-bg text-status-danger-content transition hover:bg-status-danger-bg" aria-label={copy.deleteTitle}>
                     <Trash2 className="mx-auto h-4 w-4" />
                   </button>
                 </div>
@@ -437,10 +437,10 @@ export default function SuperadminOrgsPage() {
                         <span
                           className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-semibold ${
                             org.domain_status === "active"
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              ? "border-status-success-border bg-status-success-bg text-status-success-content"
                               : org.domain_status === "revoked"
-                                ? "border-rose-200 bg-rose-50 text-rose-700"
-                                : "border-amber-200 bg-amber-50 text-amber-700"
+                                ? "border-status-danger-border bg-status-danger-bg text-status-danger-content"
+                                : "border-status-warning-border bg-status-warning-bg text-status-warning-content"
                           }`}
                         >
                           {org.domain_status === "active" ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
@@ -473,12 +473,12 @@ export default function SuperadminOrgsPage() {
                 <span>{org.brand_color}</span>
               </div>
               {org.custom_domain && (
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-surface-200 bg-white p-3">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-surface-200 bg-raised p-3">
                   <div className="flex items-center gap-2 text-xs font-semibold text-surface-500">
                     {org.caddy_authorized ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <CheckCircle2 className="h-4 w-4 text-status-success-content" />
                     ) : (
-                      <XCircle className="h-4 w-4 text-amber-600" />
+                      <XCircle className="h-4 w-4 text-status-warning-content" />
                     )}
                     {org.caddy_authorized ? copy.caddyReady : copy.caddyWaiting}
                   </div>
@@ -499,7 +499,7 @@ export default function SuperadminOrgsPage() {
                         type="button"
                         onClick={() => runDomainAction(org, "revoke")}
                         disabled={domainActionId === org.id}
-                        className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+                        className="rounded-2xl border border-status-danger-border bg-status-danger-bg px-3 py-2 text-xs font-semibold text-status-danger-content transition hover:bg-status-danger-bg disabled:opacity-60"
                       >
                         {domainActionId === org.id ? <Loader2 className="inline h-3.5 w-3.5 animate-spin" /> : copy.revokeDomain}
                       </button>

@@ -62,22 +62,22 @@ function VerifyMemberEmailContent() {
       <div className="card w-full max-w-md p-10 text-center">
         {status === "loading" ? (
           <>
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-sunken text-content-secondary">
               <Loader2 className="h-7 w-7 animate-spin" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900">{copy.loading}</h1>
+            <h1 className="text-xl font-bold text-content-primary">{copy.loading}</h1>
           </>
         ) : (
           <>
             <div
               className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full ${
-                status === "success" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                status === "success" ? "bg-status-success-bg text-status-success-content" : "bg-status-warning-bg text-status-warning-content"
               }`}
             >
               {status === "success" ? <CheckCircle2 className="h-8 w-8" /> : <MailWarning className="h-8 w-8" />}
             </div>
-            <h1 className="text-xl font-bold text-slate-900">{status === "success" ? copy.successTitle : copy.errorTitle}</h1>
-            <p className="mt-3 text-sm leading-6 text-slate-600">{message}</p>
+            <h1 className="text-xl font-bold text-content-primary">{status === "success" ? copy.successTitle : copy.errorTitle}</h1>
+            <p className="mt-3 text-sm leading-6 text-content-secondary">{message}</p>
             <div className="mt-6 flex flex-col gap-3">
               <Link href="/login?mode=member" className="btn-primary justify-center">
                 {copy.signIn}

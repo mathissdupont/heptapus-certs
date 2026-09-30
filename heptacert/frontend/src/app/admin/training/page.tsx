@@ -85,11 +85,11 @@ function fromDateTimeInput(value: string) {
 }
 
 function statusBadge(status: string) {
-  if (status === "completed") return "bg-emerald-50 text-emerald-700";
-  if (status === "overdue") return "bg-red-50 text-red-700";
-  if (status === "in_progress") return "bg-blue-50 text-blue-700";
+  if (status === "completed") return "bg-status-success-bg text-status-success-content";
+  if (status === "overdue") return "bg-status-danger-bg text-status-danger-content";
+  if (status === "in_progress") return "bg-status-info-bg text-status-info-content";
   if (status === "waived") return "bg-surface-100 text-surface-600";
-  return "bg-amber-50 text-amber-700";
+  return "bg-status-warning-bg text-status-warning-content";
 }
 
 export default function AdminTrainingPage() {
@@ -450,7 +450,7 @@ export default function AdminTrainingPage() {
       </div>
 
       {error && <div className="error-banner text-sm">{error}</div>}
-      {notice && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{notice}</div>}
+      {notice && <div className="rounded-lg border border-status-success-border bg-status-success-bg px-4 py-3 text-sm font-bold text-status-success-content">{notice}</div>}
 
       <section className="grid gap-3 md:grid-cols-5">
         {[
@@ -502,7 +502,7 @@ export default function AdminTrainingPage() {
         {orgDepartments.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-2">
             {orgDepartments.map((item) => (
-              <span key={item.id} className="rounded-full border border-surface-200 bg-white px-3 py-1 text-xs font-bold text-surface-700">
+              <span key={item.id} className="rounded-full border border-surface-200 bg-raised px-3 py-1 text-xs font-bold text-surface-700">
                 {item.name}{item.manager_email ? ` · ${item.manager_email}` : ""}
               </span>
             ))}
@@ -564,7 +564,7 @@ export default function AdminTrainingPage() {
           ) : (
             <div className="divide-y divide-surface-100">
               {assignments.map((item) => (
-                <article key={item.id} className={`bg-white px-5 py-4 ${selected?.id === item.id ? "bg-brand-50/60" : ""}`}>
+                <article key={item.id} className={`bg-raised px-5 py-4 ${selected?.id === item.id ? "bg-brand-50/60" : ""}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <button
                       type="button"
@@ -594,7 +594,7 @@ export default function AdminTrainingPage() {
                       {copy.complete}
                     </button>
                     <button type="button" onClick={() => void setAssignmentStatus(item, "waived")} className="btn-secondary px-3 py-2 text-xs">{copy.waived}</button>
-                    <button type="button" onClick={() => void removeAssignment(item)} className="btn-secondary px-3 py-2 text-xs text-red-600 hover:bg-red-50">
+                    <button type="button" onClick={() => void removeAssignment(item)} className="btn-secondary px-3 py-2 text-xs text-status-danger-content hover:bg-status-danger-bg">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -671,7 +671,7 @@ export default function AdminTrainingPage() {
                 <p className="text-sm text-surface-500">{copy.noRecommendations}</p>
               ) : (
                 recommendations.map((event) => (
-                  <div key={event.id} className="rounded-lg border border-surface-200 bg-white p-3">
+                  <div key={event.id} className="rounded-lg border border-surface-200 bg-raised p-3">
                     <p className="font-bold text-surface-900">{event.name}</p>
                     <p className="mt-1 text-xs text-surface-500">{formatDate(event.event_date, lang)} {event.event_location ? `- ${event.event_location}` : ""}</p>
                   </div>
@@ -684,7 +684,7 @@ export default function AdminTrainingPage() {
             <h2 className="text-base font-black text-surface-900">{copy.departmentReport}</h2>
             <div className="mt-4 space-y-2">
               {(report?.by_department || []).map((row) => (
-                <div key={row.department} className="rounded-lg border border-surface-200 bg-white p-3">
+                <div key={row.department} className="rounded-lg border border-surface-200 bg-raised p-3">
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-bold text-surface-900">{row.department}</p>
                     <span className="text-xs font-bold text-surface-500">{row.completed}/{row.total}</span>

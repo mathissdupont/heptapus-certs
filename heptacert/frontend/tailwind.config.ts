@@ -22,6 +22,10 @@ export default {
           faint: "rgb(var(--content-faint) / <alpha-value>)",
           inverted: "rgb(var(--content-inverted) / <alpha-value>)",
         },
+        inverse: {
+          surface: "rgb(var(--inverse-surface) / <alpha-value>)",
+          content: "rgb(var(--inverse-content) / <alpha-value>)",
+        },
         outline: {
           subtle: "rgb(var(--border-subtle) / <alpha-value>)",
           strong: "rgb(var(--border-strong) / <alpha-value>)",

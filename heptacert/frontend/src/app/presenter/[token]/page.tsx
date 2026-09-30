@@ -198,13 +198,13 @@ export default function PresenterTokenPage() {
   return (
     <main className="min-h-screen bg-surface-50 px-4 py-5 text-surface-950">
       <section className="mx-auto flex max-w-md flex-col gap-4 landscape:grid landscape:max-w-5xl landscape:grid-cols-[minmax(260px,360px)_1fr] landscape:items-start">
-        <header className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
+        <header className="rounded-2xl border border-surface-200 bg-raised p-4 shadow-sm">
           <p className="text-11 font-black uppercase tracking-[0.2em] text-surface-400">HeptaDeck</p>
           <h1 className="mt-1 text-xl font-black text-surface-950">Presenter Control</h1>
           <p className="mt-2 line-clamp-2 text-sm font-semibold text-surface-500">{deck?.title || "Presentation"}</p>
         </header>
 
-        {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
+        {error && <div className="rounded-xl border border-status-danger-border bg-status-danger-bg p-3 text-sm font-semibold text-status-danger-content">{error}</div>}
 
         {previewUrl ? (
           <PdfPresenterPreview
@@ -217,13 +217,13 @@ export default function PresenterTokenPage() {
             onPageCountChange={handlePageCountChange}
           />
         ) : (
-          <div className="flex min-h-36 flex-col items-center justify-center rounded-2xl border border-surface-200 bg-white p-5 text-center shadow-sm">
+          <div className="flex min-h-36 flex-col items-center justify-center rounded-2xl border border-surface-200 bg-raised p-5 text-center shadow-sm">
             <Presentation className="mb-2 h-6 w-6 text-surface-300" />
             <p className="text-sm font-bold text-surface-500">Preview is not available.</p>
           </div>
         )}
 
-        <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-surface-400">Page</p>
             {saving && <Loader2 className="h-4 w-4 animate-spin text-surface-400" />}
@@ -240,17 +240,17 @@ export default function PresenterTokenPage() {
               <ChevronRight className="h-8 w-8" />
             </button>
           </div>
-          <button type="button" onClick={() => void go(0)} disabled={saving || slideIndex === 0} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm font-black text-surface-700 transition hover:bg-surface-50 disabled:opacity-40">
+          <button type="button" onClick={() => void go(0)} disabled={saving || slideIndex === 0} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-raised px-4 py-3 text-sm font-black text-surface-700 transition hover:bg-surface-50 disabled:opacity-40">
             <RotateCcw className="h-4 w-4" />
             Reset
           </button>
         </section>
 
-        <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm landscape:row-span-2">
+        <section className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm landscape:row-span-2">
           <div className="mb-3 flex items-center gap-2">
             <LocateFixed className="h-4 w-4 text-brand-700" />
             <p className="text-sm font-black text-surface-950">Laser pointer</p>
-            <span className={`ml-auto rounded-full px-2 py-1 text-11 font-black ${wsConnected ? "bg-emerald-50 text-emerald-700" : "bg-surface-100 text-surface-400"}`}>
+            <span className={`ml-auto rounded-full px-2 py-1 text-11 font-black ${wsConnected ? "bg-status-success-bg text-status-success-content" : "bg-surface-100 text-surface-400"}`}>
               {wsConnected ? "Live" : "Fallback"}
             </span>
           </div>
@@ -262,7 +262,7 @@ export default function PresenterTokenPage() {
             onPointerUp={stopPointer}
             onPointerCancel={stopPointer}
             className={`relative flex h-[46vh] min-h-48 touch-none select-none items-center justify-center overflow-hidden rounded-2xl border text-sm font-bold transition landscape:h-[66vh] ${
-              pointerActive ? "border-red-200 bg-red-50 text-red-700" : "border-dashed border-surface-200 bg-surface-50 text-surface-400"
+              pointerActive ? "border-status-danger-border bg-status-danger-bg text-status-danger-content" : "border-dashed border-surface-200 bg-surface-50 text-surface-400"
             }`}
           >
             <div

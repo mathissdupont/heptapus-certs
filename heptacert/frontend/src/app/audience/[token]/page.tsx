@@ -57,7 +57,7 @@ export default function AudiencePresentationPage() {
 
   return (
     <main className="min-h-screen bg-surface-100 text-surface-950">
-      <header className="sticky top-0 z-20 border-b border-surface-200 bg-white/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-surface-200 bg-raised/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-11 font-black uppercase tracking-[0.22em] text-surface-400">HeptaDeck</p>
@@ -84,7 +84,7 @@ export default function AudiencePresentationPage() {
           </div>
         ) : error ? (
           <div className="flex h-full items-center justify-center">
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm font-bold text-red-700">{error}</div>
+            <div className="rounded-2xl border border-status-danger-border bg-status-danger-bg p-6 text-center text-sm font-bold text-status-danger-content">{error}</div>
           </div>
         ) : stageUrl ? (
           <div className="relative h-full w-full">
@@ -109,7 +109,7 @@ export default function AudiencePresentationPage() {
             )}
           </div>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-surface-200 bg-white text-center shadow-sm">
+          <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-surface-200 bg-raised text-center shadow-sm">
             <Presentation className="mb-3 h-8 w-8 text-surface-300" />
             <p className="text-sm font-bold text-surface-500">Presentation file is not available.</p>
           </div>

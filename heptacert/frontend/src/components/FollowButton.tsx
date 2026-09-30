@@ -30,7 +30,7 @@ export function FollowButton({
       } else {
         await followMember(memberId);
       }
-      
+
       const newState = !isFollowing;
       setIsFollowing(newState);
       onFollowChange?.(newState);
@@ -48,8 +48,8 @@ export function FollowButton({
         disabled={isLoading}
         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
           isFollowing
-            ? "bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600"
-            : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+            ? "bg-sunken text-content-secondary hover:bg-status-danger-bg hover:text-status-danger-content"
+            : "bg-status-info-bg text-status-info-content hover:bg-status-info-bg"
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       >
         {isFollowing ? (
@@ -73,7 +73,7 @@ export function FollowButton({
       disabled={isLoading}
       className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-medium transition-all ${
         isFollowing
-          ? "bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600 border border-gray-200"
+          ? "bg-sunken text-content-secondary hover:bg-status-danger-bg hover:text-status-danger-content border border-outline-subtle"
           : "bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700"
       } disabled:opacity-50 disabled:cursor-not-allowed`}
     >

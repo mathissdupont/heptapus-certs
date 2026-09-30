@@ -125,7 +125,7 @@ export default function CrmSequencesPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-gray-900 text-white text-sm rounded-xl px-4 py-2.5 shadow-lg">
+        <div className="fixed top-4 right-4 z-50 bg-inverse-surface text-white text-sm rounded-xl px-4 py-2.5 shadow-lg">
           {toast}
         </div>
       )}
@@ -133,10 +133,10 @@ export default function CrmSequencesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Zap className="h-6 w-6 text-indigo-600" />
+          <Zap className="h-6 w-6 text-status-info-content" />
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">{copy.pageTitle}</h1>
-            <p className="text-sm text-gray-500">{copy.pageSubtitle}</p>
+            <h1 className="text-xl font-semibold text-content-primary">{copy.pageTitle}</h1>
+            <p className="text-sm text-content-muted">{copy.pageSubtitle}</p>
           </div>
         </div>
         <button
@@ -149,12 +149,12 @@ export default function CrmSequencesPage() {
 
       {/* Create form */}
       {showForm && (
-        <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-5 space-y-3">
-          <p className="text-sm font-medium text-indigo-800">{copy.createFormTitle}</p>
+        <div className="rounded-2xl border border-status-info-border bg-status-info-bg p-5 space-y-3">
+          <p className="text-sm font-medium text-status-info-content">{copy.createFormTitle}</p>
           <div className="flex gap-3">
             <input
               autoFocus
-              className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
               placeholder={copy.sequenceNamePlaceholder}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
@@ -169,7 +169,7 @@ export default function CrmSequencesPage() {
             </button>
             <button
               onClick={() => { setShowForm(false); setNewName(""); }}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500"
+              className="rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm text-content-muted"
             >
               {copy.cancel}
             </button>
@@ -180,10 +180,10 @@ export default function CrmSequencesPage() {
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+          <Loader2 className="h-5 w-5 animate-spin text-content-muted" />
         </div>
       ) : sequences.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-content-muted">
           <Zap className="h-10 w-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">{copy.emptyTitle}</p>
           <p className="text-xs mt-1">{copy.emptySubtitle}</p>
@@ -193,30 +193,30 @@ export default function CrmSequencesPage() {
           {sequences.map((seq) => (
             <div
               key={seq.id}
-              className="rounded-2xl border border-gray-100 bg-white shadow-sm p-5 flex items-center gap-4"
+              className="rounded-2xl border border-outline-subtle bg-raised shadow-sm p-5 flex items-center gap-4"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <Link
                     href={`/admin/crm/sequences/${seq.id}`}
-                    className="font-medium text-gray-900 hover:text-indigo-600 truncate"
+                    className="font-medium text-content-primary hover:text-status-info-content truncate"
                   >
                     {seq.name}
                   </Link>
                   <span
                     className={`text-xs rounded-full px-2 py-0.5 font-medium flex-shrink-0 ${
                       seq.active
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-500"
+                        ? "bg-status-success-bg text-status-success-content"
+                        : "bg-sunken text-content-muted"
                     }`}
                   >
                     {seq.active ? copy.active : copy.inactive}
                   </span>
                 </div>
                 {seq.description && (
-                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{seq.description}</p>
+                  <p className="text-xs text-content-muted mt-0.5 line-clamp-1">{seq.description}</p>
                 )}
-                <div className="flex items-center gap-4 mt-1.5 text-xs text-gray-400">
+                <div className="flex items-center gap-4 mt-1.5 text-xs text-content-muted">
                   <span className="flex items-center gap-1">
                     <Mail className="h-3 w-3" /> {seq.steps.length} {copy.steps}
                   </span>
@@ -229,23 +229,23 @@ export default function CrmSequencesPage() {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Link
                   href={`/admin/crm/sequences/${seq.id}`}
-                  className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+                  className="flex items-center gap-1 rounded-lg border border-outline-subtle px-3 py-1.5 text-xs text-content-secondary hover:bg-canvas"
                 >
                   {copy.edit} <ChevronRight className="h-3 w-3" />
                 </Link>
                 <button
                   onClick={() => handleToggleActive(seq)}
-                  className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50"
+                  className="rounded-lg border border-outline-subtle p-1.5 text-content-muted hover:bg-canvas"
                   title={seq.active ? copy.deactivateTitle : copy.activateTitle}
                 >
                   {seq.active
-                    ? <ToggleRight className="h-4 w-4 text-green-500" />
+                    ? <ToggleRight className="h-4 w-4 text-status-success-content" />
                     : <ToggleLeft className="h-4 w-4" />
                   }
                 </button>
                 <button
                   onClick={() => handleDelete(seq.id)}
-                  className="rounded-lg border border-gray-200 p-1.5 text-red-400 hover:bg-red-50"
+                  className="rounded-lg border border-outline-subtle p-1.5 text-status-danger-content hover:bg-status-danger-bg"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

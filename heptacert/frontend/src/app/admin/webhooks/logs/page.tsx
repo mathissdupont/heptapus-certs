@@ -73,26 +73,26 @@ export default function WebhookLogsPage() {
       {
         label: "Total Deliveries",
         value: stats?.total_deliveries ?? 0,
-        icon: <RefreshCw className="h-5 w-5 text-blue-600" />,
-        colorClass: "bg-blue-50 dark:bg-blue-900",
+        icon: <RefreshCw className="h-5 w-5 text-status-info-content" />,
+        colorClass: "bg-status-info-bg ",
       },
       {
         label: "Successful",
         value: stats?.successful ?? 0,
-        icon: <CheckCircle2 className="h-5 w-5 text-emerald-600" />,
-        colorClass: "bg-emerald-50 dark:bg-emerald-900",
+        icon: <CheckCircle2 className="h-5 w-5 text-status-success-content" />,
+        colorClass: "bg-status-success-bg ",
       },
       {
         label: "Failed",
         value: stats?.failed ?? 0,
-        icon: <XCircle className="h-5 w-5 text-rose-600" />,
-        colorClass: "bg-rose-50 dark:bg-rose-900",
+        icon: <XCircle className="h-5 w-5 text-status-danger-content" />,
+        colorClass: "bg-status-danger-bg ",
       },
       {
         label: "Pending",
         value: stats?.pending ?? 0,
-        icon: <Clock className="h-5 w-5 text-amber-600" />,
-        colorClass: "bg-amber-50 dark:bg-amber-900",
+        icon: <Clock className="h-5 w-5 text-status-warning-content" />,
+        colorClass: "bg-status-warning-bg ",
       },
     ],
     [stats]
@@ -100,23 +100,23 @@ export default function WebhookLogsPage() {
 
   const getStatusBadgeColor = (status: string) => {
     const colors: Record<string, string> = {
-      success: "bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200",
-      pending: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
-      failed: "bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200",
-      retrying: "bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200",
+      success: "bg-status-success-bg  text-status-success-content ",
+      pending: "bg-status-info-bg  text-status-info-content ",
+      failed: "bg-status-danger-bg  text-status-danger-content ",
+      retrying: "bg-status-warning-bg  text-status-warning-content ",
     };
-    return colors[status] || "bg-surface-100 dark:bg-surface-800 text-surface-800 dark:text-gray-200";
+    return colors[status] || "bg-surface-100 dark:bg-surface-800 text-surface-800 ";
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "success":
-        return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
+        return <CheckCircle2 className="h-4 w-4 text-status-success-content" />;
       case "failed":
-        return <XCircle className="h-4 w-4 text-rose-600" />;
+        return <XCircle className="h-4 w-4 text-status-danger-content" />;
       case "pending":
       case "retrying":
-        return <Clock className="h-4 w-4 text-amber-600" />;
+        return <Clock className="h-4 w-4 text-status-warning-content" />;
       default:
         return null;
     }
@@ -129,7 +129,7 @@ export default function WebhookLogsPage() {
         header: "Event",
         cell: (info) => {
           const event = info.getValue() as string;
-          return <span className="font-medium text-surface-800 dark:text-gray-200">{event}</span>;
+          return <span className="font-medium text-surface-800 ">{event}</span>;
         },
       },
       {
@@ -158,7 +158,7 @@ export default function WebhookLogsPage() {
         cell: (info) => {
           const status = String(info.getValue());
           return status && status !== 'undefined' ? (
-            <span className="font-mono text-sm font-semibold text-surface-800 dark:text-gray-200">{status}</span>
+            <span className="font-mono text-sm font-semibold text-surface-800 ">{status}</span>
           ) : (
             <span className="text-surface-400 dark:text-surface-500">-</span>
           );
@@ -184,7 +184,7 @@ export default function WebhookLogsPage() {
         cell: (info) => {
           const error = String(info.getValue());
           return error && error !== 'undefined' ? (
-            <span className="text-rose-600 dark:text-rose-400 text-xs truncate max-w-xs block">{error}</span>
+            <span className="text-status-danger-content  text-xs truncate max-w-xs block">{error}</span>
           ) : (
             <span className="text-surface-400 dark:text-surface-500">-</span>
           );
@@ -241,7 +241,7 @@ export default function WebhookLogsPage() {
               <p className="text-xs font-semibold text-surface-400 dark:text-surface-500 uppercase tracking-wider">
                 {card.label}
               </p>
-              <p className="text-2xl font-bold text-surface-900 dark:text-gray-100">{card.value.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-surface-900 ">{card.value.toLocaleString()}</p>
             </div>
           </motion.div>
         ))}
@@ -257,11 +257,11 @@ export default function WebhookLogsPage() {
         >
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-bold text-surface-700 dark:text-surface-300">Delivery Success Rate</p>
-            <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+            <span className="text-2xl font-extrabold text-status-success-content ">
               {stats.success_rate.toFixed(1)}%
             </span>
           </div>
-          <div className="w-full bg-surface-100 dark:bg-gray-700 rounded-full h-4 overflow-hidden">
+          <div className="w-full bg-surface-100  rounded-full h-4 overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${stats.success_rate}%` }}
@@ -296,9 +296,9 @@ export default function WebhookLogsPage() {
       </motion.div>
 
       {/* Info Panel */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-8 card bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 p-6">
-        <h3 className="font-bold text-blue-900 dark:text-blue-200 mb-3">ℹ️ Webhook Delivery Information</h3>
-        <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-300">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-8 card bg-status-info-bg  border-status-info-border  p-6">
+        <h3 className="font-bold text-status-info-content  mb-3">ℹ️ Webhook Delivery Information</h3>
+        <ul className="space-y-2 text-sm text-status-info-content ">
           <li>
             <strong>Success:</strong> Webhook was delivered and endpoint returned 2xx status code
           </li>

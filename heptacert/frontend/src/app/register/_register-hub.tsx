@@ -228,15 +228,15 @@ export default function RegisterHub() {
     return (
       <div className="flex min-h-[80vh] items-center justify-center py-12">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card w-full max-w-md p-10 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-status-success-bg text-status-success-content">
             <CheckCircle2 className="h-8 w-8" />
           </div>
-          <h2 className="mb-3 text-xl font-bold text-gray-900">{modeCopy.verifyTitle}</h2>
-          <p className="mb-6 text-sm leading-relaxed text-gray-500">
-            <strong className="text-gray-700">{email}</strong> {modeCopy.verifyBody}
+          <h2 className="mb-3 text-xl font-bold text-content-primary">{modeCopy.verifyTitle}</h2>
+          <p className="mb-6 text-sm leading-relaxed text-content-muted">
+            <strong className="text-content-secondary">{email}</strong> {modeCopy.verifyBody}
           </p>
-          <p className="text-xs leading-5 text-gray-400">{copy.verifyHint}</p>
-          {resendMessage ? <p className="mt-3 text-xs leading-5 text-gray-500">{resendMessage}</p> : null}
+          <p className="text-xs leading-5 text-content-muted">{copy.verifyHint}</p>
+          {resendMessage ? <p className="mt-3 text-xs leading-5 text-content-muted">{resendMessage}</p> : null}
           <button
             type="button"
             onClick={resendVerification}
@@ -269,16 +269,16 @@ export default function RegisterHub() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-white shadow-brand">
             <ShieldCheck className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">{copy.createAccount}</h1>
-          <p className="mt-1.5 text-sm text-gray-500">{modeCopy.subtitle}</p>
+          <h1 className="text-2xl font-bold text-content-primary">{copy.createAccount}</h1>
+          <p className="mt-1.5 text-sm text-content-muted">{modeCopy.subtitle}</p>
         </div>
 
-        <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-2">
+        <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-sunken p-2">
           <button
             type="button"
             onClick={() => setMode("organizer")}
             className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-              mode === "organizer" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+              mode === "organizer" ? "bg-raised text-content-primary shadow-sm" : "text-content-muted"
             }`}
           >
             <Building2 className="h-4 w-4" />
@@ -288,7 +288,7 @@ export default function RegisterHub() {
             type="button"
             onClick={() => setMode("member")}
             className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
-              mode === "member" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+              mode === "member" ? "bg-raised text-content-primary shadow-sm" : "text-content-muted"
             }`}
           >
             <UserRound className="h-4 w-4" />
@@ -296,8 +296,8 @@ export default function RegisterHub() {
           </button>
         </div>
 
-        <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-          <div className="font-semibold text-slate-900">{modeCopy.title}</div>
+        <div className="mb-6 rounded-2xl border border-outline-subtle bg-canvas px-4 py-3 text-sm text-content-secondary">
+          <div className="font-semibold text-content-primary">{modeCopy.title}</div>
           <div className="mt-1">{modeCopy.benefit}</div>
         </div>
 
@@ -306,7 +306,7 @@ export default function RegisterHub() {
             <div>
               <label className="label">{copy.name}</label>
               <div className="relative">
-                <UserRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <UserRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
                 <input
                   className="input-field pl-10"
                   type="text"
@@ -323,7 +323,7 @@ export default function RegisterHub() {
           <div>
             <label className="label">{copy.email}</label>
             <div className="relative">
-              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
               <input
                 className="input-field pl-10"
                 type="email"
@@ -339,7 +339,7 @@ export default function RegisterHub() {
           <div>
             <label className="label">{copy.password}</label>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
               <input
                 className="input-field pl-10 pr-10"
                 type={showPw ? "text" : "password"}
@@ -349,7 +349,7 @@ export default function RegisterHub() {
                 required
                 autoComplete="new-password"
               />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-content-muted hover:text-content-secondary">
                 {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
@@ -358,7 +358,7 @@ export default function RegisterHub() {
           <div>
             <label className="label">{copy.confirmPassword}</label>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
               <input
                 className="input-field pl-10"
                 type={showPw ? "text" : "password"}
@@ -371,10 +371,10 @@ export default function RegisterHub() {
             </div>
           </div>
 
-          <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          <label className="flex items-start gap-3 rounded-xl border border-outline-subtle bg-canvas px-4 py-3 text-sm text-content-secondary">
             <input
               type="checkbox"
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600"
+              className="mt-0.5 h-4 w-4 rounded border-outline-strong text-brand-600"
               checked={termsAccepted}
               onChange={(event) => setTermsAccepted(event.target.checked)}
               required
@@ -391,7 +391,7 @@ export default function RegisterHub() {
               {copy.termsSuffix}
             </span>
           </label>
-          <div className="flex flex-wrap gap-3 text-xs text-slate-500">
+          <div className="flex flex-wrap gap-3 text-xs text-content-muted">
             <Link href="/kvkk" onClick={() => recordLegalClick("kvkk")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "KVKK Aydınlatma Metni" : "Privacy Notice"}</Link>
             <Link href="/gizlilik" onClick={() => recordLegalClick("privacy")} className="font-semibold text-brand-600 hover:text-brand-700">{copy.privacyLink}</Link>
             <Link href="/acik-riza" onClick={() => recordLegalClick("explicit_consent")} className="font-semibold text-brand-600 hover:text-brand-700">{lang === "tr" ? "Açık Rıza Metni" : "Explicit Consent Text"}</Link>
@@ -418,26 +418,26 @@ export default function RegisterHub() {
         </form>
 
         <div className="my-5 flex items-center gap-3">
-          <div className="h-px flex-1 bg-slate-200" />
-          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">veya</span>
-          <div className="h-px flex-1 bg-slate-200" />
+          <div className="h-px flex-1 bg-sunken" />
+          <span className="text-xs font-semibold uppercase tracking-[0.16em] text-content-muted">veya</span>
+          <div className="h-px flex-1 bg-sunken" />
         </div>
 
         <a
           href={`${API_BASE}/auth/google/start?mode=${mode === "organizer" ? "admin" : "member"}&next=${encodeURIComponent(mode === "organizer" ? "/admin/events" : "/events")}`}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-outline-subtle bg-raised px-4 py-3 text-sm font-semibold text-content-secondary transition hover:bg-canvas"
         >
-          <span className="text-base font-black text-blue-600">G</span>
+          <span className="text-base font-black text-status-info-content">G</span>
           {copy.googleRegister}
         </a>
 
-        <div className="mt-6 text-center text-sm text-gray-500">
+        <div className="mt-6 text-center text-sm text-content-muted">
           {copy.hasAccount}{" "}
           <Link href={mode === "organizer" ? "/admin/login" : "/login?mode=member"} className="font-semibold text-brand-600 hover:text-brand-700">
             {mode === "organizer" ? copy.signInOrganizer : copy.signInMember}
           </Link>
         </div>
-        <div className="mt-2 text-center text-xs text-slate-400">{copy.switchHint}</div>
+        <div className="mt-2 text-center text-xs text-content-muted">{copy.switchHint}</div>
       </motion.div>
     </div>
   );

@@ -75,7 +75,7 @@ export default function EventDetailClient({ event }: { event: MarketplaceEvent }
           {copy.backLink}
         </Link>
 
-        <div className="bg-white rounded-xl border border-surface-200 p-6 mt-3">
+        <div className="bg-raised rounded-xl border border-surface-200 p-6 mt-3">
           {event.marketplace_category && (
             <span className="inline-block text-xs bg-surface-100 text-surface-600 px-2 py-0.5 rounded-md mb-3 font-medium">
               {event.marketplace_category}
@@ -120,7 +120,7 @@ export default function EventDetailClient({ event }: { event: MarketplaceEvent }
               <span className="text-xs text-surface-400 uppercase tracking-wide font-medium">{copy.certificate}</span>
               <p className="text-sm mt-1">
                 {event.certificate_enabled ? (
-                  <span className="text-green-600 font-medium">{copy.certYes}</span>
+                  <span className="text-status-success-content font-medium">{copy.certYes}</span>
                 ) : (
                   <span className="text-surface-400">{copy.certNo}</span>
                 )}
@@ -128,7 +128,7 @@ export default function EventDetailClient({ event }: { event: MarketplaceEvent }
             </div>
             <div>
               <span className="text-xs text-surface-400 uppercase tracking-wide font-medium">{copy.price}</span>
-              <p className={`text-sm font-semibold mt-1 ${isFree ? "text-green-600" : "text-surface-900"}`}>
+              <p className={`text-sm font-semibold mt-1 ${isFree ? "text-status-success-content" : "text-surface-900"}`}>
                 {isFree ? copy.free : `₺${event.marketplace_price?.toLocaleString(localeTag(lang))}`}
               </p>
             </div>

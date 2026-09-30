@@ -12,33 +12,33 @@ import {
 import { useI18n } from "@/lib/i18n";
 
 const CATEGORIES_TR = [
-  "Bilgi Teknolojileri",
-  "Proje Yönetimi",
-  "İnsan Kaynakları",
-  "Finans & Muhasebe",
-  "Pazarlama",
-  "Satış",
-  "Üretim & Kalite",
-  "Sağlık & Güvenlik",
-  "Hukuk & Uyum",
-  "Kişisel Gelişim",
-  "Liderlik & Yönetim",
-  "Diğer",
+ "Bilgi Teknolojileri",
+ "Proje Yönetimi",
+ "İnsan Kaynakları",
+ "Finans & Muhasebe",
+ "Pazarlama",
+ "Satış",
+ "Üretim & Kalite",
+ "Sağlık & Güvenlik",
+ "Hukuk & Uyum",
+ "Kişisel Gelişim",
+ "Liderlik & Yönetim",
+ "Diğer",
 ];
 
 const CATEGORIES_EN = [
-  "Information Technology",
-  "Project Management",
-  "Human Resources",
-  "Finance & Accounting",
-  "Marketing",
-  "Sales",
-  "Production & Quality",
-  "Health & Safety",
-  "Legal & Compliance",
-  "Personal Development",
-  "Leadership & Management",
-  "Other",
+ "Information Technology",
+ "Project Management",
+ "Human Resources",
+ "Finance & Accounting",
+ "Marketing",
+ "Sales",
+ "Production & Quality",
+ "Health & Safety",
+ "Legal & Compliance",
+ "Personal Development",
+ "Leadership & Management",
+ "Other",
 ];
 
 type EditState = {
@@ -174,28 +174,28 @@ export default function AdminMarketplacePage() {
     }
   }
 
-  if (loading) return <div className="p-8 text-gray-400">{copy.loading}</div>;
+  if (loading) return <div className="p-8 text-content-muted">{copy.loading}</div>;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">{copy.pageTitle}</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-content-muted mt-1">
             {copy.pageSubtitle}
           </p>
         </div>
         <Link
           href="/marketplace"
           target="_blank"
-          className="px-4 py-2 text-sm border rounded hover:bg-gray-50 text-gray-700"
+          className="px-4 py-2 text-sm border rounded hover:bg-canvas text-content-secondary"
         >
           {copy.viewMarketplace}
         </Link>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+        <div className="mb-4 p-3 bg-status-danger-bg border border-status-danger-border text-status-danger-content rounded text-sm">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">{copy.closeError}</button>
         </div>
@@ -204,11 +204,11 @@ export default function AdminMarketplacePage() {
       {/* Edit modal */}
       {editState && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+          <div className="bg-raised rounded-xl shadow-xl w-full max-w-lg p-6">
             <h2 className="text-lg font-semibold mb-4">{copy.modalTitle}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelCategory}</label>
+                <label className="block text-sm font-medium text-content-secondary mb-1">{copy.labelCategory}</label>
                 <select
                   value={editState.category}
                   onChange={(e) => setEditState({ ...editState, category: e.target.value })}
@@ -219,7 +219,7 @@ export default function AdminMarketplacePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{copy.labelDescription}</label>
+                <label className="block text-sm font-medium text-content-secondary mb-1">{copy.labelDescription}</label>
                 <textarea
                   value={editState.description}
                   onChange={(e) => setEditState({ ...editState, description: e.target.value })}
@@ -229,7 +229,7 @@ export default function AdminMarketplacePage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-content-secondary mb-1">
                   {copy.labelPrice}
                 </label>
                 <input
@@ -246,7 +246,7 @@ export default function AdminMarketplacePage() {
             <div className="flex justify-end gap-2 mt-6">
               <button
                 onClick={() => setEditState(null)}
-                className="px-4 py-2 text-sm border rounded hover:bg-gray-50"
+                className="px-4 py-2 text-sm border rounded hover:bg-canvas"
               >
                 {copy.cancel}
               </button>
@@ -263,38 +263,38 @@ export default function AdminMarketplacePage() {
       )}
 
       {listed.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border">
+        <div className="text-center py-16 bg-raised rounded-xl border">
           <p className="text-4xl mb-3">🛍️</p>
-          <p className="text-gray-500 text-sm mb-2">{copy.emptyStateMain}</p>
-          <p className="text-gray-400 text-xs">
+          <p className="text-content-muted text-sm mb-2">{copy.emptyStateMain}</p>
+          <p className="text-content-muted text-xs">
             {copy.emptyStateHint}
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-white">
+        <div className="overflow-x-auto rounded-lg border bg-raised">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-canvas">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.colEvent}</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.colCategory}</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.colPrice}</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">{copy.colDate}</th>
+                <th className="text-left px-4 py-3 font-medium text-content-secondary">{copy.colEvent}</th>
+                <th className="text-left px-4 py-3 font-medium text-content-secondary">{copy.colCategory}</th>
+                <th className="text-left px-4 py-3 font-medium text-content-secondary">{copy.colPrice}</th>
+                <th className="text-left px-4 py-3 font-medium text-content-secondary">{copy.colDate}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y">
               {listed.map((ev) => (
-                <tr key={ev.id} className="hover:bg-gray-50">
+                <tr key={ev.id} className="hover:bg-canvas">
                   <td className="px-4 py-3 font-medium">{ev.name}</td>
-                  <td className="px-4 py-3 text-gray-500">{ev.marketplace_category ?? "—"}</td>
+                  <td className="px-4 py-3 text-content-muted">{ev.marketplace_category ?? "—"}</td>
                   <td className="px-4 py-3">
                     {!ev.marketplace_price || ev.marketplace_price === 0 ? (
-                      <span className="text-green-600 font-medium">{copy.free}</span>
+                      <span className="text-status-success-content font-medium">{copy.free}</span>
                     ) : (
                       <span>₺{ev.marketplace_price.toLocaleString(localeTag(lang))}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-4 py-3 text-content-muted">
                     {ev.event_date
                       ? new Date(ev.event_date).toLocaleDateString(localeTag(lang))
                       : "—"}
@@ -303,19 +303,19 @@ export default function AdminMarketplacePage() {
                     <Link
                       href={`/marketplace/${ev.id}`}
                       target="_blank"
-                      className="text-indigo-500 hover:underline text-xs mr-3"
+                      className="text-status-info-content hover:underline text-xs mr-3"
                     >
                       {copy.preview}
                     </Link>
                     <button
                       onClick={() => openEdit(ev)}
-                      className="text-blue-600 hover:underline text-xs mr-3"
+                      className="text-status-info-content hover:underline text-xs mr-3"
                     >
                       {copy.edit}
                     </button>
                     <button
                       onClick={() => handleUnlist(ev.id)}
-                      className="text-red-500 hover:underline text-xs"
+                      className="text-status-danger-content hover:underline text-xs"
                     >
                       {copy.unlist}
                     </button>
@@ -327,7 +327,7 @@ export default function AdminMarketplacePage() {
         </div>
       )}
 
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700">
+      <div className="mt-6 p-4 bg-status-info-bg border border-status-info-border rounded-lg text-sm text-status-info-content">
         <strong>{copy.tipTitle}</strong> {copy.tipBody}
       </div>
     </div>

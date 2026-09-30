@@ -64,25 +64,25 @@ export default function EmailTemplateSelect({
       <span className="block text-xs font-semibold text-surface-700 tracking-tight">
         {label}
       </span>
-      
+
       {/* Seçim Alanı Kapsayıcısı */}
       <div className="relative flex items-center">
         {/* Sol İkon */}
         <Mail className="pointer-events-none absolute left-3.5 h-4 w-4 text-surface-400 stroke-[1.8]" />
-        
+
         {/* Native Select - Apple Çizgisinde Giydirilmiş */}
         <select
           value={value || ""}
           onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
-          className="w-full min-h-[42px] appearance-none rounded-xl border border-surface-200 bg-white pl-10 pr-10 text-xs font-medium text-surface-900 transition-all outline-none hover:border-gray-300 focus:border-surface-900 focus:ring-1 focus:ring-surface-900 disabled:bg-surface-50/50 disabled:opacity-50"
+          className="w-full min-h-[42px] appearance-none rounded-xl border border-surface-200 bg-raised pl-10 pr-10 text-xs font-medium text-surface-900 transition-all outline-none hover:border-outline-strong focus:border-surface-900 focus:ring-1 focus:ring-surface-900 disabled:bg-surface-50/50 disabled:opacity-50"
           disabled={disabled || loading}
         >
           <option value="" className="text-surface-400">
             {loading ? "Yükleniyor..." : placeholder}
           </option>
-          
+
           {eventTemplates.length > 0 && (
-            <optgroup label={eventId ? "Etkinlik Şablonları" : "Event Templates"} className="font-semibold text-surface-500 bg-white">
+            <optgroup label={eventId ? "Etkinlik Şablonları" : "Event Templates"} className="font-semibold text-surface-500 bg-raised">
               {eventTemplates.map((template) => (
                 <option key={template.id} value={template.id} className="text-surface-900 font-medium py-1">
                   {template.name} — {template.subject_tr || template.subject_en}
@@ -90,9 +90,9 @@ export default function EmailTemplateSelect({
               ))}
             </optgroup>
           )}
-          
+
           {systemTemplates.length > 0 && (
-            <optgroup label={eventId ? "Sistem Şablonları" : "System Templates"} className="font-semibold text-surface-500 bg-white">
+            <optgroup label={eventId ? "Sistem Şablonları" : "System Templates"} className="font-semibold text-surface-500 bg-raised">
               {systemTemplates.map((template) => (
                 <option key={template.id} value={template.id} className="text-surface-900 font-medium py-1">
                   {template.name} — {template.subject_tr || template.subject_en}
@@ -101,7 +101,7 @@ export default function EmailTemplateSelect({
             </optgroup>
           )}
         </select>
-        
+
         {/* Sağ Durum / Ok İkonu */}
         <div className="pointer-events-none absolute right-3.5 flex items-center justify-center">
           {loading ? (
@@ -111,7 +111,7 @@ export default function EmailTemplateSelect({
           )}
         </div>
       </div>
-      
+
       {/* Alt Bilgi & Yardımcı Metin */}
       <div className="px-0.5">
         {selected ? (

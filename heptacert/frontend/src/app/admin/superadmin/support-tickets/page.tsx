@@ -147,9 +147,9 @@ export default function SupportTicketsPage() {
 
   const text = copy[lang as keyof typeof copy];
   const statusColors = {
-    open: "bg-blue-100 text-blue-700",
-    in_progress: "bg-yellow-100 text-yellow-700",
-    resolved: "bg-green-100 text-green-700",
+    open: "bg-status-info-bg text-status-info-content",
+    in_progress: "bg-status-warning-bg text-status-warning-content",
+    resolved: "bg-status-success-bg text-status-success-content",
     closed: "bg-surface-100 text-surface-700"
   };
 
@@ -196,7 +196,7 @@ export default function SupportTicketsPage() {
                 className={`w-full text-left p-4 rounded-lg border-2 transition ${
                   selectedTicket?.id === ticket.id
                     ? "border-brand-600 bg-brand-50"
-                    : "border-surface-200 hover:border-surface-300 bg-white"
+                    : "border-surface-200 hover:border-surface-300 bg-raised"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -235,7 +235,7 @@ export default function SupportTicketsPage() {
                   <select
                     value={selectedTicket.status}
                     onChange={(e) => handleStatusChange(selectedTicket.id, e.target.value)}
-                    className="px-3 py-2 border border-surface-300 rounded-lg text-sm font-medium bg-white"
+                    className="px-3 py-2 border border-surface-300 rounded-lg text-sm font-medium bg-raised"
                   >
                     <option value="open">{text.open}</option>
                     <option value="in_progress">{text.in_progress}</option>

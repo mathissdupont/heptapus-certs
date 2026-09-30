@@ -190,7 +190,7 @@ export default function EventPresentationRemotePage() {
 
   useEffect(() => {
     window.localStorage.setItem(
-      `heptacert:presentation:${deckId}:timer`,
+ `heptacert:presentation:${deckId}:timer`,
       JSON.stringify({
         durationMinutes,
         pausedElapsedSeconds,
@@ -354,7 +354,7 @@ export default function EventPresentationRemotePage() {
   return (
     <main className="min-h-screen bg-surface-50 px-4 py-5 text-surface-950">
       <section className="mx-auto flex max-w-md flex-col gap-4 landscape:grid landscape:max-w-6xl landscape:grid-cols-[minmax(280px,420px)_1fr] landscape:items-start">
-        <header className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
+        <header className="rounded-2xl border border-surface-200 bg-raised p-4 shadow-sm">
           <p className="text-11 font-black uppercase tracking-[0.2em] text-surface-400">HeptaDeck</p>
           <h1 className="mt-1 text-xl font-black text-surface-950">{copy.title}</h1>
           <p className="mt-2 line-clamp-2 text-sm font-semibold text-surface-500">{deck?.title || "Presentation"}</p>
@@ -369,7 +369,7 @@ export default function EventPresentationRemotePage() {
           </a>
         </header>
 
-        {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
+        {error && <div className="rounded-xl border border-status-danger-border bg-status-danger-bg p-3 text-sm font-semibold text-status-danger-content">{error}</div>}
 
         {previewUrl && (
           <PdfPresenterPreview
@@ -384,11 +384,11 @@ export default function EventPresentationRemotePage() {
           />
         )}
 
-        <section className={`rounded-2xl border bg-white p-5 shadow-sm ${isFinalWarning ? "border-amber-300" : "border-surface-200"}`}>
+        <section className={`rounded-2xl border bg-raised p-5 shadow-sm ${isFinalWarning ? "border-status-warning-border" : "border-surface-200"}`}>
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-surface-400">{copy.timer}</p>
-              <p className={`mt-1 text-4xl font-black tracking-tight ${isFinalWarning ? "text-amber-600" : "text-surface-950"}`}>
+              <p className={`mt-1 text-4xl font-black tracking-tight ${isFinalWarning ? "text-status-warning-content" : "text-surface-950"}`}>
                 {formatClock(remainingSeconds)}
               </p>
             </div>
@@ -429,16 +429,16 @@ export default function EventPresentationRemotePage() {
             <button
               type="button"
               onClick={resetTimer}
-              className="inline-flex items-center justify-center rounded-xl border border-surface-200 bg-white px-4 py-3 text-surface-700 transition hover:bg-surface-50"
+              className="inline-flex items-center justify-center rounded-xl border border-surface-200 bg-raised px-4 py-3 text-surface-700 transition hover:bg-surface-50"
               aria-label={copy.resetTimer}
             >
               <TimerReset className="h-4 w-4" />
             </button>
           </div>
-          {isFinalWarning && <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm font-black text-amber-700">{copy.finalWarning}</p>}
+          {isFinalWarning && <p className="mt-3 rounded-xl bg-status-warning-bg px-3 py-2 text-sm font-black text-status-warning-content">{copy.finalWarning}</p>}
         </section>
 
-        <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-surface-400">{copy.slide}</p>
             {saving && <Loader2 className="h-4 w-4 animate-spin text-surface-400" />}
@@ -471,18 +471,18 @@ export default function EventPresentationRemotePage() {
             type="button"
             onClick={() => void go(0)}
             disabled={saving || slideIndex === 0}
-            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm font-black text-surface-700 transition hover:bg-surface-50 disabled:opacity-40"
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-raised px-4 py-3 text-sm font-black text-surface-700 transition hover:bg-surface-50 disabled:opacity-40"
           >
             <RotateCcw className="h-4 w-4" />
             {copy.reset}
           </button>
         </section>
 
-        <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm landscape:row-span-3">
+        <section className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm landscape:row-span-3">
           <div className="mb-3 flex items-center gap-2">
             <LocateFixed className="h-4 w-4 text-brand-700" />
             <p className="text-sm font-black text-surface-950">{copy.laser}</p>
-            <span className={`ml-auto rounded-full px-2 py-1 text-11 font-black ${wsConnected ? "bg-emerald-50 text-emerald-700" : "bg-surface-100 text-surface-400"}`}>
+            <span className={`ml-auto rounded-full px-2 py-1 text-11 font-black ${wsConnected ? "bg-status-success-bg text-status-success-content" : "bg-surface-100 text-surface-400"}`}>
               {wsConnected ? "Live" : "Fallback"}
             </span>
           </div>
@@ -495,7 +495,7 @@ export default function EventPresentationRemotePage() {
             onPointerCancel={stopPointer}
             className={`relative flex h-[42vh] min-h-44 touch-none select-none items-center justify-center overflow-hidden rounded-2xl border text-sm font-bold transition landscape:h-[62vh] ${
               pointerActive
-                ? "border-red-200 bg-red-50 text-red-700"
+                ? "border-status-danger-border bg-status-danger-bg text-status-danger-content"
                 : "border-dashed border-surface-200 bg-surface-50 text-surface-400"
             }`}
           >
@@ -507,7 +507,7 @@ export default function EventPresentationRemotePage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm">
           <div className="flex items-center gap-2">
             <NotebookPen className="h-4 w-4 text-brand-700" />
             <p className="text-sm font-black text-surface-950">{copy.personalNotes}</p>
@@ -521,7 +521,7 @@ export default function EventPresentationRemotePage() {
               setNotesDirty(true);
             }}
             placeholder={copy.placeholder}
-            className="mt-4 min-h-44 w-full resize-none rounded-xl border border-surface-200 bg-surface-50 p-4 text-base font-medium leading-relaxed text-surface-900 outline-none transition focus:border-brand-300 focus:bg-white focus:ring-2 focus:ring-brand-100"
+            className="mt-4 min-h-44 w-full resize-none rounded-xl border border-surface-200 bg-surface-50 p-4 text-base font-medium leading-relaxed text-surface-900 outline-none transition focus:border-brand-300 focus:bg-raised focus:ring-2 focus:ring-brand-100"
           />
         </section>
       </section>

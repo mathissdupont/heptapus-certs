@@ -269,7 +269,7 @@ export default function CreateEventDrawer({ open, onClose, onCreated, venues = [
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-            className="relative ml-auto flex h-full w-full flex-col bg-white shadow-modal sm:w-[480px]"
+            className="relative ml-auto flex h-full w-full flex-col bg-raised shadow-modal sm:w-[480px]"
           >
             {/* Header */}
             <div className="flex shrink-0 items-center justify-between border-b border-surface-200 px-5 py-4">
@@ -331,13 +331,13 @@ export default function CreateEventDrawer({ open, onClose, onCreated, venues = [
                       className={`flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
                         f.value
                           ? "border-surface-300 bg-surface-900 text-white"
-                          : "border-surface-200 bg-white text-surface-500 hover:border-surface-300 hover:text-surface-700"
+                          : "border-surface-200 bg-raised text-surface-500 hover:border-surface-300 hover:text-surface-700"
                       }`}
                     >
                       <span className="min-w-0 truncate">{f.label}</span>
                       <span
                         className={`ml-2 h-2 w-2 shrink-0 rounded-full ${
-                          f.value ? "bg-white/70" : "bg-surface-200"
+                          f.value ? "bg-raised/70" : "bg-surface-200"
                         }`}
                       />
                     </button>

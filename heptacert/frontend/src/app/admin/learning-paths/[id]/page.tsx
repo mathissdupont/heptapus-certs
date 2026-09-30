@@ -234,7 +234,7 @@ export default function LearningPathBuilderPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+        <Loader2 className="h-5 w-5 animate-spin text-content-muted" />
       </div>
     );
   }
@@ -255,23 +255,23 @@ export default function LearningPathBuilderPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/admin/learning-paths" className="text-gray-400 hover:text-gray-600">
+        <Link href="/admin/learning-paths" className="text-content-muted hover:text-content-secondary">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <h1 className="text-xl font-semibold text-gray-900 flex-1 truncate">{name}</h1>
-        <span className={`text-xs rounded-full px-2.5 py-1 font-medium ${published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+        <h1 className="text-xl font-semibold text-content-primary flex-1 truncate">{name}</h1>
+        <span className={`text-xs rounded-full px-2.5 py-1 font-medium ${published ? "bg-status-success-bg text-status-success-content" : "bg-sunken text-content-muted"}`}>
           {published ? copy.published : copy.draft}
         </span>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-gray-100 p-1 w-fit">
+      <div className="flex gap-1 rounded-xl bg-sunken p-1 w-fit">
         {(["builder", "enrollments"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-              tab === t ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
+              tab === t ? "bg-raised shadow text-content-primary" : "text-content-muted hover:text-content-secondary"
             }`}
           >
             {t === "builder" ? copy.editTab : copy.enrollmentsTab}
@@ -283,27 +283,27 @@ export default function LearningPathBuilderPage() {
       {tab === "builder" && (
         <div className="space-y-5">
           {/* Meta card */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
-            <h2 className="text-sm font-medium text-gray-700">{copy.generalInfo}</h2>
+          <div className="rounded-2xl border border-outline-subtle bg-raised p-6 shadow-sm space-y-4">
+            <h2 className="text-sm font-medium text-content-secondary">{copy.generalInfo}</h2>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{copy.title}</label>
+                <label className="block text-xs font-medium text-content-muted mb-1">{copy.title}</label>
                 <input
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">{copy.description}</label>
+                <label className="block text-xs font-medium text-content-muted mb-1">{copy.description}</label>
                 <textarea
                   rows={2}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-xl border border-outline-subtle px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-status-info-border"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <label className="flex items-center gap-2 text-sm text-content-secondary cursor-pointer">
                 <input
                   type="checkbox"
                   className="rounded"
@@ -324,9 +324,9 @@ export default function LearningPathBuilderPage() {
           </div>
 
           {/* Steps card */}
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-outline-subtle bg-raised p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium text-gray-700">{copy.steps} ({steps.length})</h2>
+              <h2 className="text-sm font-medium text-content-secondary">{copy.steps} ({steps.length})</h2>
               <button
                 onClick={handleSaveSteps}
                 disabled={saving}
@@ -338,20 +338,20 @@ export default function LearningPathBuilderPage() {
             </div>
 
             {steps.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-4">
+              <p className="text-sm text-content-muted text-center py-4">
                 {copy.noSteps} {copy.addActivity}
               </p>
             )}
 
             <div className="space-y-2">
               {steps.map((s, idx) => (
-                <div key={idx} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                  <GripVertical className="h-4 w-4 text-gray-300 flex-shrink-0" />
-                  <span className="text-xs font-bold text-gray-400 w-4">{idx + 1}</span>
+                <div key={idx} className="flex items-center gap-3 rounded-xl border border-outline-subtle bg-canvas px-4 py-3">
+                  <GripVertical className="h-4 w-4 text-content-muted flex-shrink-0" />
+                  <span className="text-xs font-bold text-content-muted w-4">{idx + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{s.event_name}</p>
+                    <p className="text-sm font-medium text-content-primary truncate">{s.event_name}</p>
                     <div className="flex items-center gap-3 mt-1">
-                      <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                      <label className="flex items-center gap-1.5 text-xs text-content-muted cursor-pointer">
                         <input
                           type="checkbox"
                           className="rounded"
@@ -365,10 +365,10 @@ export default function LearningPathBuilderPage() {
                         {copy.required}
                       </label>
                       <div className="flex items-center gap-1">
-                        <label className="text-xs text-gray-400">{copy.minScore}</label>
+                        <label className="text-xs text-content-muted">{copy.minScore}</label>
                         <input
                           type="number"
-                          className="w-14 rounded border border-gray-200 px-1.5 py-0.5 text-xs focus:outline-none"
+                          className="w-14 rounded border border-outline-subtle px-1.5 py-0.5 text-xs focus:outline-none"
                           placeholder="Auto"
                           value={s.min_score_override}
                           onChange={(e) =>
@@ -384,18 +384,18 @@ export default function LearningPathBuilderPage() {
                     <button
                       onClick={() => moveStep(idx, -1)}
                       disabled={idx === 0}
-                      className="p-1 text-gray-300 hover:text-gray-600 disabled:opacity-30"
+                      className="p-1 text-content-muted hover:text-content-secondary disabled:opacity-30"
                     >
                       <ChevronUp className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => moveStep(idx, 1)}
                       disabled={idx === steps.length - 1}
-                      className="p-1 text-gray-300 hover:text-gray-600 disabled:opacity-30"
+                      className="p-1 text-content-muted hover:text-content-secondary disabled:opacity-30"
                     >
                       <ChevronDown className="h-4 w-4" />
                     </button>
-                    <button onClick={() => removeStep(idx)} className="p-1 text-red-300 hover:text-red-600">
+                    <button onClick={() => removeStep(idx)} className="p-1 text-status-danger-content hover:text-status-danger-content">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -406,18 +406,18 @@ export default function LearningPathBuilderPage() {
             {/* Event search */}
             <div className="relative">
               <input
-                className="w-full rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white"
+                className="w-full rounded-xl border border-dashed border-outline-strong bg-canvas px-4 py-2.5 text-sm text-content-secondary focus:outline-none focus:ring-2 focus:ring-status-info-border focus:bg-raised"
                 placeholder={copy.searchPlaceholder}
                 value={eventSearch}
                 onChange={(e) => setEventSearch(e.target.value)}
               />
               {eventOptions.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full rounded-xl border border-gray-100 bg-white shadow-lg overflow-hidden">
+                <div className="absolute z-10 mt-1 w-full rounded-xl border border-outline-subtle bg-raised shadow-lg overflow-hidden">
                   {eventOptions.map((ev) => (
                     <button
                       key={ev.id}
                       onClick={() => addStep(ev)}
-                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
+                      className="w-full text-left px-4 py-2.5 text-sm text-content-secondary hover:bg-status-info-bg hover:text-status-info-content"
                     >
                       {ev.name}
                     </button>
@@ -433,7 +433,7 @@ export default function LearningPathBuilderPage() {
       {tab === "enrollments" && (
         <div className="space-y-4">
           {!enrollments ? (
-            <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
+            <div className="flex justify-center py-16"><Loader2 className="h-5 w-5 animate-spin text-content-muted" /></div>
           ) : (
             <>
               <div className="grid grid-cols-3 gap-4">
@@ -442,14 +442,14 @@ export default function LearningPathBuilderPage() {
                   { label: copy.completed, value: enrollments.summary.completed },
                   { label: copy.completionRate, value: `%${enrollments.summary.completion_rate}` },
                 ].map((s) => (
-                  <div key={s.label} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm text-center">
-                    <div className="text-2xl font-bold text-gray-900">{s.value}</div>
-                    <div className="text-xs text-gray-500 mt-1">{s.label}</div>
+                  <div key={s.label} className="rounded-2xl border border-outline-subtle bg-raised p-5 shadow-sm text-center">
+                    <div className="text-2xl font-bold text-content-primary">{s.value}</div>
+                    <div className="text-xs text-content-muted mt-1">{s.label}</div>
                   </div>
                 ))}
               </div>
               {enrollments.summary.total === 0 && (
-                <div className="text-center py-12 text-gray-400 text-sm">
+                <div className="text-center py-12 text-content-muted text-sm">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
                   {copy.noEnrollments}
                 </div>

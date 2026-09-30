@@ -99,11 +99,11 @@ function ResetPasswordContent() {
     return (
       <div className="flex min-h-[80vh] items-center justify-center py-12">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card max-w-md w-full p-10 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-status-success-bg text-status-success-content">
             <CheckCircle2 className="h-8 w-8" />
           </div>
-          <h2 className="mb-2 text-xl font-bold text-gray-900">{copy.successTitle}</h2>
-          <p className="mb-6 text-sm text-gray-500">{copy.successBody}</p>
+          <h2 className="mb-2 text-xl font-bold text-content-primary">{copy.successTitle}</h2>
+          <p className="mb-6 text-sm text-content-muted">{copy.successBody}</p>
           <Link href={loginHref} className="btn-primary w-full justify-center">{copy.login}</Link>
         </motion.div>
       </div>
@@ -114,16 +114,16 @@ function ResetPasswordContent() {
     <div className="flex min-h-[80vh] items-center justify-center py-12">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="card w-full max-w-md p-10">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">{copy.title}</h1>
-          <p className="mt-1.5 text-sm text-gray-500">{copy.subtitle}</p>
+          <h1 className="text-2xl font-bold text-content-primary">{copy.title}</h1>
+          <p className="mt-1.5 text-sm text-content-muted">{copy.subtitle}</p>
         </div>
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
             <label className="label">{copy.newPassword}</label>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
               <input className="input-field pl-10 pr-10" type={showPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={copy.passwordPlaceholder} required autoComplete="new-password" />
-              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-content-muted hover:text-content-secondary">
                 {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
@@ -131,7 +131,7 @@ function ResetPasswordContent() {
           <div>
             <label className="label">{copy.confirmPassword}</label>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Lock className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
               <input className="input-field pl-10" type={showPw ? "text" : "password"} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={copy.confirmPlaceholder} required autoComplete="new-password" />
             </div>
           </div>

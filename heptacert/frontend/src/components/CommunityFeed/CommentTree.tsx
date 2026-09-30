@@ -59,7 +59,7 @@ export default function CommentTree({
         {hasReplies && canShowReplies && (
           <div className="relative mt-1">
             {/* CommentCard halihazırda depth > 0 ise ml-6 ve border uyguluyor.
-              Burada container'a hafif bir margin vererek her alt kademenin 
+              Burada container'a hafif bir margin vererek her alt kademenin
               matruşka gibi içeri kaymasını sağlıyoruz.
             */}
             <div className="ml-2 sm:ml-6 flex flex-col gap-1">
@@ -70,8 +70,8 @@ export default function CommentTree({
 
         {/* Sınır aşıldığında gösterilecek "Daha fazla yanıt" butonu */}
         {hasReplies && !canShowReplies && (
-          <div className="ml-8 sm:ml-14 mt-3 inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 cursor-pointer shadow-sm">
-            <ChevronRight className="h-3 w-3 text-gray-400" />
+          <div className="ml-8 sm:ml-14 mt-3 inline-flex items-center gap-1.5 rounded-full border border-outline-subtle bg-canvas px-3 py-1.5 text-xs font-medium text-content-muted transition-colors hover:bg-sunken hover:text-content-primary cursor-pointer shadow-sm">
+            <ChevronRight className="h-3 w-3 text-content-muted" />
             {comment.replies!.length} {comment.replies!.length === 1 ? 'yanıt' : 'yanıt'} daha var...
           </div>
         )}
@@ -82,9 +82,9 @@ export default function CommentTree({
   // Şık bir "Empty State" (Boş Durum) tasarımı
   if (comments.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50/50 py-12 px-6 text-center">
-        <MessageSquareOff className="h-8 w-8 text-gray-300 mb-3" />
-        <p className="text-sm font-medium text-gray-500">
+      <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-outline-strong bg-canvas/50 py-12 px-6 text-center">
+        <MessageSquareOff className="h-8 w-8 text-content-muted mb-3" />
+        <p className="text-sm font-medium text-content-muted">
           Bu gönderiye henüz yorum yapılmamış.
         </p>
       </div>

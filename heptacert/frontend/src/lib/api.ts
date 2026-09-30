@@ -2,10 +2,10 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:87
 const HAS_CONFIGURED_API_BASE = Boolean(process.env.NEXT_PUBLIC_API_BASE);
 
 const PRIMARY_APP_HOSTS = new Set([
-  "localhost",
-  "127.0.0.1",
-  "heptacert.com",
-  "www.heptacert.com",
+ "localhost",
+ "127.0.0.1",
+ "heptacert.com",
+ "www.heptacert.com",
 ]);
 
 export function getApiBase(): string {
@@ -60,8 +60,8 @@ if (
   process.env.NEXT_PHASE !== "phase-production-build"
 ) {
   console.error(
-    "[HeptaCert] NEXT_PUBLIC_API_BASE is not set. " +
-    "Browser requests will use the current origin /api; server-side code keeps the local development fallback."
+ "[HeptaCert] NEXT_PUBLIC_API_BASE is not set. " +
+ "Browser requests will use the current origin /api; server-side code keeps the local development fallback."
   );
 }
 
@@ -2379,7 +2379,7 @@ export async function downloadRegistrationDocument(
   }
 
   const res = await fetch(
-    `${getApiBase()}/admin/events/${eventId}/registration-documents/file?path=${encodeURIComponent(path)}`,
+ `${getApiBase()}/admin/events/${eventId}/registration-documents/file?path=${encodeURIComponent(path)}`,
     { method: "GET", headers, cache: "no-store" },
   );
   if (!res.ok) {
@@ -3225,7 +3225,7 @@ export async function resolvePublicSurveyToken(
   surveyToken: string,
 ): Promise<PublicSurveyAccess> {
   const res = await publicApiFetch(
-    `/events/${toEventRouteId(eventId)}/survey-access?token=${encodeURIComponent(surveyToken)}`,
+ `/events/${toEventRouteId(eventId)}/survey-access?token=${encodeURIComponent(surveyToken)}`,
   );
   return res.json();
 }
@@ -3235,7 +3235,7 @@ export async function verifyPublicAttendeeEmail(
   token: string,
 ): Promise<{ detail: string; attendee_id: number; event_id: number; status_url?: string | null }> {
   const res = await publicApiFetch(
-    `/events/${toEventRouteId(eventId)}/verify-email?token=${encodeURIComponent(token)}`,
+ `/events/${toEventRouteId(eventId)}/verify-email?token=${encodeURIComponent(token)}`,
     { method: "GET" },
   );
   return res.json();
@@ -3261,7 +3261,7 @@ export async function submitBuiltinSurvey(
   const res = await fetch(`${getApiBase()}/surveys/${toEventRouteId(eventId)}/submit`, {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+ "Content-Type": "application/json",
       ...(attendeeId ? { "attendee-id": String(attendeeId) } : {}),
     },
     body: JSON.stringify({
@@ -3327,7 +3327,7 @@ export async function getPublicParticipantStatus(
   surveyToken: string,
 ): Promise<PublicParticipantStatus> {
   const res = await fetch(
-    `${getApiBase()}/events/${toEventRouteId(eventId)}/participant-status?token=${encodeURIComponent(surveyToken)}`,
+ `${getApiBase()}/events/${toEventRouteId(eventId)}/participant-status?token=${encodeURIComponent(surveyToken)}`,
     { cache: "no-store" },
   );
   if (!res.ok) {
@@ -3374,7 +3374,7 @@ export async function getPublicAttendeeBadges(
   email: string,
 ): Promise<{ total_badges: number; badges: PublicParticipantBadge[] }> {
   const res = await fetch(
-    `${getApiBase()}/events/${toEventRouteId(eventId)}/attendees/${attendeeId}/badges?email=${encodeURIComponent(email)}`,
+ `${getApiBase()}/events/${toEventRouteId(eventId)}/attendees/${attendeeId}/badges?email=${encodeURIComponent(email)}`,
     { cache: "no-store" },
   );
   if (!res.ok) {
@@ -3849,7 +3849,7 @@ export async function listAuditLogs(params?: {
   if (params?.to_date) qs.set("to_date", params.to_date);
   if (params?.page) qs.set("page", String(params.page));
   if (params?.limit) qs.set("limit", String(params.limit));
-  
+
   const res = await apiFetch(`/superadmin/audit-logs?${qs}`);
   const data = await res.json();
   const items = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
@@ -4333,7 +4333,7 @@ export async function listWebhookDeliveries(
   const qs = new URLSearchParams();
   if (params?.page) qs.set("page", String(params.page));
   if (params?.limit) qs.set("limit", String(params.limit));
-  
+
   const res = await apiFetch(`/admin/webhooks/${webhookId}/deliveries?${qs}`);
   return res.json();
 }

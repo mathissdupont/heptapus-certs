@@ -37,13 +37,13 @@ function normalizeLegacyFontTags(root: HTMLElement) {
 
     if (size) {
       const sizeMap: Record<string, string> = {
-        "1": "12px",
-        "2": "14px",
-        "3": "16px",
-        "4": "18px",
-        "5": "24px",
-        "6": "30px",
-        "7": "36px",
+ "1": "12px",
+ "2": "14px",
+ "3": "16px",
+ "4": "18px",
+ "5": "24px",
+ "6": "30px",
+ "7": "36px",
       };
       if (sizeMap[size]) span.style.fontSize = sizeMap[size];
     }
@@ -91,11 +91,11 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
   }
 
   return (
-    <div className="w-full rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden antialiased focus-within:border-gray-300 focus-within:ring-1 focus-within:ring-gray-300 transition-all">
-      
+    <div className="w-full rounded-2xl border border-outline-subtle bg-raised shadow-sm overflow-hidden antialiased focus-within:border-outline-strong focus-within:ring-1 focus-within:ring-outline-strong transition-all">
+
       {/* Apple Notlar Tarzı Minimalist Araç Çubuğu (Toolbar) */}
-      <div className="flex flex-wrap items-center gap-1 border-b border-gray-100 bg-gray-50/50 px-2.5 py-2">
-        
+      <div className="flex flex-wrap items-center gap-1 border-b border-outline-subtle bg-canvas/50 px-2.5 py-2">
+
         {/* Stil Butonları Gruplaması */}
         <div className="flex items-center gap-0.5">
           {[
@@ -111,7 +111,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                 key={btn.cmd}
                 type="button"
                 onClick={() => runCommand(btn.cmd)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-white hover:text-gray-900 hover:shadow-sm border border-transparent hover:border-gray-200/60 transition-all active:scale-95"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-content-muted hover:bg-raised hover:text-content-primary hover:shadow-sm border border-transparent hover:border-outline-subtle/60 transition-all active:scale-95"
                 aria-label={btn.label}
               >
                 <Icon className="h-3.5 w-3.5 stroke-[2]" />
@@ -121,25 +121,25 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         </div>
 
         {/* İnce Bölücü Dikey Çizgi */}
-        <div className="h-4 w-px bg-gray-200 mx-1.5" />
+        <div className="h-4 w-px bg-sunken mx-1.5" />
 
         {/* Font Ailesi Seçici */}
         <div className="relative inline-flex items-center">
-          <Type className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-gray-400 stroke-[1.8]" />
+          <Type className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-content-muted stroke-[1.8]" />
           <select
             defaultValue=""
             onChange={(event) => {
               if (event.target.value) runCommand("fontName", event.target.value);
               event.target.value = "";
             }}
-            className="appearance-none rounded-xl border border-gray-200 bg-white pl-8 pr-7 py-1.5 text-11 font-semibold text-gray-600 outline-none hover:border-gray-300 transition-all cursor-pointer"
+            className="appearance-none rounded-xl border border-outline-subtle bg-raised pl-8 pr-7 py-1.5 text-11 font-semibold text-content-secondary outline-none hover:border-outline-strong transition-all cursor-pointer"
           >
             <option value="" disabled>Font</option>
             {FONT_FAMILY_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-gray-400" />
+          <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-content-muted" />
         </div>
 
         {/* Font Boyutu Seçici */}
@@ -150,21 +150,21 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
               if (event.target.value) runCommand("fontSize", event.target.value);
               event.target.value = "";
             }}
-            className="appearance-none rounded-xl border border-gray-200 bg-white pl-3 pr-7 py-1.5 text-11 font-semibold text-gray-600 outline-none hover:border-gray-300 transition-all cursor-pointer"
+            className="appearance-none rounded-xl border border-outline-subtle bg-raised pl-3 pr-7 py-1.5 text-11 font-semibold text-content-secondary outline-none hover:border-outline-strong transition-all cursor-pointer"
           >
             <option value="" disabled>16</option>
             {FONT_SIZE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-gray-400" />
+          <ChevronDown className="pointer-events-none absolute right-2 h-3 w-3 text-content-muted" />
         </div>
 
         {/* İnce Bölücü Dikey Çizgi */}
-        <div className="h-4 w-px bg-gray-200 mx-1.5" />
+        <div className="h-4 w-px bg-sunken mx-1.5" />
 
         {/* Apple Tarzı Kusursuzlaştırılmış Renk Seçici Buton */}
-        <div className="relative flex h-8 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white hover:border-gray-300 shadow-sm overflow-hidden transition-all">
+        <div className="relative flex h-8 w-9 items-center justify-center rounded-lg border border-outline-subtle bg-raised hover:border-outline-strong shadow-sm overflow-hidden transition-all">
           <input
             type="color"
             aria-label="Metin Rengi"
@@ -173,14 +173,14 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
             onChange={(event) => runCommand("foreColor", event.target.value)}
           />
           {/* Renk Seçici İkon İllüstrasyonu */}
-          <div className="h-3 w-5 rounded border border-gray-900/10 bg-gray-800" />
+          <div className="h-3 w-5 rounded border border-outline-strong/10 bg-inverse-surface" />
         </div>
 
         {/* Format Temizleme Butonu */}
         <button
           type="button"
           onClick={() => runCommand("removeFormat")}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-white hover:text-red-500 hover:shadow-sm border border-transparent hover:border-gray-200/60 transition-all active:scale-95 ml-auto"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-content-muted hover:bg-raised hover:text-status-danger-content hover:shadow-sm border border-transparent hover:border-outline-subtle/60 transition-all active:scale-95 ml-auto"
           aria-label="Formatı Temizle"
         >
           <RemoveFormatting className="h-3.5 w-3.5 stroke-[2]" />
@@ -194,7 +194,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         contentEditable
         suppressContentEditableWarning
         data-placeholder={placeholder || ""}
-        className="rich-editor rich-text-content min-h-[180px] w-full px-4 py-3.5 text-xs font-medium text-gray-900 outline-none bg-white transition-all overflow-y-auto"
+        className="rich-editor rich-text-content min-h-[180px] w-full px-4 py-3.5 text-xs font-medium text-content-primary outline-none bg-raised transition-all overflow-y-auto"
         onInput={syncValue}
         onBlur={syncValue}
         onPaste={handlePaste}

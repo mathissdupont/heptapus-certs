@@ -47,7 +47,7 @@ export default function CreatePostPage() {
   const charPercentage = charCount / CHARACTER_LIMIT;
   const isNearLimit = charPercentage >= WARNING_THRESHOLD;
   const isOverLimit = charCount > CHARACTER_LIMIT;
-  
+
   const isPostValid = useMemo(() => {
     return body.trim().length > 0 && !isOverLimit;
   }, [body, isOverLimit]);
@@ -68,7 +68,7 @@ export default function CreatePostPage() {
     try {
       await createPublicFeedPost(body.trim());
       setSuccess(true);
-      
+
       // Yönlendirme
       setTimeout(() => {
         router.push("/discover");
@@ -80,22 +80,22 @@ export default function CreatePostPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] dark:bg-gray-950 pb-12">
+    <div className="min-h-screen bg-canvas  pb-12">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md">
+      <div className="sticky top-0 z-10 border-b border-outline-subtle  bg-raised/80  backdrop-blur-md">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/discover"
-              className="inline-flex items-center justify-center rounded-lg p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="inline-flex items-center justify-center rounded-lg p-2 text-content-muted hover:text-content-primary hover:bg-sunken  transition-colors"
             >
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+              <h1 className="text-lg font-bold text-content-primary  leading-tight">
                 {copy.heading}
               </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
+              <p className="text-xs text-content-muted ">
                 {copy.subtitle}
               </p>
             </div>
@@ -106,7 +106,7 @@ export default function CreatePostPage() {
             <button
               onClick={handlePublish}
               disabled={!isPostValid || submitting || success}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-medium shadow-sm hover:bg-slate-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-inverse-surface  text-white  text-sm font-medium shadow-sm hover:bg-inverse-surface  transition-colors disabled:opacity-50"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {submitting ? copy.publishing : copy.publish}
@@ -117,7 +117,7 @@ export default function CreatePostPage() {
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6 mt-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Main Editor Area (Left 2 Columns) */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -127,14 +127,14 @@ export default function CreatePostPage() {
           >
             {/* Messages */}
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 dark:border-red-900/30 dark:bg-red-900/10 px-4 py-3 text-sm text-red-700 dark:text-red-400 flex items-start gap-3">
+              <div className="rounded-lg border border-status-danger-border bg-status-danger-bg   px-4 py-3 text-sm text-status-danger-content  flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                 <div>{error}</div>
               </div>
             )}
-            
+
             {success && (
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-900/30 dark:bg-emerald-900/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400 flex items-center gap-3">
+              <div className="rounded-lg border border-status-success-border bg-status-success-bg   px-4 py-3 text-sm text-status-success-content  flex items-center gap-3">
                 <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
                 <div>
                   <p className="font-semibold">{copy.successMessage}</p>
@@ -144,7 +144,7 @@ export default function CreatePostPage() {
             )}
 
             {/* Editor Box */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-400 transition-all overflow-hidden flex flex-col">
+            <div className="rounded-xl border border-outline-subtle  bg-raised  shadow-sm focus-within:border-outline-strong focus-within:ring-1 focus-within:ring-outline-strong transition-all overflow-hidden flex flex-col">
               <textarea
                 value={body}
                 onChange={(e) => {
@@ -154,13 +154,13 @@ export default function CreatePostPage() {
                 placeholder={copy.placeholder}
                 disabled={submitting || success}
                 rows={12}
-                className="w-full flex-1 px-5 py-4 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-400 resize-none border-none bg-transparent focus:outline-none disabled:opacity-50"
+                className="w-full flex-1 px-5 py-4 text-sm text-content-primary  placeholder:text-content-muted resize-none border-none bg-transparent focus:outline-none disabled:opacity-50"
               />
 
               {/* Toolbar & Character Count */}
-              <div className="bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 px-5 py-3 flex items-center justify-between">
+              <div className="bg-canvas  border-t border-outline-subtle  px-5 py-3 flex items-center justify-between">
                 <div className="flex-1 max-w-xs">
-                  <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex">
+                  <div className="h-1.5 bg-sunken  rounded-full overflow-hidden flex">
                     <div
                       className={`h-full transition-all duration-300 ${
                         isOverLimit
@@ -176,10 +176,10 @@ export default function CreatePostPage() {
                 <div
                   className={`text-xs font-medium ml-4 ${
                     isOverLimit
-                      ? "text-red-600 dark:text-red-400"
+                      ? "text-status-danger-content "
                       : isNearLimit
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-gray-500 dark:text-gray-400"
+                      ? "text-status-warning-content "
+                      : "text-content-muted "
                   }`}
                 >
                   {charCount} / {CHARACTER_LIMIT}
@@ -193,7 +193,7 @@ export default function CreatePostPage() {
                 type="button"
                 onClick={() => router.push("/discover")}
                 disabled={submitting || success}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium transition-colors hover:bg-gray-50 disabled:opacity-50"
+                className="flex-1 px-4 py-2.5 rounded-lg border border-outline-subtle  bg-raised  text-content-secondary  text-sm font-medium transition-colors hover:bg-canvas disabled:opacity-50"
               >
                 {copy.cancel}
               </button>
@@ -201,7 +201,7 @@ export default function CreatePostPage() {
                 type="button"
                 onClick={handlePublish}
                 disabled={!isPostValid || submitting || success}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-medium shadow-sm hover:bg-slate-800 disabled:opacity-50"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-inverse-surface  text-white  text-sm font-medium shadow-sm hover:bg-inverse-surface disabled:opacity-50"
               >
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 {submitting ? copy.publishing : copy.publish}
@@ -211,19 +211,19 @@ export default function CreatePostPage() {
 
           {/* Sidebar Area (Right 1 Column) */}
           <div className="space-y-6">
-            
+
             {/* Guidelines Card */}
             <motion.div
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              className="rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10 p-5"
+              className="rounded-xl border border-status-info-border  bg-status-info-bg/50  p-5"
             >
-              <div className="flex items-center gap-2 text-blue-800 dark:text-blue-400 font-semibold text-sm mb-4">
+              <div className="flex items-center gap-2 text-status-info-content  font-semibold text-sm mb-4">
                 <Lightbulb className="h-4 w-4" />
                 {copy.tips}
               </div>
-              <ul className="space-y-3 text-sm text-blue-900/80 dark:text-blue-300/80">
+              <ul className="space-y-3 text-sm text-status-info-content/80 ">
                 <li className="flex items-start gap-2">
                   <div className="mt-1 h-1.5 w-1.5 rounded-full bg-blue-400 flex-shrink-0" />
                   <span>{copy.tip1}</span>
@@ -248,17 +248,17 @@ export default function CreatePostPage() {
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.2 }}
-              className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 shadow-sm"
+              className="rounded-xl border border-outline-subtle  bg-raised  p-5 shadow-sm"
             >
-              <div className="flex items-center gap-2 text-gray-900 dark:text-white font-semibold text-sm mb-3 border-b border-gray-100 dark:border-gray-800 pb-3">
-                <Eye className="h-4 w-4 text-gray-400" />
+              <div className="flex items-center gap-2 text-content-primary  font-semibold text-sm mb-3 border-b border-outline-subtle  pb-3">
+                <Eye className="h-4 w-4 text-content-muted" />
                 {copy.preview}
               </div>
-              <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words leading-relaxed min-h-[100px]">
+              <div className="text-sm text-content-secondary  whitespace-pre-wrap break-words leading-relaxed min-h-[100px]">
                 {body.trim() ? (
                   body
                 ) : (
-                  <span className="text-gray-400 dark:text-gray-600 italic">
+                  <span className="text-content-muted  italic">
                     {copy.emptyMessage}
                   </span>
                 )}

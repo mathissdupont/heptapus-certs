@@ -78,28 +78,28 @@ export default function SuperadminSystemDigestPage() {
 
           <div>
             <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Gönderim Saati (0-23)" : "Send Hour (0-23)"}</label>
-            <input type="number" min={0} max={23} value={config.send_hour} onChange={(e) => setConfig({ ...config, send_hour: Number(e.target.value) })} className={`input-field w-full ${formErrors.send_hour ? "border-red-400" : ""}`} />
-            {formErrors.send_hour && <p className="text-xs text-red-400 mt-1">{formErrors.send_hour}</p>}
+            <input type="number" min={0} max={23} value={config.send_hour} onChange={(e) => setConfig({ ...config, send_hour: Number(e.target.value) })} className={`input-field w-full ${formErrors.send_hour ? "border-status-danger-border" : ""}`} />
+            {formErrors.send_hour && <p className="text-xs text-status-danger-content mt-1">{formErrors.send_hour}</p>}
           </div>
 
           {config.frequency === "weekly" && (
             <div>
               <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Haftanın Günü (0=Paz, 6=Cum)" : "Send Weekday (0=Sun, 6=Sat)"}</label>
-              <input type="number" min={0} max={6} value={config.send_weekday ?? 0} onChange={(e) => setConfig({ ...config, send_weekday: Number(e.target.value) })} className={`input-field w-full ${formErrors.send_weekday ? "border-red-400" : ""}`} />
-              {formErrors.send_weekday && <p className="text-xs text-red-400 mt-1">{formErrors.send_weekday}</p>}
+              <input type="number" min={0} max={6} value={config.send_weekday ?? 0} onChange={(e) => setConfig({ ...config, send_weekday: Number(e.target.value) })} className={`input-field w-full ${formErrors.send_weekday ? "border-status-danger-border" : ""}`} />
+              {formErrors.send_weekday && <p className="text-xs text-status-danger-content mt-1">{formErrors.send_weekday}</p>}
             </div>
           )}
 
           <div>
             <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Maks Etkinlik Sayısı" : "Max Events"}</label>
-            <input type="number" min={0} value={config.max_events} onChange={(e) => setConfig({ ...config, max_events: Number(e.target.value) })} className={`input-field w-full ${formErrors.max_events ? "border-red-400" : ""}`} />
-            {formErrors.max_events && <p className="text-xs text-red-400 mt-1">{formErrors.max_events}</p>}
+            <input type="number" min={0} value={config.max_events} onChange={(e) => setConfig({ ...config, max_events: Number(e.target.value) })} className={`input-field w-full ${formErrors.max_events ? "border-status-danger-border" : ""}`} />
+            {formErrors.max_events && <p className="text-xs text-status-danger-content mt-1">{formErrors.max_events}</p>}
           </div>
 
           <div>
             <label className="block text-sm text-surface-600 mb-1">{lang === "tr" ? "Maks Gönderiler" : "Max Posts"}</label>
-            <input type="number" min={0} value={config.max_posts} onChange={(e) => setConfig({ ...config, max_posts: Number(e.target.value) })} className={`input-field w-full ${formErrors.max_posts ? "border-red-400" : ""}`} />
-            {formErrors.max_posts && <p className="text-xs text-red-400 mt-1">{formErrors.max_posts}</p>}
+            <input type="number" min={0} value={config.max_posts} onChange={(e) => setConfig({ ...config, max_posts: Number(e.target.value) })} className={`input-field w-full ${formErrors.max_posts ? "border-status-danger-border" : ""}`} />
+            {formErrors.max_posts && <p className="text-xs text-status-danger-content mt-1">{formErrors.max_posts}</p>}
           </div>
         </div>
 

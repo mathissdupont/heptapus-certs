@@ -27,9 +27,9 @@ export function ErrorState({ title, description, action, className = "" }: State
   const { lang } = useI18n();
   const resolvedTitle = title ?? (lang === "tr" ? "Bir hata oluştu" : "An error occurred");
   return (
-    <div className={`w-full rounded-xl border border-red-100 bg-red-50/40 p-5 ${className}`}>
+    <div className={`w-full rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-5 ${className}`}>
       <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:items-start sm:text-left sm:gap-4">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-500">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-status-danger-border bg-status-danger-bg text-status-danger-content">
           <AlertCircle className="h-4 w-4 stroke-[2]" />
         </div>
         <div className="min-w-0 flex-1 space-y-1">

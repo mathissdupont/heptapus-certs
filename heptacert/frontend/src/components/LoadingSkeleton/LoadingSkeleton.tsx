@@ -26,10 +26,10 @@ export function LoadingSkeleton({
         <div
           key={i}
           className={`
-            animate-pulse bg-gray-200 dark:bg-gray-700
+            animate-pulse bg-sunken
             ${rounded ? 'rounded-lg' : ''}
             ${height} ${width} ${className}
-          `}
+ `}
           aria-hidden="true"
         />
       ))}
@@ -42,7 +42,7 @@ export function TableLoadingSkeleton() {
     <div className="space-y-2">
       {/* Header skeleton */}
       <LoadingSkeleton height="h-10" rounded className="mb-4" />
-      
+
       {/* Row skeletons */}
       {Array.from({ length: 5 }).map((_, i) => (
         <LoadingSkeleton key={i} height="h-12" />
@@ -57,7 +57,7 @@ export function CardLoadingSkeleton({ count = 1 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3"
+          className="p-6 bg-raised  rounded-lg border border-outline-subtle  space-y-3"
           role="status"
           aria-label="Loading card"
           aria-live="polite"

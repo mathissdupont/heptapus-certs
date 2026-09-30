@@ -108,15 +108,15 @@ export default function NetworkingPage() {
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>;
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-content-muted" /></div>;
   }
 
   if (!enabled) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-16 text-center text-gray-500">
+      <div className="mx-auto max-w-2xl px-4 py-16 text-center text-content-muted">
         <Handshake className="mx-auto mb-3 h-10 w-10 opacity-40" />
         <p>{t("net_disabled")}</p>
-        <Link href={`/events/${eventId}`} className="mt-4 inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900">
+        <Link href={`/events/${eventId}`} className="mt-4 inline-flex items-center gap-1 text-sm text-content-secondary hover:text-content-primary">
           <ArrowLeft className="h-4 w-4" /> {lang === "tr" ? "Etkinliğe dön" : "Back to event"}
         </Link>
       </div>
@@ -125,38 +125,38 @@ export default function NetworkingPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
-      <Link href={`/events/${eventId}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900">
+      <Link href={`/events/${eventId}`} className="inline-flex items-center gap-1 text-sm text-content-muted hover:text-content-primary">
         <ArrowLeft className="h-4 w-4" /> {lang === "tr" ? "Etkinliğe dön" : "Back to event"}
       </Link>
-      <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
-        <Handshake className="h-6 w-6 text-gray-400" /> {t("net_title")}
+      <h1 className="flex items-center gap-2 text-2xl font-bold text-content-primary">
+        <Handshake className="h-6 w-6 text-content-muted" /> {t("net_title")}
       </h1>
 
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>}
+      {error && <div className="rounded-lg border border-status-danger-border bg-status-danger-bg px-4 py-2 text-sm text-status-danger-content">{error}</div>}
 
       {!loggedIn ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
-          <p className="text-sm text-gray-600">{t("net_login_required")}</p>
-          <Link href={`/login?mode=member&next=${encodeURIComponent(`/events/${eventId}/networking`)}`} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">
+        <div className="rounded-xl border border-outline-subtle bg-raised p-8 text-center">
+          <p className="text-sm text-content-secondary">{t("net_login_required")}</p>
+          <Link href={`/login?mode=member&next=${encodeURIComponent(`/events/${eventId}/networking`)}`} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-inverse-surface px-4 py-2 text-sm font-semibold text-white hover:bg-inverse-surface">
             {t("net_login_cta")}
           </Link>
         </div>
       ) : (
         <>
           {/* My networking profile */}
-          <section className="rounded-xl border border-gray-200 bg-white p-5 space-y-3">
-            <h2 className="text-sm font-bold text-gray-900">{t("net_my_profile")}</h2>
+          <section className="rounded-xl border border-outline-subtle bg-raised p-5 space-y-3">
+            <h2 className="text-sm font-bold text-content-primary">{t("net_my_profile")}</h2>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-600">{t("net_interests")}</label>
-              <input value={interestsText} onChange={(e) => setInterestsText(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-              <p className="mt-1 text-11 text-gray-400">{t("net_interests_hint")}</p>
+              <label className="mb-1 block text-xs font-medium text-content-secondary">{t("net_interests")}</label>
+              <input value={interestsText} onChange={(e) => setInterestsText(e.target.value)} className="w-full rounded-lg border border-outline-strong px-3 py-2 text-sm" />
+              <p className="mt-1 text-11 text-content-muted">{t("net_interests_hint")}</p>
             </div>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={profile.discoverable} onChange={(e) => setProfile({ ...profile, discoverable: e.target.checked })} className="h-4 w-4 rounded border-gray-300" />
+            <label className="flex items-center gap-2 text-sm text-content-secondary">
+              <input type="checkbox" checked={profile.discoverable} onChange={(e) => setProfile({ ...profile, discoverable: e.target.checked })} className="h-4 w-4 rounded border-outline-strong" />
               {t("net_discoverable")}
             </label>
             <div className="flex justify-end">
-              <button onClick={saveProfile} disabled={savingProfile} className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50">
+              <button onClick={saveProfile} disabled={savingProfile} className="inline-flex items-center gap-2 rounded-lg bg-inverse-surface px-4 py-2 text-sm font-semibold text-white hover:bg-inverse-surface disabled:opacity-50">
                 {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} {t("net_save_profile")}
               </button>
             </div>
@@ -165,28 +165,28 @@ export default function NetworkingPage() {
           {/* Directory */}
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900"><Users className="h-5 w-5 text-gray-400" /> {t("net_directory")}</h2>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-content-primary"><Users className="h-5 w-5 text-content-muted" /> {t("net_directory")}</h2>
             </div>
             <div className="flex gap-2">
-              <input value={tag} onChange={(e) => setTag(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()} placeholder={t("net_search_tag")} className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-              <button onClick={search} className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"><Search className="h-4 w-4" /></button>
+              <input value={tag} onChange={(e) => setTag(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()} placeholder={t("net_search_tag")} className="flex-1 rounded-lg border border-outline-strong px-3 py-2 text-sm" />
+              <button onClick={search} className="inline-flex items-center gap-1 rounded-lg border border-outline-subtle px-3 py-2 text-sm font-semibold text-content-secondary hover:bg-canvas"><Search className="h-4 w-4" /></button>
             </div>
             {directory.length === 0 ? (
-              <p className="text-sm text-gray-500">{t("net_no_attendees")}</p>
+              <p className="text-sm text-content-muted">{t("net_no_attendees")}</p>
             ) : (
               <div className="space-y-2">
                 {directory.map((mbr) => (
-                  <div key={mbr.public_id} className="flex items-start justify-between gap-3 rounded-xl border border-gray-200 bg-white p-4">
+                  <div key={mbr.public_id} className="flex items-start justify-between gap-3 rounded-xl border border-outline-subtle bg-raised p-4">
                     <div className="min-w-0">
-                      <p className="font-semibold text-gray-900">{mbr.display_name}</p>
-                      {mbr.headline && <p className="text-xs text-gray-500">{mbr.headline}</p>}
+                      <p className="font-semibold text-content-primary">{mbr.display_name}</p>
+                      {mbr.headline && <p className="text-xs text-content-muted">{mbr.headline}</p>}
                       {mbr.interests.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-1">
-                          {mbr.interests.map((i) => <span key={i} className="rounded-full bg-gray-100 px-2 py-0.5 text-11 text-gray-600">{i}</span>)}
+                          {mbr.interests.map((i) => <span key={i} className="rounded-full bg-sunken px-2 py-0.5 text-11 text-content-secondary">{i}</span>)}
                         </div>
                       )}
                     </div>
-                    <button onClick={() => setRequestFor(mbr)} className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-gray-900 bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-gray-800">
+                    <button onClick={() => setRequestFor(mbr)} className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-outline-strong bg-inverse-surface px-3 py-1.5 text-xs font-semibold text-white hover:bg-inverse-surface">
                       <Send className="h-3.5 w-3.5" /> {t("net_request_meeting")}
                     </button>
                   </div>
@@ -197,33 +197,33 @@ export default function NetworkingPage() {
 
           {/* My meetings */}
           <section className="space-y-3">
-            <h2 className="text-lg font-bold text-gray-900">{t("net_my_meetings")}</h2>
+            <h2 className="text-lg font-bold text-content-primary">{t("net_my_meetings")}</h2>
             {meetings.length === 0 ? (
-              <p className="text-sm text-gray-500">{t("net_no_meetings")}</p>
+              <p className="text-sm text-content-muted">{t("net_no_meetings")}</p>
             ) : (
               meetings.map((mr) => (
-                <div key={mr.id} className="rounded-xl border border-gray-200 bg-white p-4">
+                <div key={mr.id} className="rounded-xl border border-outline-subtle bg-raised p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-gray-900">{mr.counterpart.display_name}</span>
-                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-11 font-semibold text-gray-500">{mr.is_incoming ? t("net_incoming") : t("net_outgoing")}</span>
+                        <span className="font-semibold text-content-primary">{mr.counterpart.display_name}</span>
+                        <span className="rounded-full bg-sunken px-2 py-0.5 text-11 font-semibold text-content-muted">{mr.is_incoming ? t("net_incoming") : t("net_outgoing")}</span>
                         <MeetingStatusBadge status={mr.status} />
                       </div>
-                      {mr.proposed_start && <p className="mt-1 text-xs text-gray-500">{t("net_proposed_time")}: {fmt(mr.proposed_start)} · {mr.duration_minutes}′</p>}
-                      {mr.location && <p className="text-xs text-gray-500">{mr.location}</p>}
-                      {mr.message && <p className="mt-1 text-sm text-gray-600">{mr.message}</p>}
-                      {mr.response_note && <p className="mt-1 text-xs italic text-gray-500">“{mr.response_note}”</p>}
+                      {mr.proposed_start && <p className="mt-1 text-xs text-content-muted">{t("net_proposed_time")}: {fmt(mr.proposed_start)} · {mr.duration_minutes}′</p>}
+                      {mr.location && <p className="text-xs text-content-muted">{mr.location}</p>}
+                      {mr.message && <p className="mt-1 text-sm text-content-secondary">{mr.message}</p>}
+                      {mr.response_note && <p className="mt-1 text-xs italic text-content-muted">“{mr.response_note}”</p>}
                     </div>
                     <div className="flex shrink-0 gap-1">
                       {mr.is_incoming && mr.status === "pending" && (
                         <>
-                          <button onClick={() => respond(mr.id, "accepted")} disabled={busy} title={t("net_accept")} className="rounded-lg p-2 text-emerald-600 hover:bg-emerald-50 disabled:opacity-40"><Check className="h-4 w-4" /></button>
-                          <button onClick={() => respond(mr.id, "declined")} disabled={busy} title={t("net_decline")} className="rounded-lg p-2 text-red-500 hover:bg-red-50 disabled:opacity-40"><X className="h-4 w-4" /></button>
+                          <button onClick={() => respond(mr.id, "accepted")} disabled={busy} title={t("net_accept")} className="rounded-lg p-2 text-status-success-content hover:bg-status-success-bg disabled:opacity-40"><Check className="h-4 w-4" /></button>
+                          <button onClick={() => respond(mr.id, "declined")} disabled={busy} title={t("net_decline")} className="rounded-lg p-2 text-status-danger-content hover:bg-status-danger-bg disabled:opacity-40"><X className="h-4 w-4" /></button>
                         </>
                       )}
                       {!mr.is_incoming && (mr.status === "pending" || mr.status === "accepted") && (
-                        <button onClick={() => cancel(mr.id)} disabled={busy} title={t("net_withdraw")} className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={() => cancel(mr.id)} disabled={busy} title={t("net_withdraw")} className="rounded-lg p-2 text-content-muted hover:bg-status-danger-bg hover:text-status-danger-content disabled:opacity-40"><Trash2 className="h-4 w-4" /></button>
                       )}
                     </div>
                   </div>
@@ -251,10 +251,10 @@ export default function NetworkingPage() {
 function MeetingStatusBadge({ status }: { status: string }) {
   const t = useT();
   const tone: Record<string, string> = {
-    pending: "bg-sky-50 text-sky-700 border-sky-200",
-    accepted: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    declined: "bg-red-50 text-red-700 border-red-200",
-    cancelled: "bg-gray-100 text-gray-500 border-gray-200",
+    pending: "bg-status-info-bg text-status-info-content border-status-info-border",
+    accepted: "bg-status-success-bg text-status-success-content border-status-success-border",
+    declined: "bg-status-danger-bg text-status-danger-content border-status-danger-border",
+    cancelled: "bg-sunken text-content-muted border-outline-subtle",
   };
   return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-11 font-semibold ${tone[status] || tone.cancelled}`}>{t(`net_status_${status}` as any)}</span>;
 }
@@ -285,26 +285,26 @@ function RequestModal({ eventId, member, onClose, onSent, onError }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="mb-3 font-bold text-gray-900">{t("net_request_meeting")} · {member.display_name}</h3>
+      <div className="w-full max-w-sm rounded-2xl bg-raised p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="mb-3 font-bold text-content-primary">{t("net_request_meeting")} · {member.display_name}</h3>
         <div className="space-y-3">
           <DateTimeField label={t("net_proposed_time")} value={start} onChange={setStart} />
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">{t("net_duration")}</label>
-            <input type="number" min={5} max={480} value={duration} onChange={(e) => setDuration(parseInt(e.target.value, 10) || 30)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+            <label className="mb-1 block text-xs font-medium text-content-secondary">{t("net_duration")}</label>
+            <input type="number" min={5} max={480} value={duration} onChange={(e) => setDuration(parseInt(e.target.value, 10) || 30)} className="w-full rounded-lg border border-outline-strong px-3 py-2 text-sm" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">{t("net_location")}</label>
-            <input value={location} onChange={(e) => setLocation(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+            <label className="mb-1 block text-xs font-medium text-content-secondary">{t("net_location")}</label>
+            <input value={location} onChange={(e) => setLocation(e.target.value)} className="w-full rounded-lg border border-outline-strong px-3 py-2 text-sm" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-600">{t("net_message")}</label>
-            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={2} className="w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm" />
+            <label className="mb-1 block text-xs font-medium text-content-secondary">{t("net_message")}</label>
+            <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={2} className="w-full resize-y rounded-lg border border-outline-strong px-3 py-2 text-sm" />
           </div>
         </div>
         <div className="mt-4 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50">{t("net_cancel")}</button>
-          <button onClick={send} disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50">
+          <button onClick={onClose} className="rounded-lg border border-outline-subtle px-4 py-2 text-sm font-semibold text-content-secondary hover:bg-canvas">{t("net_cancel")}</button>
+          <button onClick={send} disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-inverse-surface px-4 py-2 text-sm font-semibold text-white hover:bg-inverse-surface disabled:opacity-50">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} {t("net_send_request")}
           </button>
         </div>

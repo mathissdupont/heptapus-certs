@@ -55,12 +55,12 @@ const TYPE_ICON: Record<string, React.ElementType> = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; labelEn: string; color: string; icon: React.ElementType }> = {
-  pending:    { label: "Kuyrukta",    labelEn: "Queued",      color: "bg-amber-50 text-amber-700 border-amber-200",   icon: Clock3 },
-  sending:    { label: "Gönderiliyor", labelEn: "Sending",    color: "bg-blue-50 text-blue-700 border-blue-200",      icon: Loader2 },
-  in_progress:{ label: "İşleniyor",  labelEn: "Processing",  color: "bg-blue-50 text-blue-700 border-blue-200",      icon: Loader2 },
-  processing: { label: "İşleniyor",  labelEn: "Processing",  color: "bg-blue-50 text-blue-700 border-blue-200",      icon: Loader2 },
-  completed:  { label: "Tamamlandı", labelEn: "Completed",   color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
-  failed:     { label: "Hata",       labelEn: "Failed",      color: "bg-rose-50 text-rose-700 border-rose-200",      icon: XCircle },
+  pending:    { label: "Kuyrukta",    labelEn: "Queued",      color: "bg-status-warning-bg text-status-warning-content border-status-warning-border",   icon: Clock3 },
+  sending:    { label: "Gönderiliyor", labelEn: "Sending",    color: "bg-status-info-bg text-status-info-content border-status-info-border",      icon: Loader2 },
+  in_progress:{ label: "İşleniyor",  labelEn: "Processing",  color: "bg-status-info-bg text-status-info-content border-status-info-border",      icon: Loader2 },
+  processing: { label: "İşleniyor",  labelEn: "Processing",  color: "bg-status-info-bg text-status-info-content border-status-info-border",      icon: Loader2 },
+  completed:  { label: "Tamamlandı", labelEn: "Completed",   color: "bg-status-success-bg text-status-success-content border-status-success-border", icon: CheckCircle2 },
+  failed:     { label: "Hata",       labelEn: "Failed",      color: "bg-status-danger-bg text-status-danger-content border-status-danger-border",      icon: XCircle },
   cancelled:  { label: "İptal",      labelEn: "Cancelled",   color: "bg-surface-100 text-surface-500 border-surface-200", icon: XCircle },
 };
 
@@ -265,7 +265,7 @@ function JobCard({
   const isActive = ACTIVE_STATUSES.has(job.status);
 
   return (
-    <div className={`card overflow-hidden transition-shadow ${isActive ? "shadow-md ring-1 ring-blue-100" : ""}`}>
+    <div className={`card overflow-hidden transition-shadow ${isActive ? "shadow-md ring-1 ring-status-info-border" : ""}`}>
       {/* Progress bar strip at top */}
       {job.total > 0 && (
         <div className="h-1 w-full bg-surface-100">
@@ -319,7 +319,7 @@ function JobCard({
                 type="button"
                 onClick={() => onCancel(job)}
                 disabled={cancelling === job.id}
-                className="btn-secondary px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50"
+                className="btn-secondary px-3 py-1.5 text-xs text-status-danger-content hover:bg-status-danger-bg"
               >
                 {cancelling === job.id
                   ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -343,13 +343,13 @@ function JobCard({
             <Stat label={isTr ? "Toplam" : "Total"} value={job.total} />
           )}
           {job.success > 0 && (
-            <Stat label={isTr ? "Başarılı" : "Success"} value={job.success} color="text-emerald-600" />
+            <Stat label={isTr ? "Başarılı" : "Success"} value={job.success} color="text-status-success-content" />
           )}
           {job.failed > 0 && (
-            <Stat label={isTr ? "Hata" : "Failed"} value={job.failed} color="text-rose-600" />
+            <Stat label={isTr ? "Hata" : "Failed"} value={job.failed} color="text-status-danger-content" />
           )}
           {(job.already_exists ?? 0) > 0 && (
-            <Stat label={isTr ? "Zaten var" : "Exists"} value={job.already_exists!} color="text-amber-600" />
+            <Stat label={isTr ? "Zaten var" : "Exists"} value={job.already_exists!} color="text-status-warning-content" />
           )}
           {job.total > 0 && (
             <Stat label="%" value={`${job.progress_pct}%`} color="text-brand-600" />
@@ -364,14 +364,14 @@ function JobCard({
           {job.completed_at ? (
             <span>{isTr ? "Tamamlandı" : "Done"}: {formatTime(job.completed_at, locale)}</span>
           ) : job.started_at ? (
-            <span className="text-blue-500 font-semibold">
+            <span className="text-status-info-content font-semibold">
               ⏱ {elapsedSeconds(job.started_at, null)} {isTr ? "geçti" : "elapsed"}
             </span>
           ) : null}
         </div>
 
         {job.error_message && (
-          <div className="mt-3 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+          <div className="mt-3 rounded-lg border border-status-danger-border bg-status-danger-bg px-3 py-2 text-xs text-status-danger-content">
             {job.error_message}
           </div>
         )}

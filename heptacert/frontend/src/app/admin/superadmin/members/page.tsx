@@ -288,11 +288,11 @@ export default function SuperadminMembersPage() {
   }
 
   function getStatusClass(status: string) {
-    if (status === "completed") return "bg-emerald-100 text-emerald-700";
-    if (status === "failed") return "bg-rose-100 text-rose-700";
-    if (status === "cancelled") return "bg-slate-200 text-surface-700";
-    if (status === "sending") return "bg-blue-100 text-blue-700";
-    return "bg-amber-100 text-amber-700";
+    if (status === "completed") return "bg-status-success-bg text-status-success-content";
+    if (status === "failed") return "bg-status-danger-bg text-status-danger-content";
+    if (status === "cancelled") return "bg-sunken text-surface-700";
+    if (status === "sending") return "bg-status-info-bg text-status-info-content";
+    return "bg-status-warning-bg text-status-warning-content";
   }
 
   const filterOptions: Array<{ value: SourceFilter; label: string; note: string; icon: JSX.Element }> = [
@@ -324,7 +324,7 @@ export default function SuperadminMembersPage() {
               <button
                 key={option.value}
                 onClick={() => setSource(option.value)}
-                className={`rounded-2xl border p-4 text-left transition-all ${active ? "border-brand-500 bg-brand-50 shadow-sm" : "border-surface-200 bg-white hover:border-surface-300"}`}
+                className={`rounded-2xl border p-4 text-left transition-all ${active ? "border-brand-500 bg-brand-50 shadow-sm" : "border-surface-200 bg-raised hover:border-surface-300"}`}
               >
                 <div className="flex items-center gap-2 text-sm font-semibold text-surface-900">
                   <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${active ? "bg-brand-600 text-white" : "bg-surface-100 text-surface-600"}`}>
@@ -366,15 +366,15 @@ export default function SuperadminMembersPage() {
         </div>
         <div className="card p-4">
           <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.attendeeEmails}</p>
-          <p className="mt-2 text-3xl font-black text-blue-700">{uniqueAttendees}</p>
+          <p className="mt-2 text-3xl font-black text-status-info-content">{uniqueAttendees}</p>
         </div>
         <div className="card p-4">
           <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.organizerEmails}</p>
-          <p className="mt-2 text-3xl font-black text-violet-700">{uniqueOrganizers}</p>
+          <p className="mt-2 text-3xl font-black text-status-info-content">{uniqueOrganizers}</p>
         </div>
         <div className="card p-4">
           <p className="text-11 font-semibold uppercase tracking-[0.18em] text-surface-500">{copy.matchedRows}</p>
-          <p className="mt-2 text-3xl font-black text-emerald-700">{total}</p>
+          <p className="mt-2 text-3xl font-black text-status-success-content">{total}</p>
         </div>
       </div>
 
@@ -386,7 +386,7 @@ export default function SuperadminMembersPage() {
       )}
 
       {resultMessage && (
-        <div className="card border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+        <div className="card border border-status-success-border bg-status-success-bg p-4 text-sm text-status-success-content">
           <p className="font-semibold">{copy.result}</p>
           <p className="mt-1">{resultMessage}</p>
         </div>
@@ -535,12 +535,12 @@ export default function SuperadminMembersPage() {
                           </span>
                         )}
                         {item.attendee_count > 0 && (
-                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                          <span className="rounded-full bg-status-info-bg px-2 py-0.5 text-xs font-semibold text-status-info-content">
                             {copy.badgeAttendee}
                           </span>
                         )}
                         {source === "organizers" && (
-                          <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                          <span className="rounded-full bg-status-info-bg px-2 py-0.5 text-xs font-semibold text-status-info-content">
                             {copy.badgeOrganizer}
                           </span>
                         )}

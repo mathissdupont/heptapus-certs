@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { localeTag } from "@/lib/localeTag";
 import { useI18n } from "@/lib/i18n";
@@ -66,15 +66,15 @@ function titleCaseStatus(raw: string) {
 function getDomainStatusMeta(status: string | null) {
   const raw = (status || "").toLowerCase();
   if (!raw) {
-    return { label: "Taslak", chipClass: "border-zinc-200 bg-zinc-100 text-zinc-700", description: "Alan adınızı kaydedin, ardından DNS kaydı ekleyip doğrulamayı başlatın." };
+    return { label: "Taslak", chipClass: "border-outline-subtle bg-sunken text-content-secondary", description: "Alan adınızı kaydedin, ardından DNS kaydı ekleyip doğrulamayı başlatın." };
   }
   if (raw.includes("verified") || raw.includes("active") || raw === "ok") {
-    return { label: "Doğrulandı", chipClass: "border-emerald-200 bg-emerald-50 text-emerald-700", description: "Alan adınız doğrulanmış görünüyor. Sertifika bağlantılarınız kurumsal şekilde yayınlanabilir." };
+    return { label: "Doğrulandı", chipClass: "border-status-success-border bg-status-success-bg text-status-success-content", description: "Alan adınız doğrulanmış görünüyor. Sertifika bağlantılarınız kurumsal şekilde yayınlanabilir." };
   }
   if (raw.includes("fail") || raw.includes("error") || raw.includes("invalid")) {
-    return { label: "Sorun Var", chipClass: "border-rose-200 bg-rose-50 text-rose-700", description: "DNS kaydı beklenen değerle eşleşmiyor olabilir. Kaydı ve token değerini yeniden kontrol edin." };
+    return { label: "Sorun Var", chipClass: "border-status-danger-border bg-status-danger-bg text-status-danger-content", description: "DNS kaydı beklenen değerle eşleşmiyor olabilir. Kaydı ve token değerini yeniden kontrol edin." };
   }
-  return { label: titleCaseStatus(status || "Bekleniyor"), chipClass: "border-amber-200 bg-amber-50 text-amber-700", description: "Kaydınız alındı. DNS yayılımı tamamlandığında doğrulama tekrar kontrol edilmelidir." };
+  return { label: titleCaseStatus(status || "Bekleniyor"), chipClass: "border-status-warning-border bg-status-warning-bg text-status-warning-content", description: "Kaydınız alındı. DNS yayılımı tamamlandığında doğrulama tekrar kontrol edilmelidir." };
 }
 
 function normalizeVerificationPath(path: string) {
@@ -88,10 +88,10 @@ function CopyBtn({ text }: { text: string }) {
     <button
       type="button"
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-      className="text-zinc-400 hover:text-zinc-900 transition-colors"
+      className="text-content-muted hover:text-content-primary transition-colors"
       title="Kopyala"
     >
-      {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
+      {copied ? <Check className="h-4 w-4 text-status-success-content" /> : <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>}
     </button>
   );
 }
@@ -101,10 +101,10 @@ function AccountTab({ me }: { me: { email: string; role?: string } | null }) {
   const [curPw, setCurPw] = useState(""); const [newPw, setNewPw] = useState(""); const [confPw, setConfPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [pwErr, setPwErr] = useState<string | null>(null); const [pwOk, setPwOk] = useState(false); const [pwLoading, setPwLoading] = useState(false);
-  
+
   const [newEmail, setNewEmail] = useState(""); const [emailPw, setEmailPw] = useState("");
   const [emailErr, setEmailErr] = useState<string | null>(null); const [emailOk, setEmailOk] = useState(false); const [emailLoading, setEmailLoading] = useState(false);
-  
+
   const [deletePw, setDeletePw] = useState("");
   const [deleteErr, setDeleteErr] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -139,61 +139,61 @@ function AccountTab({ me }: { me: { email: string; role?: string } | null }) {
 
   return (
     <div className="space-y-6">
-      {me && <p className="text-sm text-zinc-500 px-2">Mevcut e-posta: <strong className="text-zinc-900">{me.email}</strong></p>}
-      
+      {me && <p className="text-sm text-content-muted px-2">Mevcut e-posta: <strong className="text-content-primary">{me.email}</strong></p>}
+
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-3xl border border-outline-subtle bg-raised p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900"><Lock className="h-5 w-5" /></div>
-            <div><h2 className="text-lg font-semibold text-zinc-900">Şifre Değiştir</h2><p className="text-sm text-zinc-500">Güvenlik için düzenli güncelleyin</p></div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sunken text-content-primary"><Lock className="h-5 w-5" /></div>
+            <div><h2 className="text-lg font-semibold text-content-primary">Şifre Değiştir</h2><p className="text-sm text-content-muted">Güvenlik için düzenli güncelleyin</p></div>
           </div>
           <form onSubmit={changePassword} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700">Mevcut Şifre</label>
+              <label className="mb-1.5 block text-sm font-medium text-content-secondary">Mevcut Şifre</label>
               <div className="relative">
-                <input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" type={showPw ? "text" : "password"} value={curPw} onChange={e => setCurPw(e.target.value)} required />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600">
+                <input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none transition focus:border-outline-strong focus:bg-raised" type={showPw ? "text" : "password"} value={curPw} onChange={e => setCurPw(e.target.value)} required />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-content-muted hover:text-content-secondary">
                   {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
-            <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Yeni Şifre</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" type={showPw ? "text" : "password"} value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="En az 8 karakter" required /></div>
-            <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Yeni Şifre Tekrar</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" type={showPw ? "text" : "password"} value={confPw} onChange={e => setConfPw(e.target.value)} required /></div>
+            <div><label className="mb-1.5 block text-sm font-medium text-content-secondary">Yeni Şifre</label><input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none transition focus:border-outline-strong focus:bg-raised" type={showPw ? "text" : "password"} value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="En az 8 karakter" required /></div>
+            <div><label className="mb-1.5 block text-sm font-medium text-content-secondary">Yeni Şifre Tekrar</label><input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none transition focus:border-outline-strong focus:bg-raised" type={showPw ? "text" : "password"} value={confPw} onChange={e => setConfPw(e.target.value)} required /></div>
             <AnimatePresence>
-              {pwErr && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-rose-600">{pwErr}</motion.p>}
-              {pwOk && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> Şifre güncellendi.</motion.p>}
+              {pwErr && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-status-danger-content">{pwErr}</motion.p>}
+              {pwOk && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-status-success-content flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> Şifre güncellendi.</motion.p>}
             </AnimatePresence>
-            <button type="submit" disabled={pwLoading} className="w-full rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-50 mt-2">{pwLoading ? "Kaydediliyor..." : "Şifreyi Güncelle"}</button>
+            <button type="submit" disabled={pwLoading} className="w-full rounded-xl bg-inverse-surface py-2.5 text-sm font-semibold text-white transition hover:bg-inverse-surface disabled:opacity-50 mt-2">{pwLoading ? "Kaydediliyor..." : "Şifreyi Güncelle"}</button>
           </form>
         </div>
 
-        <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-3xl border border-outline-subtle bg-raised p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900"><Mail className="h-5 w-5" /></div>
-            <div><h2 className="text-lg font-semibold text-zinc-900">E-posta Değiştir</h2><p className="text-sm text-zinc-500">Mevcut şifrenizle onaylayın</p></div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sunken text-content-primary"><Mail className="h-5 w-5" /></div>
+            <div><h2 className="text-lg font-semibold text-content-primary">E-posta Değiştir</h2><p className="text-sm text-content-muted">Mevcut şifrenizle onaylayın</p></div>
           </div>
           <form onSubmit={changeEmail} className="space-y-4">
-            <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Yeni E-posta</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="yeni@sirket.com" required /></div>
-            <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Mevcut Şifre (Doğrulama)</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" type="password" value={emailPw} onChange={e => setEmailPw(e.target.value)} required /></div>
+            <div><label className="mb-1.5 block text-sm font-medium text-content-secondary">Yeni E-posta</label><input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none transition focus:border-outline-strong focus:bg-raised" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="yeni@sirket.com" required /></div>
+            <div><label className="mb-1.5 block text-sm font-medium text-content-secondary">Mevcut Şifre (Doğrulama)</label><input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none transition focus:border-outline-strong focus:bg-raised" type="password" value={emailPw} onChange={e => setEmailPw(e.target.value)} required /></div>
             <AnimatePresence>
-              {emailErr && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-rose-600">{emailErr}</motion.p>}
-              {emailOk && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> E-posta güncellendi.</motion.p>}
+              {emailErr && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-status-danger-content">{emailErr}</motion.p>}
+              {emailOk && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-status-success-content flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> E-posta güncellendi.</motion.p>}
             </AnimatePresence>
-            <button type="submit" disabled={emailLoading} className="w-full rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-50 mt-2">{emailLoading ? "Kaydediliyor..." : "E-postayı Güncelle"}</button>
+            <button type="submit" disabled={emailLoading} className="w-full rounded-xl bg-inverse-surface py-2.5 text-sm font-semibold text-white transition hover:bg-inverse-surface disabled:opacity-50 mt-2">{emailLoading ? "Kaydediliyor..." : "E-postayı Güncelle"}</button>
           </form>
         </div>
       </div>
 
       {me?.role !== "superadmin" ? (
-        <div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 shadow-sm sm:p-8 lg:w-1/2">
+        <div className="rounded-3xl border border-status-danger-border bg-status-danger-bg p-6 shadow-sm sm:p-8 lg:w-1/2">
           <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-600"><Trash2 className="h-5 w-5" /></div>
-            <div><h2 className="text-lg font-semibold text-rose-900">Hesabı ve Verileri Sil</h2><p className="text-sm text-rose-700">Bu işlem geri alınamaz.</p></div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-status-danger-bg text-status-danger-content"><Trash2 className="h-5 w-5" /></div>
+            <div><h2 className="text-lg font-semibold text-status-danger-content">Hesabı ve Verileri Sil</h2><p className="text-sm text-status-danger-content">Bu işlem geri alınamaz.</p></div>
           </div>
           <form onSubmit={removeAccount} className="space-y-4">
-            <div><label className="mb-1.5 block text-sm font-medium text-rose-900">Mevcut Şifre ile Onay</label><input className="w-full rounded-xl border border-rose-200 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-rose-500" type="password" value={deletePw} onChange={e => setDeletePw(e.target.value)} required /></div>
+            <div><label className="mb-1.5 block text-sm font-medium text-status-danger-content">Mevcut Şifre ile Onay</label><input className="w-full rounded-xl border border-status-danger-border bg-raised px-4 py-2.5 text-sm outline-none transition focus:border-status-danger-border" type="password" value={deletePw} onChange={e => setDeletePw(e.target.value)} required /></div>
             <AnimatePresence>
-              {deleteErr && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-rose-600">{deleteErr}</motion.p>}
+              {deleteErr && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-status-danger-content">{deleteErr}</motion.p>}
             </AnimatePresence>
             <button type="submit" disabled={deleteLoading} className="w-full rounded-xl bg-rose-600 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50 mt-2">{deleteLoading ? "Siliniyor..." : "Hesabı ve Verileri Sil"}</button>
           </form>
@@ -247,19 +247,19 @@ function TwoFATab() {
     } catch (e: any) { setErr(e?.message || "Devre dışı bırakılamadı."); } finally { setLoading(false); }
   }
 
-  if (status === "loading") return <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-zinc-400" /></div>;
+  if (status === "loading") return <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-content-muted" /></div>;
 
   return (
-    <div className="mx-auto max-w-lg rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+    <div className="mx-auto max-w-lg rounded-3xl border border-outline-subtle bg-raised p-6 shadow-sm sm:p-8">
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100"><ShieldCheck className="h-8 w-8 text-zinc-900" /></div>
-        <h2 className="text-xl font-bold text-zinc-900">İki Faktörlü Doğrulama</h2>
-        <p className="mt-2 text-sm text-zinc-500">Hesabınızı korumak için Authenticator uygulaması kullanın.</p>
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sunken"><ShieldCheck className="h-8 w-8 text-content-primary" /></div>
+        <h2 className="text-xl font-bold text-content-primary">İki Faktörlü Doğrulama</h2>
+        <p className="mt-2 text-sm text-content-muted">Hesabınızı korumak için Authenticator uygulaması kullanın.</p>
       </div>
 
       {status === "disabled" && (
         <div className="text-center">
-          <button onClick={startSetup} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 w-full sm:w-auto">
+          <button onClick={startSetup} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-inverse-surface px-6 py-3 text-sm font-semibold text-white transition hover:bg-inverse-surface w-full sm:w-auto">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} 2FA'yı Etkinleştir
           </button>
         </div>
@@ -267,38 +267,38 @@ function TwoFATab() {
 
       {status === "setup" && (
         <div className="space-y-6">
-          <div className="rounded-2xl bg-zinc-50 p-4 text-sm text-zinc-600 leading-relaxed">
+          <div className="rounded-2xl bg-canvas p-4 text-sm text-content-secondary leading-relaxed">
             1. Telefonunuzda Google Authenticator veya Authy'yi açın.<br/>
             2. QR kodu taratın veya gizli anahtarı uygulamanıza elle girin.<br/>
             3. Üretilen 6 haneli kodu aşağıya yazın.
           </div>
           {qrCode && (
-            <div className="flex justify-center rounded-2xl border border-zinc-200 bg-white p-4">
+            <div className="flex justify-center rounded-2xl border border-outline-subtle bg-raised p-4">
               <img src={qrCode} alt="2FA QR kodu" className="h-52 w-52 object-contain" />
             </div>
           )}
-          <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-            <code className="flex-1 font-mono text-sm text-zinc-800 break-all">{showSecret ? secret : "••••••••••••••••••••••••••••"}</code>
-            <button type="button" onClick={() => setShowSecret(!showSecret)} className="text-zinc-400 hover:text-zinc-700">{showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+          <div className="flex items-center gap-2 rounded-xl border border-outline-subtle bg-canvas px-4 py-3">
+            <code className="flex-1 font-mono text-sm text-content-primary break-all">{showSecret ? secret : "••••••••••••••••••••••••••••"}</code>
+            <button type="button" onClick={() => setShowSecret(!showSecret)} className="text-content-muted hover:text-content-secondary">{showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
             <CopyBtn text={secret} />
           </div>
           <form onSubmit={confirmSetup} className="space-y-4">
-            <input className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-center font-mono text-2xl tracking-[0.3em] outline-none transition focus:border-zinc-900" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" inputMode="numeric" required maxLength={6} />
-            {err && <p className="text-sm text-rose-600 text-center">{err}</p>}
-            <button type="submit" disabled={loading || code.length !== 6} className="w-full rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-50 inline-flex justify-center items-center gap-2">
+            <input className="w-full rounded-xl border border-outline-subtle bg-raised px-4 py-3 text-center font-mono text-2xl tracking-[0.3em] outline-none transition focus:border-outline-strong" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" inputMode="numeric" required maxLength={6} />
+            {err && <p className="text-sm text-status-danger-content text-center">{err}</p>}
+            <button type="submit" disabled={loading || code.length !== 6} className="w-full rounded-xl bg-inverse-surface py-3 text-sm font-semibold text-white transition hover:bg-inverse-surface disabled:opacity-50 inline-flex justify-center items-center gap-2">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Onayla ve Etkinleştir
             </button>
-            <button type="button" onClick={() => setStatus("disabled")} className="w-full text-center text-sm font-medium text-zinc-500 hover:text-zinc-800 transition-colors">İptal</button>
+            <button type="button" onClick={() => setStatus("disabled")} className="w-full text-center text-sm font-medium text-content-muted hover:text-content-primary transition-colors">İptal</button>
           </form>
         </div>
       )}
 
       {status === "enabled" && (
-        <form onSubmit={disable2FA} className="space-y-5 rounded-2xl border border-zinc-100 bg-zinc-50 p-6">
-          <p className="text-center text-sm text-zinc-600">Devre dışı bırakmak için mevcut Authenticator kodunuzu girin.</p>
-          <input className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-center font-mono text-2xl tracking-[0.3em] outline-none transition focus:border-zinc-900" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" inputMode="numeric" required maxLength={6} />
-          {err && <p className="text-sm text-rose-600 text-center">{err}</p>}
-          <button type="submit" disabled={loading || code.length !== 6} className="w-full rounded-xl border border-rose-200 bg-rose-50 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 disabled:opacity-50 inline-flex justify-center items-center gap-2">
+        <form onSubmit={disable2FA} className="space-y-5 rounded-2xl border border-outline-subtle bg-canvas p-6">
+          <p className="text-center text-sm text-content-secondary">Devre dışı bırakmak için mevcut Authenticator kodunuzu girin.</p>
+          <input className="w-full rounded-xl border border-outline-subtle bg-raised px-4 py-3 text-center font-mono text-2xl tracking-[0.3em] outline-none transition focus:border-outline-strong" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" inputMode="numeric" required maxLength={6} />
+          {err && <p className="text-sm text-status-danger-content text-center">{err}</p>}
+          <button type="submit" disabled={loading || code.length !== 6} className="w-full rounded-xl border border-status-danger-border bg-status-danger-bg py-3 text-sm font-semibold text-status-danger-content transition hover:bg-status-danger-bg disabled:opacity-50 inline-flex justify-center items-center gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} 2FA'yı Devre Dışı Bırak
           </button>
         </form>
@@ -331,44 +331,44 @@ function TransactionsTab() {
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
-    <div className="rounded-3xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/80 px-6 py-5">
-        <h3 className="font-semibold text-zinc-900 flex items-center gap-2"><History className="h-5 w-5 text-zinc-400" /> İşlem Geçmişi</h3>
-        <span className="rounded-full bg-zinc-200/50 px-3 py-1 text-xs font-semibold text-zinc-700">Toplam İşlem: {total}</span>
+    <div className="rounded-3xl border border-outline-subtle bg-raised shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between border-b border-outline-subtle bg-canvas/80 px-6 py-5">
+        <h3 className="font-semibold text-content-primary flex items-center gap-2"><History className="h-5 w-5 text-content-muted" /> İşlem Geçmişi</h3>
+        <span className="rounded-full bg-sunken/50 px-3 py-1 text-xs font-semibold text-content-secondary">Toplam İşlem: {total}</span>
       </div>
-      
+
       {loading ? (
-        <div className="p-16 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-zinc-400" /></div>
+        <div className="p-16 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-content-muted" /></div>
       ) : err ? (
-        <div className="p-8 text-center text-sm font-medium text-rose-600">{err}</div>
+        <div className="p-8 text-center text-sm font-medium text-status-danger-content">{err}</div>
       ) : items.length === 0 ? (
-        <div className="p-16 text-center text-sm text-zinc-500">Henüz işlem bulunmuyor.</div>
+        <div className="p-16 text-center text-sm text-content-muted">Henüz işlem bulunmuyor.</div>
       ) : (
-        <div className="divide-y divide-zinc-100">
+        <div className="divide-y divide-outline-subtle">
           {items.map((tx) => (
-            <div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-zinc-50/50 transition-colors">
+            <div key={tx.id} className="flex items-center justify-between px-6 py-4 hover:bg-canvas/50 transition-colors">
               <div className="flex items-center gap-4">
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tx.type === "credit" ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-600"}`}>
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tx.type === "credit" ? "bg-status-success-bg text-status-success-content" : "bg-sunken text-content-secondary"}`}>
                   {tx.type === "credit" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">{tx.description}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">{fmtDate(tx.created_at, lang)}</p>
+                  <p className="text-sm font-medium text-content-primary">{tx.description}</p>
+                  <p className="text-xs text-content-muted mt-0.5">{fmtDate(tx.created_at, lang)}</p>
                 </div>
               </div>
-              <span className={`text-sm font-bold tracking-tight ${tx.type === "credit" ? "text-emerald-600" : "text-zinc-900"}`}>
+              <span className={`text-sm font-bold tracking-tight ${tx.type === "credit" ? "text-status-success-content" : "text-content-primary"}`}>
                 {tx.type === "credit" ? "+" : "-"}{tx.amount} HC
               </span>
             </div>
           ))}
         </div>
       )}
-      
+
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-zinc-100 bg-zinc-50/80 px-6 py-4">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-200 disabled:opacity-30 transition">Önceki</button>
-          <span className="text-xs font-medium text-zinc-500">Sayfa {page} / {totalPages}</span>
-          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-200 disabled:opacity-30 transition">Sonraki</button>
+        <div className="flex items-center justify-between border-t border-outline-subtle bg-canvas/80 px-6 py-4">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} className="rounded-lg px-3 py-1.5 text-sm font-medium text-content-secondary hover:bg-sunken disabled:opacity-30 transition">Önceki</button>
+          <span className="text-xs font-medium text-content-muted">Sayfa {page} / {totalPages}</span>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="rounded-lg px-3 py-1.5 text-sm font-medium text-content-secondary hover:bg-sunken disabled:opacity-30 transition">Sonraki</button>
         </div>
       )}
     </div>
@@ -445,7 +445,7 @@ function CustomDomainTab() {
     try {
       const dom = (domain.trim() || existingDomain || "").trim();
       if (!dom) {
-        if (existingDomain) { await apiFetch(`/domains/${encodeURIComponent(existingDomain)}`, { method: "DELETE" }); } 
+        if (existingDomain) { await apiFetch(`/domains/${encodeURIComponent(existingDomain)}`, { method: "DELETE" }); }
         else { await apiFetch("/admin/organization/domain", { method: "PUT", body: JSON.stringify({ custom_domain: null }) }); }
         setDomain(""); setExistingDomain(null); setToken(null); setStatus(null); setCreatedAt(null); setOk(true); setTimeout(() => setOk(false), 3000);
         await refreshDomains();
@@ -501,7 +501,7 @@ function CustomDomainTab() {
     } catch (e: any) { setErr(e?.message || "Silinemedi."); }
   }
 
-  if (loading) return <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-zinc-400" /></div>;
+  if (loading) return <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-content-muted" /></div>;
 
   const activeDomain = (domain.trim() || existingDomain || "").trim();
   const statusMeta = getDomainStatusMeta(status);
@@ -511,25 +511,25 @@ function CustomDomainTab() {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
       <div className="space-y-6">
-        <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-3xl border border-outline-subtle bg-raised p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900"><Globe className="h-5 w-5" /></div>
-            <div><h2 className="text-lg font-semibold text-zinc-900">Özel Alan Adı</h2><p className="text-sm text-zinc-500">Sertifikaları kendi domaininizde sunun</p></div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sunken text-content-primary"><Globe className="h-5 w-5" /></div>
+            <div><h2 className="text-lg font-semibold text-content-primary">Özel Alan Adı</h2><p className="text-sm text-content-muted">Sertifikaları kendi domaininizde sunun</p></div>
           </div>
-          
-          <div className="mb-6 rounded-xl border border-amber-100 bg-amber-50/60 p-4">
-            <p className="text-sm text-amber-800 font-medium leading-relaxed">
+
+          <div className="mb-6 rounded-xl border border-status-warning-border bg-status-warning-bg/60 p-4">
+            <p className="text-sm text-status-warning-content font-medium leading-relaxed">
               Bu özellik Growth ve Enterprise planlarına özeldir. TXT kaydı sadece domain sahipliğini doğrular; sitenin açılması için ayrıca CNAME kaydıyla alan adını HeptaCert altyapısına bağlamanız gerekir.
             </p>
           </div>
 
           <form onSubmit={save} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700">Domain Adresi</label>
+              <label className="mb-1.5 block text-sm font-medium text-content-secondary">Domain Adresi</label>
               <div className="relative">
-                <Globe className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+                <Globe className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-content-muted" />
                 <input
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 py-3 pl-12 pr-4 text-sm outline-none transition focus:border-zinc-900 focus:bg-white"
+                  className="w-full rounded-xl border border-outline-subtle bg-canvas py-3 pl-12 pr-4 text-sm outline-none transition focus:border-outline-strong focus:bg-raised"
                   type="text"
                   value={domain}
                   onChange={e => setDomain(e.target.value)}
@@ -537,47 +537,47 @@ function CustomDomainTab() {
                   autoComplete="off"
                 />
               </div>
-              <p className="text-xs text-zinc-500 mt-2">Kaldırmak için alanı boş bırakıp kaydedin.</p>
+              <p className="text-xs text-content-muted mt-2">Kaldırmak için alanı boş bırakıp kaydedin.</p>
             </div>
-            
+
             <AnimatePresence>
-              {err && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-rose-600">{err}</motion.p>}
-              {ok && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> İşlem başarılı.</motion.p>}
+              {err && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-status-danger-content">{err}</motion.p>}
+              {ok && <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="text-sm text-status-success-content flex items-center gap-1"><CheckCircle2 className="h-4 w-4" /> İşlem başarılı.</motion.p>}
             </AnimatePresence>
-            
-            <button type="submit" disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-50">
+
+            <button type="submit" disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-inverse-surface px-6 py-3 text-sm font-semibold text-white transition hover:bg-inverse-surface disabled:opacity-50">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Kaydet
             </button>
           </form>
         </div>
 
         {myDomains.length > 0 && (
-          <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="rounded-3xl border border-outline-subtle bg-raised p-6 shadow-sm sm:p-8">
              <div className="mb-6 flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-900"><BadgeCheck className="h-5 w-5" /></div>
-              <div><h2 className="text-lg font-semibold text-zinc-900">Kayıtlı Domainler</h2><p className="text-sm text-zinc-500">Önceki kayıtlarınız arasında geçiş yapın.</p></div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sunken text-content-primary"><BadgeCheck className="h-5 w-5" /></div>
+              <div><h2 className="text-lg font-semibold text-content-primary">Kayıtlı Domainler</h2><p className="text-sm text-content-muted">Önceki kayıtlarınız arasında geçiş yapın.</p></div>
             </div>
             <div className="space-y-3">
               {myDomains.map((d) => {
                 const itemStatus = getDomainStatusMeta(d.status || null);
                 return (
-                  <div key={d.domain} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-4 hover:bg-zinc-50 transition">
+                  <div key={d.domain} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-outline-subtle bg-canvas/50 p-4 hover:bg-canvas transition">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="truncate font-semibold text-zinc-900">{d.domain}</p>
+                        <p className="truncate font-semibold text-content-primary">{d.domain}</p>
                         <span className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-11 font-bold uppercase tracking-wider ${itemStatus.chipClass}`}>{itemStatus.label}</span>
                       </div>
-                      <p className="mt-1 text-xs text-zinc-500">Eklenme: {fmtDate(d.created_at || null, lang)}</p>
+                      <p className="mt-1 text-xs text-content-muted">Eklenme: {fmtDate(d.created_at || null, lang)}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <button type="button" className="rounded-lg bg-white border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 transition shadow-sm inline-flex items-center gap-1.5"
+                      <button type="button" className="rounded-lg bg-raised border border-outline-subtle px-3 py-1.5 text-xs font-semibold text-content-secondary hover:bg-sunken transition shadow-sm inline-flex items-center gap-1.5"
                         onClick={() => {
                           setDomain(d.domain); setExistingDomain(d.domain); setToken(d.token || null); setStatus(d.status || null); setCreatedAt(d.created_at || null); setDnsTarget(d.dns_target || "heptacert.com");
                         }}
                       >
                         <Link2 className="h-3.5 w-3.5" /> Seç
                       </button>
-                      <button type="button" className="rounded-lg bg-white border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 transition shadow-sm inline-flex items-center gap-1.5"
+                      <button type="button" className="rounded-lg bg-raised border border-outline-subtle px-3 py-1.5 text-xs font-semibold text-content-secondary hover:bg-sunken transition shadow-sm inline-flex items-center gap-1.5"
                         onClick={() => regenerate(d.domain)}
                       >
                         <RefreshCcw className="h-3.5 w-3.5" /> Yenile
@@ -592,58 +592,58 @@ function CustomDomainTab() {
       </div>
 
       <div>
-         <div className="rounded-3xl border border-zinc-200 bg-white shadow-sm overflow-hidden sticky top-24">
-           <div className="bg-zinc-50 border-b border-zinc-100 px-6 py-5">
-              <h3 className="font-semibold text-zinc-900">DNS Yapılandırması</h3>
-              <p className="text-xs text-zinc-500 mt-1">İki kayıt gerekir: doğrulama ve trafik yönlendirme.</p>
+         <div className="rounded-3xl border border-outline-subtle bg-raised shadow-sm overflow-hidden sticky top-24">
+           <div className="bg-canvas border-b border-outline-subtle px-6 py-5">
+              <h3 className="font-semibold text-content-primary">DNS Yapılandırması</h3>
+              <p className="text-xs text-content-muted mt-1">İki kayıt gerekir: doğrulama ve trafik yönlendirme.</p>
            </div>
            <div className="p-6 space-y-6">
-             <div className="rounded-2xl bg-zinc-900 p-5 font-mono text-xs text-zinc-300 shadow-inner">
-                <p className="text-zinc-500 mb-3"># 1) Sahiplik doğrulama kaydı</p>
+             <div className="rounded-2xl bg-inverse-surface p-5 font-mono text-xs text-content-muted shadow-inner">
+                <p className="text-content-muted mb-3"># 1) Sahiplik doğrulama kaydı</p>
                 <div className="space-y-3">
                   <div>
-                    <span className="text-zinc-500 block mb-1">Kayıt Türü:</span>
-                    <span className="text-amber-400 font-bold">TXT</span>
+                    <span className="text-content-muted block mb-1">Kayıt Türü:</span>
+                    <span className="text-status-warning-content font-bold">TXT</span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 block mb-1">Ad / Host:</span>
+                    <span className="text-content-muted block mb-1">Ad / Host:</span>
                     <span className="text-white break-all">{dnsHost}</span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 block mb-1">Değer (Value):</span>
-                    <div className="flex items-center justify-between gap-2 bg-zinc-800 rounded-lg p-2 mt-1">
-                      <span className="text-emerald-400 break-all">{token || '<token_bekleniyor>'}</span>
+                    <span className="text-content-muted block mb-1">Değer (Value):</span>
+                    <div className="flex items-center justify-between gap-2 bg-inverse-surface rounded-lg p-2 mt-1">
+                      <span className="text-status-success-content break-all">{token || '<token_bekleniyor>'}</span>
                       <CopyBtn text={token || ''} />
                     </div>
                   </div>
                 </div>
              </div>
 
-             <div className="rounded-2xl bg-zinc-900 p-5 font-mono text-xs text-zinc-300 shadow-inner">
-                <p className="text-zinc-500 mb-3"># 2) Siteyi HeptaCert altyapısına bağlayın</p>
+             <div className="rounded-2xl bg-inverse-surface p-5 font-mono text-xs text-content-muted shadow-inner">
+                <p className="text-content-muted mb-3"># 2) Siteyi HeptaCert altyapısına bağlayın</p>
                 <div className="space-y-3">
                   <div>
-                    <span className="text-zinc-500 block mb-1">Kayıt Türü:</span>
-                    <span className="text-sky-400 font-bold">CNAME</span>
+                    <span className="text-content-muted block mb-1">Kayıt Türü:</span>
+                    <span className="text-status-info-content font-bold">CNAME</span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 block mb-1">Ad / Host:</span>
+                    <span className="text-content-muted block mb-1">Ad / Host:</span>
                     <span className="text-white break-all">{connectionName}</span>
                   </div>
                   <div>
-                    <span className="text-zinc-500 block mb-1">Hedef / Target:</span>
-                    <div className="flex items-center justify-between gap-2 bg-zinc-800 rounded-lg p-2 mt-1">
-                      <span className="text-sky-300 break-all">{dnsTarget}</span>
+                    <span className="text-content-muted block mb-1">Hedef / Target:</span>
+                    <div className="flex items-center justify-between gap-2 bg-inverse-surface rounded-lg p-2 mt-1">
+                      <span className="text-status-info-content break-all">{dnsTarget}</span>
                       <CopyBtn text={dnsTarget} />
                     </div>
                   </div>
                 </div>
              </div>
 
-             <div className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs leading-5 text-sky-800">
+             <div className="rounded-xl border border-status-info-border bg-status-info-bg px-4 py-3 text-xs leading-5 text-status-info-content">
                TXT doğrulama izindir; CNAME ise trafiği bize getirir. Kurumun ziyaretçisi kendi domainini görür, uygulama ise host adına göre kurum logosu ve adını gösterir.
              </div>
-             
+
              {status && (
                <div className={`rounded-xl border px-4 py-3 ${statusMeta.chipClass}`}>
                  <div className="flex items-start gap-3">
@@ -656,14 +656,14 @@ function CustomDomainTab() {
                </div>
              )}
 
-             <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100">
-                <button onClick={checkDNS} disabled={checking || !domain} className="w-full rounded-xl bg-zinc-100 px-4 py-2.5 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-200 disabled:opacity-50">
+             <div className="flex flex-col gap-2 pt-2 border-t border-outline-subtle">
+                <button onClick={checkDNS} disabled={checking || !domain} className="w-full rounded-xl bg-sunken px-4 py-2.5 text-sm font-semibold text-content-primary transition hover:bg-sunken disabled:opacity-50">
                   {checking ? 'Kontrol ediliyor...' : 'Şimdi Doğrula'}
                 </button>
-                <button onClick={() => regenerate()} disabled={!domain} className="w-full rounded-xl bg-white border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50">
+                <button onClick={() => regenerate()} disabled={!domain} className="w-full rounded-xl bg-raised border border-outline-subtle px-4 py-2.5 text-sm font-semibold text-content-secondary transition hover:bg-canvas disabled:opacity-50">
                   Token Yenile
                 </button>
-                <button onClick={removeDomain} disabled={!domain} className="w-full rounded-xl bg-white border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50 mt-4">
+                <button onClick={removeDomain} disabled={!domain} className="w-full rounded-xl bg-raised border border-status-danger-border px-4 py-2.5 text-sm font-semibold text-status-danger-content transition hover:bg-status-danger-bg disabled:opacity-50 mt-4">
                   Domain'i Sistemden Sil
                 </button>
              </div>
@@ -757,42 +757,42 @@ function OrganizationTeamTab() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-      <form onSubmit={submitMember} className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+      <form onSubmit={submitMember} className="rounded-3xl border border-outline-subtle bg-raised p-5 shadow-sm sm:p-6">
         <div className="mb-5 flex items-center gap-3">
-          <div className="rounded-2xl bg-indigo-50 p-3 text-indigo-600"><UserCog className="h-5 w-5" /></div>
-          <div><h2 className="font-semibold text-zinc-900">Çalışan ekle</h2><p className="text-sm text-zinc-500">Modül bazlı kurum yetkisi</p></div>
+          <div className="rounded-2xl bg-status-info-bg p-3 text-status-info-content"><UserCog className="h-5 w-5" /></div>
+          <div><h2 className="font-semibold text-content-primary">Çalışan ekle</h2><p className="text-sm text-content-muted">Modül bazlı kurum yetkisi</p></div>
         </div>
         <div className="space-y-4">
-          <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">E-posta</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" placeholder="calisan@kurum.com" /></div>
+          <div><label className="mb-1.5 block text-sm font-medium text-content-secondary">E-posta</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none focus:border-outline-strong focus:bg-raised" placeholder="calisan@kurum.com" /></div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Rol</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white">
+            <label className="mb-1.5 block text-sm font-medium text-content-secondary">Rol</label>
+            <select value={role} onChange={(e) => setRole(e.target.value)} className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none focus:border-outline-strong focus:bg-raised">
               {ORGANIZATION_ROLES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
-            <p className="mt-2 text-xs text-zinc-500">{ORGANIZATION_ROLES.find((option) => option.value === role)?.detail}</p>
+            <p className="mt-2 text-xs text-content-muted">{ORGANIZATION_ROLES.find((option) => option.value === role)?.detail}</p>
           </div>
-          <button disabled={saving} className="w-full rounded-xl bg-zinc-900 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Ekleniyor..." : "Çalışan ekle"}</button>
+          <button disabled={saving} className="w-full rounded-xl bg-inverse-surface py-2.5 text-sm font-semibold text-white disabled:opacity-50">{saving ? "Ekleniyor..." : "Çalışan ekle"}</button>
         </div>
       </form>
-      <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+      <section className="rounded-3xl border border-outline-subtle bg-raised p-5 shadow-sm sm:p-6">
         <div className="mb-5 flex items-center justify-between">
-          <div><h2 className="text-lg font-semibold text-zinc-900">Kurum ekibi</h2><p className="text-sm text-zinc-500">Çalışanların erişebildiği iş alanları</p></div>
-          <button type="button" onClick={() => void loadMembers()} className="rounded-xl border border-zinc-200 p-2 text-zinc-500 hover:text-zinc-900"><RefreshCcw className="h-4 w-4" /></button>
+          <div><h2 className="text-lg font-semibold text-content-primary">Kurum ekibi</h2><p className="text-sm text-content-muted">Çalışanların erişebildiği iş alanları</p></div>
+          <button type="button" onClick={() => void loadMembers()} className="rounded-xl border border-outline-subtle p-2 text-content-muted hover:text-content-primary"><RefreshCcw className="h-4 w-4" /></button>
         </div>
-        {loading ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-zinc-400" /></div> : members.length === 0 ? (
-          <div className="rounded-2xl bg-zinc-50 p-8 text-center text-sm text-zinc-500">Henüz çalışan yetkilendirilmedi.</div>
+        {loading ? <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-content-muted" /></div> : members.length === 0 ? (
+          <div className="rounded-2xl bg-canvas p-8 text-center text-sm text-content-muted">Henüz çalışan yetkilendirilmedi.</div>
         ) : (
           <div className="space-y-3">
             {members.map((member) => (
-              <article key={member.id} className="rounded-2xl border border-zinc-100 p-4">
+              <article key={member.id} className="rounded-2xl border border-outline-subtle p-4">
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                  <div><p className="font-semibold text-zinc-900">{member.email}</p><p className="mt-1 text-xs text-zinc-500">{member.permissions.join(" · ")}</p></div>
+                  <div><p className="font-semibold text-content-primary">{member.email}</p><p className="mt-1 text-xs text-content-muted">{member.permissions.join(" · ")}</p></div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <select value={member.role} onChange={(e) => void changeMember(member, { role: e.target.value })} className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm">
+                    <select value={member.role} onChange={(e) => void changeMember(member, { role: e.target.value })} className="rounded-xl border border-outline-subtle bg-raised px-3 py-2 text-sm">
                       {ORGANIZATION_ROLES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
-                    <button type="button" onClick={() => void changeMember(member, { status: member.status === "active" ? "disabled" : "active" })} className="rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700">{member.status === "active" ? "Pasifleştir" : "Aktifleştir"}</button>
-                    <button type="button" onClick={() => void removeMember(member)} className="rounded-xl border border-rose-100 px-3 py-2 text-sm font-medium text-rose-600">Sil</button>
+                    <button type="button" onClick={() => void changeMember(member, { status: member.status === "active" ? "disabled" : "active" })} className="rounded-xl border border-outline-subtle px-3 py-2 text-sm font-medium text-content-secondary">{member.status === "active" ? "Pasifleştir" : "Aktifleştir"}</button>
+                    <button type="button" onClick={() => void removeMember(member)} className="rounded-xl border border-status-danger-border px-3 py-2 text-sm font-medium text-status-danger-content">Sil</button>
                   </div>
                 </div>
               </article>
@@ -811,14 +811,14 @@ function BrandingTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
-  
+
   const [postLoading, setPostLoading] = useState(false);
   const [postSaving, setPostSaving] = useState(false);
   const [communityPosts, setCommunityPosts] = useState<Array<{ public_id: string; author_name: string; body: string; created_at: string }>>([]);
   const [postBody, setPostBody] = useState("");
-  
+
   const [publicId, setPublicId] = useState("");
-  const [brandColor, setBrandColor] = useState("#000000"); 
+  const [brandColor, setBrandColor] = useState("#000000");
   const [brandLogo, setBrandLogo] = useState<string | null>(null);
   const [orgName, setOrgName] = useState("");
   const [customDomain, setCustomDomain] = useState("");
@@ -903,7 +903,7 @@ function BrandingTab() {
     } catch (e: any) { setErr(e?.message || "Gönderi silinemedi."); }
   }
 
-  if (loading) return <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-zinc-400" /></div>;
+  if (loading) return <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-content-muted" /></div>;
 
   const previewName = orgName.trim() || "Heptapus Group";
   const previewLogoLetter = previewName.charAt(0).toUpperCase();
@@ -912,23 +912,23 @@ function BrandingTab() {
     <div className="flex flex-col xl:flex-row items-start gap-8">
       {/* SOL: Form Alanı */}
       <div className="w-full flex-1 space-y-6">
-        {err && <div className="rounded-xl bg-rose-50 p-4 text-sm text-rose-600">{err}</div>}
+        {err && <div className="rounded-xl bg-status-danger-bg p-4 text-sm text-status-danger-content">{err}</div>}
 
         <form onSubmit={saveSettings} className="space-y-6">
-          
-          <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-            <h3 className="text-lg font-semibold text-zinc-900 mb-6">Temel Kimlik</h3>
+
+          <div className="rounded-3xl border border-outline-subtle bg-raised p-6 shadow-sm sm:p-8">
+            <h3 className="text-lg font-semibold text-content-primary mb-6">Temel Kimlik</h3>
             <div className="flex flex-col sm:flex-row gap-6 items-start">
               <div className="shrink-0">
-                <label className="mb-2 block text-sm font-medium text-zinc-700">Logo</label>
-                <div 
-                  className="group relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden border-2 border-dashed border-zinc-300 bg-zinc-50 transition hover:border-zinc-400 hover:bg-zinc-100"
+                <label className="mb-2 block text-sm font-medium text-content-secondary">Logo</label>
+                <div
+                  className="group relative flex h-24 w-24 cursor-pointer items-center justify-center overflow-hidden border-2 border-dashed border-outline-strong bg-canvas transition hover:border-outline-strong hover:bg-sunken"
                   style={{ clipPath: "polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%)" }}
                 >
                   {brandLogo ? (
                     <img src={brandLogo} alt="Logo" className="h-full w-full object-cover" />
                   ) : (
-                    <UploadCloud className="h-6 w-6 text-zinc-400" />
+                    <UploadCloud className="h-6 w-6 text-content-muted" />
                   )}
                   <input type="file" accept="image/*" className="absolute inset-0 cursor-pointer opacity-0" onChange={e => uploadLogo(e.target.files ? e.target.files[0] : null)} />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
@@ -938,72 +938,72 @@ function BrandingTab() {
               </div>
               <div className="flex-1 space-y-4 w-full">
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700">Kurum Adı</label>
-                  <input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Örn: Heptapus Group" />
+                  <label className="mb-1.5 block text-sm font-medium text-content-secondary">Kurum Adı</label>
+                  <input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none transition focus:border-outline-strong focus:bg-raised" value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Örn: Heptapus Group" />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-zinc-700">Vurgu Rengi</label>
+                  <label className="mb-1.5 block text-sm font-medium text-content-secondary">Vurgu Rengi</label>
                   <div className="flex items-center gap-3">
-                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-zinc-200 shadow-sm">
+                    <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-outline-subtle shadow-sm">
                       <input type="color" className="absolute -inset-2 h-14 w-14 cursor-pointer" value={brandColor} onChange={e => setBrandColor(e.target.value)} />
                     </div>
-                    <input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm font-mono outline-none transition focus:border-zinc-900 focus:bg-white uppercase" value={brandColor} onChange={e => setBrandColor(e.target.value)} maxLength={7} />
+                    <input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm font-mono outline-none transition focus:border-outline-strong focus:bg-raised uppercase" value={brandColor} onChange={e => setBrandColor(e.target.value)} maxLength={7} />
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-            <h3 className="text-lg font-semibold text-zinc-900 mb-6">Sosyal & İletişim</h3>
+          <div className="rounded-3xl border border-outline-subtle bg-raised p-6 shadow-sm sm:p-8">
+            <h3 className="text-lg font-semibold text-content-primary mb-6">Sosyal & İletişim</h3>
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700">Kısa Biyografi</label>
-                <textarea className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm outline-none transition focus:border-zinc-900 focus:bg-white min-h-[100px] resize-y" value={settingsState.public_bio || ""} onChange={e => setSettingsState(s => ({ ...s, public_bio: e.target.value }))} placeholder="Kurumunuzu kısaca tanıtın..." />
+                <label className="mb-1.5 block text-sm font-medium text-content-secondary">Kısa Biyografi</label>
+                <textarea className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-3 text-sm outline-none transition focus:border-outline-strong focus:bg-raised min-h-[100px] resize-y" value={settingsState.public_bio || ""} onChange={e => setSettingsState(s => ({ ...s, public_bio: e.target.value }))} placeholder="Kurumunuzu kısaca tanıtın..." />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Website</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" value={settingsState.public_website_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_website_url: e.target.value }))} placeholder="https://" /></div>
-                <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">LinkedIn</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" value={settingsState.public_linkedin_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_linkedin_url: e.target.value }))} placeholder="linkedin.com/company/..." /></div>
-                <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">X (Twitter)</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" value={settingsState.public_x_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_x_url: e.target.value }))} placeholder="x.com/..." /></div>
-                <div><label className="mb-1.5 block text-sm font-medium text-zinc-700">Instagram</label><input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none focus:border-zinc-900 focus:bg-white" value={settingsState.public_instagram_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_instagram_url: e.target.value }))} placeholder="instagram.com/..." /></div>
+                <div><label className="mb-1.5 block text-sm font-medium text-content-secondary">Website</label><input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none focus:border-outline-strong focus:bg-raised" value={settingsState.public_website_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_website_url: e.target.value }))} placeholder="https://" /></div>
+                <div><label className="mb-1.5 block text-sm font-medium text-content-secondary">LinkedIn</label><input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none focus:border-outline-strong focus:bg-raised" value={settingsState.public_linkedin_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_linkedin_url: e.target.value }))} placeholder="linkedin.com/company/..." /></div>
+                <div><label className="mb-1.5 block text-sm font-medium text-content-secondary">X (Twitter)</label><input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none focus:border-outline-strong focus:bg-raised" value={settingsState.public_x_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_x_url: e.target.value }))} placeholder="x.com/..." /></div>
+                <div><label className="mb-1.5 block text-sm font-medium text-content-secondary">Instagram</label><input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none focus:border-outline-strong focus:bg-raised" value={settingsState.public_instagram_url || ""} onChange={e => setSettingsState(s => ({ ...s, public_instagram_url: e.target.value }))} placeholder="instagram.com/..." /></div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-            <h3 className="text-lg font-semibold text-zinc-900 mb-6">Sertifika & Doğrulama Sayfası</h3>
+          <div className="rounded-3xl border border-outline-subtle bg-raised p-6 shadow-sm sm:p-8">
+            <h3 className="text-lg font-semibold text-content-primary mb-6">Sertifika & Doğrulama Sayfası</h3>
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700">Alt Bilgi (Footer)</label>
-                <input className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-900 focus:bg-white" value={settingsState.certificate_footer || ""} onChange={e => setSettingsState(s => ({ ...s, certificate_footer: e.target.value }))} placeholder="© 2026 Kurum Adı. Tüm hakları saklıdır." />
+                <label className="mb-1.5 block text-sm font-medium text-content-secondary">Alt Bilgi (Footer)</label>
+                <input className="w-full rounded-xl border border-outline-subtle bg-canvas px-4 py-2.5 text-sm outline-none transition focus:border-outline-strong focus:bg-raised" value={settingsState.certificate_footer || ""} onChange={e => setSettingsState(s => ({ ...s, certificate_footer: e.target.value }))} placeholder="© 2026 Kurum Adı. Tüm hakları saklıdır." />
               </div>
-              <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl border border-outline-subtle bg-canvas px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">HeptaCert Markasını Gizle</p>
-                  <p className="text-xs text-zinc-500">Doğrulama sayfasında tamamen sizin markanız öne çıkar.</p>
+                  <p className="text-sm font-medium text-content-primary">HeptaCert Markasını Gizle</p>
+                  <p className="text-xs text-content-muted">Doğrulama sayfasında tamamen sizin markanız öne çıkar.</p>
                 </div>
                 <label className="relative inline-flex cursor-pointer items-center">
                   <input type="checkbox" className="peer sr-only" checked={!!settingsState.hide_heptacert_home} onChange={e => setSettingsState(s => ({ ...s, hide_heptacert_home: e.target.checked }))} />
-                  <div className="h-6 w-11 rounded-full bg-zinc-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-zinc-900 peer-checked:after:translate-x-full peer-focus:outline-none"></div>
+                  <div className="h-6 w-11 rounded-full bg-sunken after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-raised after:transition-all after:content-[''] peer-checked:bg-inverse-surface peer-checked:after:translate-x-full peer-focus:outline-none"></div>
                 </label>
               </div>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm sm:p-8">
-            <h3 className="text-lg font-semibold text-emerald-950 mb-4">Kurumsal Sayfa Durumu</h3>
+          <div className="rounded-3xl border border-status-success-border bg-status-success-bg p-6 shadow-sm sm:p-8">
+            <h3 className="text-lg font-semibold text-status-success-content mb-4">Kurumsal Sayfa Durumu</h3>
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-emerald-100 bg-white p-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Domain</p>
-                <p className="mt-1 break-all text-sm font-black text-zinc-900">{customDomain || "Bagli degil"}</p>
+              <div className="rounded-2xl border border-status-success-border bg-raised p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-status-success-content">Domain</p>
+                <p className="mt-1 break-all text-sm font-black text-content-primary">{customDomain || "Bagli degil"}</p>
               </div>
-              <div className="rounded-2xl border border-emerald-100 bg-white p-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Homepage</p>
-                <p className="mt-1 text-sm font-black text-zinc-900">{customDomain || settingsState.hide_heptacert_home ? "Kurum vitrini" : "HeptaCert genel sayfasi"}</p>
+              <div className="rounded-2xl border border-status-success-border bg-raised p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-status-success-content">Homepage</p>
+                <p className="mt-1 text-sm font-black text-content-primary">{customDomain || settingsState.hide_heptacert_home ? "Kurum vitrini" : "HeptaCert genel sayfasi"}</p>
               </div>
-              <div className="rounded-2xl border border-emerald-100 bg-white p-4">
-                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Public ID</p>
-                <p className="mt-1 break-all text-sm font-black text-zinc-900">{publicId || "-"}</p>
+              <div className="rounded-2xl border border-status-success-border bg-raised p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-status-success-content">Public ID</p>
+                <p className="mt-1 break-all text-sm font-black text-content-primary">{publicId || "-"}</p>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -1013,7 +1013,7 @@ function BrandingTab() {
                 </a>
               )}
               {publicId && (
-                <a href={`/organizations/${publicId}`} target="_blank" rel="noreferrer" className="rounded-xl border border-emerald-200 bg-white px-4 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100">
+                <a href={`/organizations/${publicId}`} target="_blank" rel="noreferrer" className="rounded-xl border border-status-success-border bg-raised px-4 py-2 text-xs font-bold text-status-success-content transition hover:bg-status-success-bg">
                   Kurum sayfasini ac
                 </a>
               )}
@@ -1021,56 +1021,56 @@ function BrandingTab() {
           </div>
 
           <div className="flex justify-end pt-2">
-            <button type="submit" disabled={saving} className="rounded-xl bg-zinc-900 px-8 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-zinc-800 hover:shadow-md disabled:opacity-50">
+            <button type="submit" disabled={saving} className="rounded-xl bg-inverse-surface px-8 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-inverse-surface hover:shadow-md disabled:opacity-50">
               {saving ? "Kaydediliyor..." : "Tüm Ayarları Kaydet"}
             </button>
           </div>
         </form>
 
         {/* Topluluk Gönderileri Akışı */}
-        <div className="mt-8 rounded-3xl border border-zinc-200 bg-zinc-50/50 p-6 shadow-sm sm:p-8">
+        <div className="mt-8 rounded-3xl border border-outline-subtle bg-canvas/50 p-6 shadow-sm sm:p-8">
           <div className="mb-6 flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-zinc-900 border border-zinc-200 shadow-sm"><Sparkles className="h-5 w-5" /></div>
-            <div><h2 className="text-lg font-semibold text-zinc-900">Topluluk Akışı</h2><p className="text-sm text-zinc-500">Kurumunuz adına resmi güncellemeler paylaşın.</p></div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-raised text-content-primary border border-outline-subtle shadow-sm"><Sparkles className="h-5 w-5" /></div>
+            <div><h2 className="text-lg font-semibold text-content-primary">Topluluk Akışı</h2><p className="text-sm text-content-muted">Kurumunuz adına resmi güncellemeler paylaşın.</p></div>
           </div>
 
           <div className="space-y-4">
             <textarea
-              className="w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-zinc-900 shadow-sm min-h-[100px] resize-y"
+              className="w-full rounded-xl border border-outline-subtle bg-raised px-4 py-3 text-sm outline-none transition focus:border-outline-strong shadow-sm min-h-[100px] resize-y"
               value={postBody}
               onChange={(e) => setPostBody(e.target.value)}
               maxLength={1500}
               placeholder="Yeni bir duyuru yazın..."
             />
             <div className="flex justify-end">
-              <button type="button" onClick={() => void createCommunityPost()} disabled={postSaving || !postBody.trim()} className="rounded-xl bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-zinc-800 disabled:opacity-50 shadow-sm">
+              <button type="button" onClick={() => void createCommunityPost()} disabled={postSaving || !postBody.trim()} className="rounded-xl bg-inverse-surface px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-inverse-surface disabled:opacity-50 shadow-sm">
                 {postSaving ? "Paylaşılıyor..." : "Duyuru Paylaş"}
               </button>
             </div>
           </div>
 
           <div className="mt-8 space-y-4">
-            <h3 className="text-sm font-semibold text-zinc-900 mb-2">Önceki Paylaşımlar</h3>
+            <h3 className="text-sm font-semibold text-content-primary mb-2">Önceki Paylaşımlar</h3>
             {postLoading ? (
-              <div className="flex items-center text-sm text-zinc-500 py-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Yükleniyor...</div>
+              <div className="flex items-center text-sm text-content-muted py-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Yükleniyor...</div>
             ) : communityPosts.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-zinc-300 bg-white px-4 py-8 text-sm text-zinc-500 text-center">
+              <div className="rounded-2xl border border-dashed border-outline-strong bg-raised px-4 py-8 text-sm text-content-muted text-center">
                 Henüz paylaşılmış bir kurum gönderisi yok.
               </div>
             ) : (
               <div className="space-y-4">
                 {communityPosts.map((post) => (
-                  <div key={post.public_id} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+                  <div key={post.public_id} className="rounded-2xl border border-outline-subtle bg-raised p-5 shadow-sm hover:shadow-md transition">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-sm font-semibold text-zinc-900">{post.author_name}</p>
-                        <p className="mt-0.5 text-xs text-zinc-400">{fmtDate(post.created_at, lang)}</p>
+                        <p className="text-sm font-semibold text-content-primary">{post.author_name}</p>
+                        <p className="mt-0.5 text-xs text-content-muted">{fmtDate(post.created_at, lang)}</p>
                       </div>
-                      <button type="button" onClick={() => void removeCommunityPost(post.public_id)} className="rounded-lg bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100" title="Sil">
+                      <button type="button" onClick={() => void removeCommunityPost(post.public_id)} className="rounded-lg bg-status-danger-bg p-2 text-status-danger-content transition hover:bg-status-danger-bg" title="Sil">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
-                    <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 break-words">{post.body}</p>
+                    <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-content-secondary break-words">{post.body}</p>
                   </div>
                 ))}
               </div>
@@ -1082,51 +1082,51 @@ function BrandingTab() {
       {/* SAĞ: Apple-Style Tarayıcı Önizlemesi (Sticky) */}
       <div className="w-full shrink-0 xl:w-[380px] xl:sticky xl:top-24">
         <div className="mb-3 flex items-center gap-2 px-1">
-          <MonitorSmartphone className="h-4 w-4 text-zinc-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Canlı Önizleme</span>
+          <MonitorSmartphone className="h-4 w-4 text-content-muted" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-content-muted">Canlı Önizleme</span>
         </div>
-        
-        <div className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)]">
-          <div className="flex items-center gap-1.5 border-b border-zinc-100 bg-zinc-50/80 px-4 py-3">
-            <div className="h-2.5 w-2.5 rounded-full bg-zinc-300"></div>
-            <div className="h-2.5 w-2.5 rounded-full bg-zinc-300"></div>
-            <div className="h-2.5 w-2.5 rounded-full bg-zinc-300"></div>
-            <div className="ml-4 flex-1 rounded-md bg-white px-3 py-1 text-center text-11 font-medium text-zinc-400 shadow-sm">
+
+        <div className="overflow-hidden rounded-3xl border border-outline-subtle bg-raised shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)]">
+          <div className="flex items-center gap-1.5 border-b border-outline-subtle bg-canvas/80 px-4 py-3">
+            <div className="h-2.5 w-2.5 rounded-full bg-sunken"></div>
+            <div className="h-2.5 w-2.5 rounded-full bg-sunken"></div>
+            <div className="h-2.5 w-2.5 rounded-full bg-sunken"></div>
+            <div className="ml-4 flex-1 rounded-md bg-raised px-3 py-1 text-center text-11 font-medium text-content-muted shadow-sm">
               certs.{orgName.toLowerCase().replace(/\s+/g, '') || 'sirket'}.com
             </div>
           </div>
 
           <div className="relative p-6 text-center">
             <div className="absolute inset-x-0 top-0 h-32 opacity-10" style={{ background: `linear-gradient(to bottom, ${brandColor}, transparent)` }}></div>
-            
-            <div 
-              className="relative mx-auto flex h-20 w-20 items-center justify-center overflow-hidden border border-zinc-100 bg-white shadow-md"
+
+            <div
+              className="relative mx-auto flex h-20 w-20 items-center justify-center overflow-hidden border border-outline-subtle bg-raised shadow-md"
               style={{ clipPath: "polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%)" }}
             >
               {brandLogo ? (
                 <img src={brandLogo} alt="Logo" className="h-full w-full object-cover" />
               ) : (
-                <span className="text-2xl font-bold text-zinc-300">{previewLogoLetter}</span>
+                <span className="text-2xl font-bold text-content-muted">{previewLogoLetter}</span>
               )}
             </div>
 
-            <h4 className="mt-4 text-lg font-bold text-zinc-900">{previewName}</h4>
-            
+            <h4 className="mt-4 text-lg font-bold text-content-primary">{previewName}</h4>
+
             <div className="mt-2 flex justify-center">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-100 bg-white px-3 py-1 text-xs font-medium shadow-sm" style={{ color: brandColor }}>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-outline-subtle bg-raised px-3 py-1 text-xs font-medium shadow-sm" style={{ color: brandColor }}>
                 <HeptaCertLogoMark className="h-4 w-4 rounded-sm" /> Resmi Doğrulama
               </span>
             </div>
 
             <div className="mt-6 space-y-3">
-              <div className="h-12 w-full rounded-xl bg-zinc-50 border border-zinc-100"></div>
-              <div className="h-24 w-full rounded-xl bg-zinc-50 border border-zinc-100"></div>
+              <div className="h-12 w-full rounded-xl bg-canvas border border-outline-subtle"></div>
+              <div className="h-24 w-full rounded-xl bg-canvas border border-outline-subtle"></div>
               <button className="w-full rounded-xl py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90" style={{ backgroundColor: brandColor }}>
                 Sertifikayı Doğrula
               </button>
             </div>
 
-            <p className="mt-6 text-11 text-zinc-400">
+            <p className="mt-6 text-11 text-content-muted">
               {settingsState.certificate_footer || `© ${new Date().getFullYear()} Kurum Adı. Tüm hakları saklıdır.`}
             </p>
           </div>
@@ -1178,32 +1178,32 @@ const MODULE_META = [
 
 const COLOR_MAP: Record<string, { ring: string; bg: string; text: string; dot: string; badge: string }> = {
   indigo: {
-    ring: "ring-indigo-500",
-    bg: "bg-indigo-50",
-    text: "text-indigo-700",
+    ring: "ring-status-info-border",
+    bg: "bg-status-info-bg",
+    text: "text-status-info-content",
     dot: "bg-indigo-500",
-    badge: "bg-indigo-100 text-indigo-700",
+    badge: "bg-status-info-bg text-status-info-content",
   },
   violet: {
-    ring: "ring-violet-500",
-    bg: "bg-violet-50",
-    text: "text-violet-700",
+    ring: "ring-status-info-border",
+    bg: "bg-status-info-bg",
+    text: "text-status-info-content",
     dot: "bg-violet-500",
-    badge: "bg-violet-100 text-violet-700",
+    badge: "bg-status-info-bg text-status-info-content",
   },
   emerald: {
-    ring: "ring-emerald-500",
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
+    ring: "ring-status-success-border",
+    bg: "bg-status-success-bg",
+    text: "text-status-success-content",
     dot: "bg-emerald-500",
-    badge: "bg-emerald-100 text-emerald-700",
+    badge: "bg-status-success-bg text-status-success-content",
   },
   sky: {
-    ring: "ring-sky-500",
-    bg: "bg-sky-50",
-    text: "text-sky-700",
+    ring: "ring-status-info-border",
+    bg: "bg-status-info-bg",
+    text: "text-status-info-content",
     dot: "bg-sky-500",
-    badge: "bg-sky-100 text-sky-700",
+    badge: "bg-status-info-bg text-status-info-content",
   },
 };
 
@@ -1239,7 +1239,7 @@ function ModulesTab() {
   if (loading) {
     return (
       <div className="flex min-h-[200px] items-center justify-center">
-        <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+        <Loader2 className="h-5 w-5 animate-spin text-content-muted" />
       </div>
     );
   }
@@ -1248,12 +1248,12 @@ function ModulesTab() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-5 py-4">
-        <p className="text-sm text-zinc-600 leading-relaxed">
+      <div className="rounded-2xl border border-outline-subtle bg-canvas px-5 py-4">
+        <p className="text-sm text-content-secondary leading-relaxed">
           Kullanmadığınız modülleri kapatarak yönetim panelini sadelştirebilirsiniz.
           Kapatılan modüllerin menü öğeleri gizlenir; veriler silinmez.
         </p>
-        <p className="mt-2 text-xs font-medium text-zinc-400">
+        <p className="mt-2 text-xs font-medium text-content-muted">
           {enabledCount} / {MODULE_META.length} modül aktif
         </p>
       </div>
@@ -1267,16 +1267,16 @@ function ModulesTab() {
           return (
             <div
               key={m.key}
-              className={`flex items-start gap-4 rounded-2xl border bg-white p-5 shadow-sm transition-all ${
-                enabled ? `ring-2 ${c.ring} ring-offset-1 border-transparent` : "border-zinc-200"
+              className={`flex items-start gap-4 rounded-2xl border bg-raised p-5 shadow-sm transition-all ${
+                enabled ? `ring-2 ${c.ring} ring-offset-1 border-transparent` : "border-outline-subtle"
               }`}
             >
-              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${enabled ? c.bg : "bg-zinc-100"}`}>
-                <Icon className={`h-5 w-5 ${enabled ? c.text : "text-zinc-400"}`} />
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${enabled ? c.bg : "bg-sunken"}`}>
+                <Icon className={`h-5 w-5 ${enabled ? c.text : "text-content-muted"}`} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className={`text-sm font-semibold ${enabled ? "text-zinc-900" : "text-zinc-500"}`}>
+                  <p className={`text-sm font-semibold ${enabled ? "text-content-primary" : "text-content-muted"}`}>
                     {m.labelTr}
                   </p>
                   {enabled ? (
@@ -1285,25 +1285,25 @@ function ModulesTab() {
                       Aktif
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500">
-                      <span className="h-1.5 w-1.5 rounded-full bg-zinc-400" />
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sunken px-2 py-0.5 text-xs font-medium text-content-muted">
+                      <span className="h-1.5 w-1.5 rounded-full bg-content-muted" />
                       Kapalı
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-xs text-zinc-500 leading-relaxed">{m.descTr}</p>
+                <p className="mt-1 text-xs text-content-muted leading-relaxed">{m.descTr}</p>
               </div>
               <button
                 type="button"
                 disabled={saving}
                 onClick={() => void toggle(m.key)}
                 className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
-                  enabled ? `${c.bg} focus:ring-current` : "bg-zinc-200 focus:ring-zinc-400"
+                  enabled ? `${c.bg} focus:ring-current` : "bg-sunken focus:ring-outline-strong"
                 }`}
                 style={enabled ? { backgroundColor: "" } : undefined}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-raised shadow-lg ring-0 transition-transform ${
                     enabled ? "translate-x-5" : "translate-x-0"
                   }`}
                   style={
@@ -1316,14 +1316,14 @@ function ModulesTab() {
                   className="absolute inset-0 rounded-full transition-colors"
                   style={{ backgroundColor: enabled ? (m.color === "indigo" ? "#6366f1" : m.color === "violet" ? "#8b5cf6" : "#10b981") : "#e4e4e7" }}
                 />
-                <span className={`pointer-events-none absolute top-0.5 left-0.5 inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${enabled ? "translate-x-5" : "translate-x-0"}`} />
+                <span className={`pointer-events-none absolute top-0.5 left-0.5 inline-block h-5 w-5 transform rounded-full bg-raised shadow-lg transition-transform ${enabled ? "translate-x-5" : "translate-x-0"}`} />
               </button>
             </div>
           );
         })}
       </div>
 
-      <p className="text-xs text-zinc-400 px-1">
+      <p className="text-xs text-content-muted px-1">
         Modül ayarları anlık olarak kaydedilir. Sayfayı yeniledikten sonra menü değişiklikleri görünür olur.
       </p>
     </div>
@@ -1349,26 +1349,26 @@ function ComplianceTab() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+      <section className="rounded-3xl border border-outline-subtle bg-raised p-6 shadow-sm sm:p-8">
         <div className="mb-6 flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><FileText className="h-5 w-5" /></div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-status-info-bg text-status-info-content"><FileText className="h-5 w-5" /></div>
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900">KVKK ve açık rıza kayıtları</h2>
-            <p className="text-sm text-zinc-500">Kendi organizasyonunuzun etkinliklerindeki rıza, metin görüntüleme ve doküman tıklama loglarını indirin.</p>
+            <h2 className="text-lg font-semibold text-content-primary">KVKK ve açık rıza kayıtları</h2>
+            <p className="text-sm text-content-muted">Kendi organizasyonunuzun etkinliklerindeki rıza, metin görüntüleme ve doküman tıklama loglarını indirin.</p>
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <button type="button" onClick={() => void download("csv")} disabled={!!downloading} className="rounded-2xl border border-zinc-200 px-4 py-4 text-left transition hover:bg-zinc-50 disabled:opacity-60">
-            <p className="font-semibold text-zinc-900">CSV export</p>
-            <p className="mt-1 text-sm text-zinc-500">Excel ve arşivleme için detaylı kayıt.</p>
+          <button type="button" onClick={() => void download("csv")} disabled={!!downloading} className="rounded-2xl border border-outline-subtle px-4 py-4 text-left transition hover:bg-canvas disabled:opacity-60">
+            <p className="font-semibold text-content-primary">CSV export</p>
+            <p className="mt-1 text-sm text-content-muted">Excel ve arşivleme için detaylı kayıt.</p>
           </button>
-          <button type="button" onClick={() => void download("pdf")} disabled={!!downloading} className="rounded-2xl border border-zinc-200 px-4 py-4 text-left transition hover:bg-zinc-50 disabled:opacity-60">
-            <p className="font-semibold text-zinc-900">PDF özet</p>
-            <p className="mt-1 text-sm text-zinc-500">Denetim paylaşımı için okunabilir özet.</p>
+          <button type="button" onClick={() => void download("pdf")} disabled={!!downloading} className="rounded-2xl border border-outline-subtle px-4 py-4 text-left transition hover:bg-canvas disabled:opacity-60">
+            <p className="font-semibold text-content-primary">PDF özet</p>
+            <p className="mt-1 text-sm text-content-muted">Denetim paylaşımı için okunabilir özet.</p>
           </button>
         </div>
       </section>
-      <aside className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+      <aside className="rounded-3xl border border-status-warning-border bg-status-warning-bg p-6 text-sm text-status-warning-content">
         <p className="font-bold">Kayıt altına alınan olaylar</p>
         <ul className="mt-3 list-disc space-y-2 pl-5">
           <li>Açık rıza onayı</li>
@@ -1448,15 +1448,15 @@ export default function AdminSettingsPage() {
     <div className="mx-auto max-w-7xl space-y-8 pb-24 px-4 sm:px-6 lg:px-8 mt-8">
       {/* Orijinal PageHeader componenti duruyor, dilersen kullanabilirsin diye ama yeni hali çok daha Apple-vari oldu. */}
       {/* <PageHeader title="Ayarlar" subtitle="..." icon={<Settings />} /> */}
-      
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Ayarlar</h1>
-          <p className="text-base text-zinc-500">Hesap, güvenlik, faturalandırma ve kurumsal kimlik yönetimi.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-content-primary">Ayarlar</h1>
+          <p className="text-base text-content-muted">Hesap, güvenlik, faturalandırma ve kurumsal kimlik yönetimi.</p>
         </div>
         {organizationContexts.length > 0 && (
-          <div className="w-full rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm lg:w-80">
-            <label className="mb-1 block text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Organizasyon</label>
+          <div className="w-full rounded-2xl border border-outline-subtle bg-raised p-3 shadow-sm lg:w-80">
+            <label className="mb-1 block text-xs font-bold uppercase tracking-[0.18em] text-content-muted">Organizasyon</label>
             <select
               value={selectedOrganizationId}
               onChange={(event) => {
@@ -1465,7 +1465,7 @@ export default function AdminSettingsPage() {
                 setSelectedOrganizationId(nextId || null);
                 window.location.reload();
               }}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-800 outline-none transition focus:border-zinc-900 focus:bg-white"
+              className="w-full rounded-xl border border-outline-subtle bg-canvas px-3 py-2 text-sm font-semibold text-content-primary outline-none transition focus:border-outline-strong focus:bg-raised"
             >
               {organizationContexts.map((ctx) => (
                 <option key={ctx.id} value={ctx.id}>
@@ -1477,7 +1477,7 @@ export default function AdminSettingsPage() {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2 rounded-2xl bg-zinc-50 p-2 border border-zinc-100">
+      <div className="flex flex-wrap gap-2 rounded-2xl bg-canvas p-2 border border-outline-subtle">
         {availableTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1487,8 +1487,8 @@ export default function AdminSettingsPage() {
               onClick={() => handleTabChange(tab.id)}
               className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-200/50"
-                  : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/50"
+                  ? "bg-raised text-content-primary shadow-sm ring-1 ring-outline-subtle/50"
+                  : "text-content-muted hover:text-content-primary hover:bg-sunken/50"
               }`}
             >
               <Icon className="h-4 w-4" />

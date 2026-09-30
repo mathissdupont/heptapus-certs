@@ -41,20 +41,20 @@ class ErrorBoundary extends React.Component<Props, State> {
 
       return (
         <div
-          className="flex flex-col items-center justify-center min-h-96 p-6 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-900 m-4"
+          className="flex flex-col items-center justify-center min-h-96 p-6 bg-status-danger-bg  rounded-lg border border-status-danger-border  m-4"
           role="alert"
           aria-live="polite"
         >
-          <AlertCircle className="h-12 w-12 text-red-600 dark:text-red-400 mb-4" />
-          <h2 className="text-xl font-semibold text-red-900 dark:text-red-100 mb-2">
+          <AlertCircle className="h-12 w-12 text-status-danger-content  mb-4" />
+          <h2 className="text-xl font-semibold text-status-danger-content  mb-2">
             Something went wrong
           </h2>
-          <p className="text-red-700 dark:text-red-200 text-center mb-4">
+          <p className="text-status-danger-content  text-center mb-4">
             {this.state.error?.message || 'An unexpected error occurred'}
           </p>
           <button
             onClick={this.resetError}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            className="px-4 py-2 bg-red-600 hover:bg-red-700   text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-status-danger-border focus:ring-offset-2 dark:focus:ring-offset-gray-900"
             aria-label="Try again"
           >
             Try Again

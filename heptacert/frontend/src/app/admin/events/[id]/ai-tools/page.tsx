@@ -24,9 +24,9 @@ function CopyBtn({ text }: { text: string }) {
     <button
       type="button"
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+      className="flex items-center gap-1.5 rounded-lg border border-outline-subtle px-3 py-1.5 text-xs font-medium text-content-secondary hover:bg-canvas"
     >
-      {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-status-success-content" /> : <Copy className="h-3.5 w-3.5" />}
       {copied ? "Kopyalandı" : "Kopyala"}
     </button>
   );
@@ -89,33 +89,33 @@ function EmailGenerator({ eventId }: { eventId: string }) {
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Intent */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-700">Mail amacı</label>
+          <label className="mb-1.5 block text-xs font-medium text-content-secondary">Mail amacı</label>
           <div className="relative">
             <select
               value={intent}
               onChange={(e) => setIntent(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-8 text-sm outline-none focus:border-slate-400"
+              className="w-full appearance-none rounded-lg border border-outline-subtle bg-raised px-3 py-2.5 pr-8 text-sm outline-none focus:border-outline-strong"
             >
               {INTENT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
               <option value="__custom">Özel…</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-content-muted" />
           </div>
           {intent === "__custom" && (
             <input
               value={customIntent}
               onChange={(e) => setCustom(e.target.value)}
               placeholder="Mail amacını yazın…"
-              className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+              className="mt-2 w-full rounded-lg border border-outline-subtle px-3 py-2 text-sm outline-none focus:border-outline-strong"
             />
           )}
         </div>
 
         {/* Language */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-700">Dil</label>
+          <label className="mb-1.5 block text-xs font-medium text-content-secondary">Dil</label>
           <div className="flex gap-2">
             {(["tr", "en"] as const).map((l) => (
               <button
@@ -124,8 +124,8 @@ function EmailGenerator({ eventId }: { eventId: string }) {
                 onClick={() => setLang(l)}
                 className={`flex-1 rounded-lg border py-2.5 text-sm font-medium transition-colors ${
                   lang === l
-                    ? "border-slate-700 bg-slate-900 text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    ? "border-outline-strong bg-inverse-surface text-white"
+                    : "border-outline-subtle bg-raised text-content-secondary hover:bg-canvas"
                 }`}
               >
                 {l === "tr" ? "Türkçe" : "English"}
@@ -137,15 +137,15 @@ function EmailGenerator({ eventId }: { eventId: string }) {
 
       {/* Extra notes */}
       <div>
-        <label className="mb-1.5 block text-xs font-medium text-slate-700">
-          Ek notlar <span className="font-normal text-slate-400">(opsiyonel — özel vurgu, indirim kodu vb.)</span>
+        <label className="mb-1.5 block text-xs font-medium text-content-secondary">
+          Ek notlar <span className="font-normal text-content-muted">(opsiyonel — özel vurgu, indirim kodu vb.)</span>
         </label>
         <textarea
           rows={2}
           value={extra}
           onChange={(e) => setExtra(e.target.value)}
           placeholder="Örn: Katılımcılara ücretsiz öğle yemeği verileceğini belirt"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+          className="w-full rounded-lg border border-outline-subtle px-3 py-2 text-sm outline-none focus:border-outline-strong"
         />
       </div>
 
@@ -153,7 +153,7 @@ function EmailGenerator({ eventId }: { eventId: string }) {
         type="button"
         onClick={generate}
         disabled={loading}
-        className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+        className="flex items-center gap-2 rounded-xl bg-inverse-surface px-5 py-2.5 text-sm font-semibold text-white hover:bg-inverse-surface disabled:opacity-60"
       >
         {loading
           ? <><Loader2 className="h-4 w-4 animate-spin" /> Yazılıyor…</>
@@ -162,37 +162,37 @@ function EmailGenerator({ eventId }: { eventId: string }) {
       </button>
 
       {error && (
-        <p className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <p className="flex items-center gap-2 rounded-lg border border-status-danger-border bg-status-danger-bg px-3 py-2 text-xs text-status-danger-content">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {error}
         </p>
       )}
 
       {result && (
-        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div className="space-y-3 rounded-2xl border border-outline-subtle bg-canvas p-5">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-content-muted">
               Sonuç {result.provider === "fallback" ? "· şablon" : "· Claude AI"}
             </p>
-            <button type="button" onClick={generate} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700">
+            <button type="button" onClick={generate} className="flex items-center gap-1 text-xs text-content-muted hover:text-content-secondary">
               <RefreshCw className="h-3 w-3" /> Yeniden üret
             </button>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="rounded-xl border border-outline-subtle bg-raised p-4">
             <div className="mb-1 flex items-center justify-between">
-              <p className="text-xs font-medium text-slate-500">KONU</p>
+              <p className="text-xs font-medium text-content-muted">KONU</p>
               <CopyBtn text={result.subject} />
             </div>
-            <p className="text-sm font-medium text-slate-900">{result.subject}</p>
+            <p className="text-sm font-medium text-content-primary">{result.subject}</p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="rounded-xl border border-outline-subtle bg-raised p-4">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-xs font-medium text-slate-500">İÇERİK</p>
+              <p className="text-xs font-medium text-content-muted">İÇERİK</p>
               <CopyBtn text={result.body} />
             </div>
             <div
-              className="prose prose-sm max-w-none text-slate-700"
+              className="prose prose-sm max-w-none text-content-secondary"
               dangerouslySetInnerHTML={{ __html: result.body }}
             />
           </div>
@@ -244,23 +244,23 @@ function FormGenerator({ eventId }: { eventId: string }) {
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-700">Etkinlik türü</label>
+          <label className="mb-1.5 block text-xs font-medium text-content-secondary">Etkinlik türü</label>
           <div className="relative">
             <select
               value={eventType}
               onChange={(e) => setEventType(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-2.5 pr-8 text-sm outline-none focus:border-slate-400"
+              className="w-full appearance-none rounded-lg border border-outline-subtle bg-raised px-3 py-2.5 pr-8 text-sm outline-none focus:border-outline-strong"
             >
               {EVENT_TYPES.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-content-muted" />
           </div>
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-slate-700">Dil</label>
+          <label className="mb-1.5 block text-xs font-medium text-content-secondary">Dil</label>
           <div className="flex gap-2">
             {(["tr", "en"] as const).map((l) => (
               <button
@@ -269,8 +269,8 @@ function FormGenerator({ eventId }: { eventId: string }) {
                 onClick={() => setLang(l)}
                 className={`flex-1 rounded-lg border py-2.5 text-sm font-medium transition-colors ${
                   lang === l
-                    ? "border-slate-700 bg-slate-900 text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    ? "border-outline-strong bg-inverse-surface text-white"
+                    : "border-outline-subtle bg-raised text-content-secondary hover:bg-canvas"
                 }`}
               >
                 {l === "tr" ? "Türkçe" : "English"}
@@ -281,15 +281,15 @@ function FormGenerator({ eventId }: { eventId: string }) {
       </div>
 
       <div>
-        <label className="mb-1.5 block text-xs font-medium text-slate-700">
-          Ek notlar <span className="font-normal text-slate-400">(opsiyonel — "şirket bilgisi de iste", "T-shirt bedeni sor" vb.)</span>
+        <label className="mb-1.5 block text-xs font-medium text-content-secondary">
+          Ek notlar <span className="font-normal text-content-muted">(opsiyonel — "şirket bilgisi de iste", "T-shirt bedeni sor" vb.)</span>
         </label>
         <textarea
           rows={2}
           value={extra}
           onChange={(e) => setExtra(e.target.value)}
           placeholder="Örn: Katılımcıdan kurum adı ve unvan bilgisi de iste"
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+          className="w-full rounded-lg border border-outline-subtle px-3 py-2 text-sm outline-none focus:border-outline-strong"
         />
       </div>
 
@@ -297,7 +297,7 @@ function FormGenerator({ eventId }: { eventId: string }) {
         type="button"
         onClick={generate}
         disabled={loading}
-        className="flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+        className="flex items-center gap-2 rounded-xl bg-inverse-surface px-5 py-2.5 text-sm font-semibold text-white hover:bg-inverse-surface disabled:opacity-60"
       >
         {loading
           ? <><Loader2 className="h-4 w-4 animate-spin" /> Oluşturuluyor…</>
@@ -306,47 +306,47 @@ function FormGenerator({ eventId }: { eventId: string }) {
       </button>
 
       {error && (
-        <p className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+        <p className="flex items-center gap-2 rounded-lg border border-status-danger-border bg-status-danger-bg px-3 py-2 text-xs text-status-danger-content">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {error}
         </p>
       )}
 
       {result && (
-        <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <div className="space-y-3 rounded-2xl border border-outline-subtle bg-canvas p-5">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-content-muted">
               {result.fields.length} alan {result.provider === "fallback" ? "· şablon" : "· Claude AI"}
             </p>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={generate} className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700">
+              <button type="button" onClick={generate} className="flex items-center gap-1 text-xs text-content-muted hover:text-content-secondary">
                 <RefreshCw className="h-3 w-3" /> Yeniden üret
               </button>
               <CopyBtn text={JSON.stringify(result.fields, null, 2)} />
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-hidden rounded-xl border border-outline-subtle bg-raised">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50">
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">Etiket</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">Tür</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">Zorunlu</th>
-                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">Seçenekler</th>
+                <tr className="border-b border-outline-subtle bg-canvas">
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-content-muted">Etiket</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-content-muted">Tür</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-content-muted">Zorunlu</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-content-muted">Seçenekler</th>
                 </tr>
               </thead>
               <tbody>
                 {result.fields.map((f, i) => (
-                  <tr key={i} className={i !== result.fields.length - 1 ? "border-b border-slate-100" : ""}>
-                    <td className="px-4 py-3 font-medium text-slate-900">{f.label}</td>
-                    <td className="px-4 py-3 text-slate-600">{FIELD_TYPE_LABELS[f.type] ?? f.type}</td>
+                  <tr key={i} className={i !== result.fields.length - 1 ? "border-b border-outline-subtle" : ""}>
+                    <td className="px-4 py-3 font-medium text-content-primary">{f.label}</td>
+                    <td className="px-4 py-3 text-content-secondary">{FIELD_TYPE_LABELS[f.type] ?? f.type}</td>
                     <td className="px-4 py-3">
                       {f.required
-                        ? <span className="rounded-full bg-red-50 px-2 py-0.5 text-10 font-medium text-red-600">Zorunlu</span>
-                        : <span className="text-slate-400 text-xs">—</span>
+                        ? <span className="rounded-full bg-status-danger-bg px-2 py-0.5 text-10 font-medium text-status-danger-content">Zorunlu</span>
+                        : <span className="text-content-muted text-xs">—</span>
                       }
                     </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">
+                    <td className="px-4 py-3 text-content-muted text-xs">
                       {f.options ? f.options.join(", ") : f.placeholder ?? "—"}
                     </td>
                   </tr>
@@ -355,7 +355,7 @@ function FormGenerator({ eventId }: { eventId: string }) {
             </table>
           </div>
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-content-muted">
             Bu alanları kopyalayıp Etkinlik → Ayarlar → Kayıt Formu bölümünden manuel olarak ekleyebilirsiniz.
           </p>
         </div>
@@ -389,7 +389,7 @@ export default function AIToolsPage() {
         />
 
         {/* Tab bar */}
-        <div className="mt-6 flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+        <div className="mt-6 flex gap-1 rounded-xl border border-outline-subtle bg-canvas p-1">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -397,8 +397,8 @@ export default function AIToolsPage() {
               onClick={() => setTab(t.id)}
               className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
                 tab === t.id
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-raised text-content-primary shadow-sm"
+                  : "text-content-muted hover:text-content-secondary"
               }`}
             >
               {t.icon}
@@ -408,7 +408,7 @@ export default function AIToolsPage() {
         </div>
 
         {/* Tab content */}
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+        <div className="mt-6 rounded-2xl border border-outline-subtle bg-raised p-6">
           {tab === "email" ? <EmailGenerator eventId={id} /> : <FormGenerator eventId={id} />}
         </div>
       </div>

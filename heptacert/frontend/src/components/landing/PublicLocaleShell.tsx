@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { LocalizedCookieConsent } from "@/components/CookieConsent/CookieConsent";
 import { Link } from "@/i18n/navigation";
 
@@ -31,6 +32,15 @@ export default function PublicLocaleShell({ children }: { children: React.ReactN
             <NextLink href="/verify" className="rounded-lg px-3 py-2 text-sm font-semibold text-content-muted transition hover:bg-sunken hover:text-content-primary">{t("nav_verify")}</NextLink>
           </div>
           <div className="flex min-w-0 items-center gap-2">
+            <ThemeToggle
+              labels={{
+                switcher: t("theme_switcher_label"),
+                light: t("theme_light"),
+                dark: t("theme_dark"),
+                system: t("theme_system"),
+              }}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-outline-subtle bg-sunken text-content-secondary transition-colors hover:bg-raised hover:text-content-primary"
+            />
             <LanguageSwitcher compactOnMobile className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-outline-subtle bg-sunken px-2.5 text-xs font-bold text-content-secondary transition-colors hover:bg-raised hover:text-content-primary" />
             <NextLink href="/login" className="btn-ghost hidden text-sm sm:inline-flex">{t("nav_login")}</NextLink>
             <NextLink href="/register?mode=organizer" className="btn-primary hidden text-sm lg:inline-flex">{t("nav_start_free")}</NextLink>

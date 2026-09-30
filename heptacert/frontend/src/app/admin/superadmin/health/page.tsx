@@ -202,8 +202,8 @@ export default function SuperadminHealthPage() {
           </div>
           <div className="grid gap-3 md:grid-cols-5">
             {Object.entries(platform.probes).map(([key, probe]) => (
-              <div key={key} className={`rounded-2xl border p-4 ${probe.ok ? "border-emerald-100 bg-emerald-50" : "border-amber-100 bg-amber-50"}`}>
-                <p className={`text-xs font-black uppercase tracking-wider ${probe.ok ? "text-emerald-700" : "text-amber-700"}`}>{key}</p>
+              <div key={key} className={`rounded-2xl border p-4 ${probe.ok ? "border-status-success-border bg-status-success-bg" : "border-status-warning-border bg-status-warning-bg"}`}>
+                <p className={`text-xs font-black uppercase tracking-wider ${probe.ok ? "text-status-success-content" : "text-status-warning-content"}`}>{key}</p>
                 <p className="mt-2 text-sm font-semibold text-surface-900">{probe.ok ? "OK" : "Warning"}</p>
                 <p className="mt-1 text-xs leading-5 text-surface-600">{probe.detail}</p>
               </div>
@@ -246,7 +246,7 @@ export default function SuperadminHealthPage() {
               <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" />
             </span>
             <div>
-              <p className="text-sm font-semibold text-emerald-700">{copy.online}</p>
+              <p className="text-sm font-semibold text-status-success-content">{copy.online}</p>
               <p className="text-sm text-surface-500">{copy.onlineDetail}</p>
             </div>
           </div>
@@ -264,7 +264,7 @@ export default function SuperadminHealthPage() {
               <h2 className="text-sm font-bold text-surface-900">
                 {lang === "tr" ? "Arkaplan İş Kuyruğu" : "Background Job Queue"}
               </h2>
-              <span className="ml-auto rounded-full bg-emerald-50 px-2 py-0.5 text-11 font-bold text-emerald-700">
+              <span className="ml-auto rounded-full bg-status-success-bg px-2 py-0.5 text-11 font-bold text-status-success-content">
                 {lang === "tr" ? "Ayrı worker container'da çalışıyor" : "Runs in dedicated worker container"}
               </span>
             </div>
@@ -280,19 +280,19 @@ export default function SuperadminHealthPage() {
                 const hasPending = (q.pending || 0) > 0 || (q.processing || 0) > 0;
                 const hasFailed = (q.failed_last_hour || 0) > 0;
                 return (
-                  <div key={key} className={`rounded-xl border p-3 ${hasFailed ? "border-rose-200 bg-rose-50/50" : hasPending ? "border-amber-200 bg-amber-50/50" : "border-surface-200 bg-white"}`}>
+                  <div key={key} className={`rounded-xl border p-3 ${hasFailed ? "border-status-danger-border bg-status-danger-bg/50" : hasPending ? "border-status-warning-border bg-status-warning-bg/50" : "border-surface-200 bg-raised"}`}>
                     <div className="flex items-center gap-1.5 mb-2">
                       {hasFailed
-                        ? <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
+                        ? <XCircle className="h-3.5 w-3.5 text-status-danger-content shrink-0" />
                         : hasPending
-                        ? <Loader2 className="h-3.5 w-3.5 text-amber-500 animate-spin shrink-0" />
-                        : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
+                        ? <Loader2 className="h-3.5 w-3.5 text-status-warning-content animate-spin shrink-0" />
+                        : <CheckCircle2 className="h-3.5 w-3.5 text-status-success-content shrink-0" />}
                       <p className="text-11 font-bold text-surface-700 truncate">{label}</p>
                     </div>
                     <div className="space-y-0.5 text-11 text-surface-500">
                       {q.pending !== undefined && <p>{lang === "tr" ? "Bekleyen" : "Pending"}: <span className="font-bold text-surface-700">{q.pending}</span></p>}
                       {q.processing !== undefined && <p>{lang === "tr" ? "İşleniyor" : "Processing"}: <span className="font-bold text-surface-700">{q.processing}</span></p>}
-                      {q.failed_last_hour !== undefined && <p className={q.failed_last_hour > 0 ? "text-rose-600 font-bold" : ""}>{lang === "tr" ? "Hata (1s)" : "Failed (1h)"}: <span className="font-bold">{q.failed_last_hour}</span></p>}
+                      {q.failed_last_hour !== undefined && <p className={q.failed_last_hour > 0 ? "text-status-danger-content font-bold" : ""}>{lang === "tr" ? "Hata (1s)" : "Failed (1h)"}: <span className="font-bold">{q.failed_last_hour}</span></p>}
                     </div>
                   </div>
                 );

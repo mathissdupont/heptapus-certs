@@ -273,7 +273,7 @@ export default function EventTeamPage() {
                   className={`flex min-h-12 items-center gap-2 rounded-lg border p-3 text-left text-sm font-medium transition ${
                     permissions.includes(item.value)
                       ? "border-brand-300 bg-brand-50 text-surface-900"
-                      : "border-surface-200 bg-white text-surface-600 hover:border-surface-300 hover:bg-surface-50"
+                      : "border-surface-200 bg-raised text-surface-600 hover:border-surface-300 hover:bg-surface-50"
                   } ${item.value === "event:view" ? "cursor-default opacity-80" : ""}`}
                 >
                   <CheckCircle2 className={`h-4 w-4 shrink-0 ${permissions.includes(item.value) ? "text-brand-600" : "text-surface-300"}`} />
@@ -328,13 +328,13 @@ export default function EventTeamPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-surface-900">{member.email}</p>
                     <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium">
-                      <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
-                      <span className="text-blue-600">{roleLabel.get(member.role)}</span>
+                      <ShieldCheck className="h-3.5 w-3.5 text-status-info-content" />
+                      <span className="text-status-info-content">{roleLabel.get(member.role)}</span>
                       <span className={`ml-2 rounded-full border px-2 py-0.5 text-11 font-bold ${
                         member.status === "active"
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          ? "border-status-success-border bg-status-success-bg text-status-success-content"
                           : member.status === "pending"
-                            ? "border-amber-200 bg-amber-50 text-amber-700"
+                            ? "border-status-warning-border bg-status-warning-bg text-status-warning-content"
                             : "border-surface-200 bg-surface-50 text-surface-500"
                       }`}>
                         {member.status === "active" ? copy.active : member.status === "pending" ? copy.pending : copy.disabled}
@@ -407,7 +407,7 @@ export default function EventTeamPage() {
                             className={`flex min-h-11 items-center gap-2 rounded-lg border p-2.5 text-left text-xs font-semibold transition ${
                               member.effective_permissions.includes(item.value)
                                 ? "border-brand-300 bg-brand-50 text-surface-900"
-                                : "border-surface-200 bg-white text-surface-600 hover:border-surface-300 hover:bg-surface-50"
+                                : "border-surface-200 bg-raised text-surface-600 hover:border-surface-300 hover:bg-surface-50"
                             } ${item.value === "event:view" ? "cursor-default opacity-80" : ""}`}
                           >
                             <CheckCircle2 className={`h-4 w-4 shrink-0 ${member.effective_permissions.includes(item.value) ? "text-brand-600" : "text-surface-300"}`} />
@@ -419,7 +419,7 @@ export default function EventTeamPage() {
 
                     <button
                       onClick={() => handleDelete(member)}
-                      className="btn-secondary w-full justify-center text-red-600 hover:text-red-700"
+                      className="btn-secondary w-full justify-center text-status-danger-content hover:text-status-danger-content"
                     >
                       <Trash2 className="h-4 w-4" />
                       {copy.removeMember}

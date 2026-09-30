@@ -34,7 +34,7 @@ export const toast = {
 function notify(type: ToastType, message: string, duration?: number) {
   const id = Math.random().toString(36).substr(2, 9);
   const toast: Toast = { id, message, type, duration };
-  
+
   toastListeners.forEach(listener => {
     try {
       listener(toast);

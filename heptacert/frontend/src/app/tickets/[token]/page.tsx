@@ -99,11 +99,11 @@ export default function PublicTicketPage() {
   // Yükleniyor veya Hata durumları için minimalist Apple stili
   if (error) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F5F5F7] px-4">
-        <div className="w-full max-w-sm rounded-[2rem] bg-white p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-          <XCircle className="mx-auto h-12 w-12 text-red-500" strokeWidth={1.5} />
-          <h2 className="mt-4 text-lg font-semibold text-zinc-900">Hata</h2>
-          <p className="mt-2 text-sm text-zinc-500">{error}</p>
+      <main className="flex min-h-screen items-center justify-center bg-canvas px-4">
+        <div className="w-full max-w-sm rounded-[2rem] bg-raised p-8 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+          <XCircle className="mx-auto h-12 w-12 text-status-danger-content" strokeWidth={1.5} />
+          <h2 className="mt-4 text-lg font-semibold text-content-primary">Hata</h2>
+          <p className="mt-2 text-sm text-content-muted">{error}</p>
         </div>
       </main>
     );
@@ -111,8 +111,8 @@ export default function PublicTicketPage() {
 
   if (!ticket || !token) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#F5F5F7] px-4">
-        <div className="flex flex-col items-center gap-4 text-zinc-400">
+      <main className="flex min-h-screen items-center justify-center bg-canvas px-4">
+        <div className="flex flex-col items-center gap-4 text-content-muted">
           <Loader2 className="h-8 w-8 animate-spin" strokeWidth={1.5} />
           <span className="text-sm font-medium">Biletiniz hazırlanıyor...</span>
         </div>
@@ -124,25 +124,25 @@ export default function PublicTicketPage() {
   const cancelled = ticket.status === "cancelled" || ticket.status === "revoked";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F5F5F7] px-4 py-12 font-sans selection:bg-blue-100 selection:text-blue-900">
-      <section className="w-full max-w-sm overflow-hidden rounded-[2.5rem] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-black/[0.03]">
-        
+    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12 font-sans selection:bg-status-info-bg selection:text-status-info-content">
+      <section className="w-full max-w-sm overflow-hidden rounded-[2.5rem] bg-raised shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-black/[0.03]">
+
         {/* Üst Kısım: Etkinlik Başlığı */}
         <div className="px-8 pt-10 pb-6 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-50 text-zinc-900 ring-1 ring-black/[0.05]">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-canvas text-content-primary ring-1 ring-black/[0.05]">
             <Ticket className="h-6 w-6" strokeWidth={1.5} />
           </div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+          <p className="text-xs font-semibold uppercase tracking-wider text-content-muted">
             Dijital Bilet
           </p>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight text-zinc-900">
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-content-primary">
             {ticket.event_name}
           </h1>
         </div>
 
         {/* Orta Kısım: QR Kod */}
         <div className="flex flex-col items-center px-8 pb-8">
-          <div className="rounded-3xl bg-white p-5 shadow-[0_0_24px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.02]">
+          <div className="rounded-3xl bg-raised p-5 shadow-[0_0_24px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.02]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={qrUrl}
@@ -155,10 +155,10 @@ export default function PublicTicketPage() {
           <div
             className={`mt-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium ${
               cancelled
-                ? "bg-red-50 text-red-600"
+                ? "bg-status-danger-bg text-status-danger-content"
                 : used
-                ? "bg-zinc-100 text-zinc-500"
-                : "bg-blue-50 text-blue-600"
+                ? "bg-sunken text-content-muted"
+                : "bg-status-info-bg text-status-info-content"
             }`}
           >
             {cancelled ? (
@@ -174,42 +174,42 @@ export default function PublicTicketPage() {
 
         {/* Bilet Ayırıcı Çizgi (Apple Wallet Stili) */}
         <div className="relative flex w-full items-center">
-          <div className="absolute -left-4 h-8 w-8 rounded-full bg-[#F5F5F7] ring-1 ring-inset ring-black/[0.03]"></div>
-          <div className="w-full border-t-2 border-dashed border-zinc-200"></div>
-          <div className="absolute -right-4 h-8 w-8 rounded-full bg-[#F5F5F7] ring-1 ring-inset ring-black/[0.03]"></div>
+          <div className="absolute -left-4 h-8 w-8 rounded-full bg-canvas ring-1 ring-inset ring-black/[0.03]"></div>
+          <div className="w-full border-t-2 border-dashed border-outline-subtle"></div>
+          <div className="absolute -right-4 h-8 w-8 rounded-full bg-canvas ring-1 ring-inset ring-black/[0.03]"></div>
         </div>
 
         {/* Alt Kısım: Bilet Detayları */}
-        <div className="bg-zinc-50/50 px-8 py-8">
+        <div className="bg-canvas/50 px-8 py-8">
           <div className="space-y-5">
             {/* Katılımcı */}
             <div>
-              <p className="flex items-center gap-2 text-13 font-medium text-zinc-400">
+              <p className="flex items-center gap-2 text-13 font-medium text-content-muted">
                 <User className="h-4 w-4" strokeWidth={2} />
                 Katılımcı
               </p>
-              <p className="mt-1 text-base font-semibold text-zinc-900">
+              <p className="mt-1 text-base font-semibold text-content-primary">
                 {ticket.attendee_name}
               </p>
-              <p className="flex items-center gap-1.5 text-sm text-zinc-500">
+              <p className="flex items-center gap-1.5 text-sm text-content-muted">
                 <Mail className="h-3.5 w-3.5" />
                 {ticket.attendee_email}
               </p>
             </div>
 
-            <hr className="border-zinc-200" />
+            <hr className="border-outline-subtle" />
 
             {/* Tarihler */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-13 font-medium text-zinc-400">Oluşturma</p>
-                <p className="mt-1 text-sm font-medium text-zinc-900">
+                <p className="text-13 font-medium text-content-muted">Oluşturma</p>
+                <p className="mt-1 text-sm font-medium text-content-primary">
                   {formatDate(ticket.issued_at, lang)}
                 </p>
               </div>
               <div>
-                <p className="text-13 font-medium text-zinc-400">Giriş Zamanı</p>
-                <p className="mt-1 text-sm font-medium text-zinc-900">
+                <p className="text-13 font-medium text-content-muted">Giriş Zamanı</p>
+                <p className="mt-1 text-sm font-medium text-content-primary">
                   {formatDate(ticket.checked_in_at, lang)}
                 </p>
               </div>
@@ -217,35 +217,35 @@ export default function PublicTicketPage() {
           </div>
 
           {/* Kurumsal Apple Wallet Açıklaması */}
-          <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-2 font-semibold text-zinc-800">
-              <WalletCards className="h-4.5 w-4.5 text-zinc-900" />
+          <div className="mt-8 rounded-2xl border border-outline-subtle bg-raised p-4 shadow-sm">
+            <div className="flex items-center gap-2 font-semibold text-content-primary">
+              <WalletCards className="h-4.5 w-4.5 text-content-primary" />
               Apple Wallet
             </div>
-            <p className="mt-1.5 text-13 leading-relaxed text-zinc-500">
+            <p className="mt-1.5 text-13 leading-relaxed text-content-muted">
               Cüzdan entegrasyonu için altyapı çalışmalarımız devam etmektedir. Bu özellik planlanan gelecek güncellemelerle birlikte aktif edilecektir.
             </p>
           </div>
 
           {/* Aksiyon Butonları Grubu */}
           <div className="mt-6 flex flex-col gap-3">
-            
+
             {/* İndirme Seçenekleri (Segmented Control Stili) */}
             {!cancelled && (
-              <div className="flex w-full items-center rounded-2xl bg-zinc-200/50 p-1 ring-1 ring-inset ring-zinc-200/50">
+              <div className="flex w-full items-center rounded-2xl bg-sunken/50 p-1 ring-1 ring-inset ring-outline-subtle/50">
                 <a
                   href={pdfUrl}
                   download
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-transparent py-2.5 text-[14px] font-semibold text-zinc-600 transition-all hover:bg-white hover:text-zinc-900 hover:shadow-sm active:scale-[0.98]"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-transparent py-2.5 text-[14px] font-semibold text-content-secondary transition-all hover:bg-raised hover:text-content-primary hover:shadow-sm active:scale-[0.98]"
                 >
                   <FileText className="h-4 w-4" />
                   PDF İndir
                 </a>
-                <div className="mx-1 h-5 w-[1px] bg-zinc-300"></div>
+                <div className="mx-1 h-5 w-[1px] bg-sunken"></div>
                 <a
                   href={pngUrl}
                   download
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-transparent py-2.5 text-[14px] font-semibold text-zinc-600 transition-all hover:bg-white hover:text-zinc-900 hover:shadow-sm active:scale-[0.98]"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-transparent py-2.5 text-[14px] font-semibold text-content-secondary transition-all hover:bg-raised hover:text-content-primary hover:shadow-sm active:scale-[0.98]"
                 >
                   <ImageIcon className="h-4 w-4" />
                   PNG İndir
@@ -256,14 +256,14 @@ export default function PublicTicketPage() {
             <button
               type="button"
               onClick={addToHomeScreen}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3.5 text-[15px] font-semibold text-zinc-900 shadow-sm ring-1 ring-inset ring-zinc-200 transition-all hover:bg-zinc-50 active:scale-[0.98]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-raised px-4 py-3.5 text-[15px] font-semibold text-content-primary shadow-sm ring-1 ring-inset ring-outline-subtle transition-all hover:bg-canvas active:scale-[0.98]"
             >
               <Home className="h-5 w-5" />
               Ana Ekrana Ekle
             </button>
-            
+
             {homeHint && (
-              <p className="rounded-2xl bg-blue-50 px-4 py-3 text-13 leading-5 text-blue-700">
+              <p className="rounded-2xl bg-status-info-bg px-4 py-3 text-13 leading-5 text-status-info-content">
                 iPhone Safari: <strong>Paylaş</strong> simgesi &gt; <strong>Ana Ekrana Ekle</strong>. <br/> Android Chrome: <strong>Menü (⋮)</strong> &gt; <strong>Ana Ekrana Ekle</strong>.
               </p>
             )}

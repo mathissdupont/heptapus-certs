@@ -204,12 +204,12 @@ function getCurrentSection(pathname: string): string {
 
 function getTourIdByHref(href: string): string {
   const map: Record<string, string> = {
-    "/admin/dashboard": "nav-dashboard",
-    "/admin/events": "nav-events",
-    "/admin/email-dashboard": "nav-email-dashboard",
-    "/admin/email-analytics": "nav-email-analytics",
-    "/admin/settings": "nav-settings",
-    "/admin/superadmin": "nav-superadmin",
+ "/admin/dashboard": "nav-dashboard",
+ "/admin/events": "nav-events",
+ "/admin/email-dashboard": "nav-email-dashboard",
+ "/admin/email-analytics": "nav-email-analytics",
+ "/admin/settings": "nav-settings",
+ "/admin/superadmin": "nav-superadmin",
   };
   return map[href] || "";
 }

@@ -38,9 +38,9 @@ export default function AdminAssistantPage() {
       className="flex h-[100dvh] w-full overflow-hidden bg-surface-50/50 text-surface-900 antialiased"
     >
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        
+
         {/* 1. ÜST BİLGİ ALANI (Header) - Apple Geçirgenliği */}
-        <header className="shrink-0 border-b border-surface-200/80 bg-white/80 px-4 py-3 backdrop-blur-xl sm:px-6">
+        <header className="shrink-0 border-b border-surface-200/80 bg-raised/80 px-4 py-3 backdrop-blur-xl sm:px-6">
           <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3.5">
               {/* İkon Yuvası */}
@@ -66,7 +66,7 @@ export default function AdminAssistantPage() {
             </div>
 
             {/* Çevrimiçi / Canlı Durum Rozeti */}
-            <div className="flex shrink-0 items-center gap-2 rounded-full border border-surface-100 bg-white px-2.5 py-1 text-11 font-semibold text-surface-500 shadow-sm">
+            <div className="flex shrink-0 items-center gap-2 rounded-full border border-surface-100 bg-raised px-2.5 py-1 text-11 font-semibold text-surface-500 shadow-sm">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -80,11 +80,11 @@ export default function AdminAssistantPage() {
 
         {/* 2. ANA ASİSTAN İSTASYONU (Main) - Temiz Akış */}
         <main className="min-h-0 flex-1 overflow-hidden bg-surface-50/30 p-3 sm:p-5 lg:p-6">
-          <div className="mx-auto flex h-full w-full max-w-[1280px] min-h-0 overflow-hidden rounded-2xl border border-surface-200/80 bg-white shadow-sm">
+          <div className="mx-auto flex h-full w-full max-w-[1280px] min-h-0 overflow-hidden rounded-2xl border border-surface-200/80 bg-raised shadow-sm">
             <AIAssistant pageMode />
           </div>
         </main>
-        
+
       </div>
     </div>
   );

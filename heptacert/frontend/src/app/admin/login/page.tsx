@@ -1,15 +1,16 @@
 ﻿"use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { API_BASE, apiFetch, setToken, clearToken, setSelectedOrganizationId } from "@/lib/api";
 import { landingPathForContexts, type OrgRoleContext } from "@/lib/orgRoles";
 import { loadOrganizerOnboardingState, postAuthLandingPath } from "@/lib/onboarding";
-import { useI18n } from "@/lib/i18n";
+import { LanguageToggle, useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, Mail, Loader2, ArrowRight, KeyRound, Sparkles, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type MeOut = {
   id: number;
@@ -19,78 +20,41 @@ type MeOut = {
 };
 
 export default function AdminLogin() {
-  const { lang } = useI18n();
-  const copy = useMemo(
-    () =>
-      lang === "tr"
-        ? {
-            tokenMissing: "Token alınamadı.",
-            loginFailed: "Giriş başarısız oldu. Bilgilerinizi kontrol edin.",
-            otpFailed: "Doğrulama başarısız.",
-            invalidCode: "Geçersiz kod. Tekrar deneyin.",
-            magicFailed: "Magic link gönderilemedi.",
-            title: "Giriş Yap",
-            subtitle: "HeptaCert Yönetim Paneli",
-            email: "E-posta Adresi",
-            password: "Şifre",
-            forgot: "Şifremi Unuttum",
-            signIn: "Giriş Yap",
-            signingIn: "Giriş yapılıyor...",
-            noAccount: "Hesabınız yok mu?",
-            register: "Ücretsiz Kayıt Ol",
-            magicLogin: "Magic link ile giriş yap",
-            googleLogin: "Google ile devam et",
-            otpTitle: "İki Faktörlü Doğrulama",
-            otpSubtitle: "Kimlik doğrulama uygulamanızdaki 6 haneli kodu girin",
-            otpCode: "Doğrulama Kodu",
-            verify: "Doğrula",
-            verifying: "Doğrulanıyor...",
-            back: "Geri Dön",
-            magicTitle: "Magic Link ile Giriş",
-            magicSubtitle: "E-postanıza şifresiz giriş bağlantısı göndeririz.",
-            sentTitle: "Bağlantı gönderildi!",
-            sentBody: "E-postanızı kontrol edin. Bağlantı 15 dakika geçerli.",
-            close: "Kapat",
-            send: "Link Gönder",
-            sending: "Gönderiliyor...",
-            cancel: "İptal",
-            emailPlaceholder: "siz@sirket.com",
-          }
-        : {
-            tokenMissing: "Token could not be retrieved.",
-            loginFailed: "Login failed. Please check your credentials.",
-            otpFailed: "Verification failed.",
-            invalidCode: "Invalid code. Please try again.",
-            magicFailed: "Could not send the magic link.",
-            title: "Sign In",
-            subtitle: "HeptaCert Admin Panel",
-            email: "Email Address",
-            password: "Password",
-            forgot: "Forgot Password",
-            signIn: "Sign In",
-            signingIn: "Signing in...",
-            noAccount: "Don't have an account?",
-            register: "Create Free Account",
-            magicLogin: "Sign in with a magic link",
-            googleLogin: "Continue with Google",
-            otpTitle: "Two-Factor Authentication",
-            otpSubtitle: "Enter the 6-digit code from your authenticator app",
-            otpCode: "Verification Code",
-            verify: "Verify",
-            verifying: "Verifying...",
-            back: "Back",
-            magicTitle: "Sign In with Magic Link",
-            magicSubtitle: "We will send a passwordless sign-in link to your email.",
-            sentTitle: "Link sent!",
-            sentBody: "Check your email. The link is valid for 15 minutes.",
-            close: "Close",
-            send: "Send Link",
-            sending: "Sending...",
-            cancel: "Cancel",
-            emailPlaceholder: "you@company.com",
-          },
-    [lang]
-  );
+  const { t } = useI18n();
+  const copy = {
+    tokenMissing: t("admin_auth_token_missing"),
+    loginFailed: t("admin_auth_login_failed"),
+    otpFailed: t("admin_auth_verification_failed"),
+    invalidCode: t("admin_auth_invalid_code"),
+    magicFailed: t("admin_auth_magic_failed"),
+    title: t("login_title"),
+    subtitle: t("login_subtitle"),
+    email: t("login_email"),
+    password: t("login_password"),
+    forgot: t("login_forgot"),
+    signIn: t("login_submit"),
+    signingIn: t("admin_auth_signing_in"),
+    noAccount: t("login_no_account"),
+    register: t("login_register"),
+    magicLogin: t("admin_auth_magic_login"),
+    googleLogin: t("admin_auth_google_login"),
+    otpTitle: t("admin_auth_otp_title"),
+    otpSubtitle: t("admin_auth_otp_subtitle"),
+    otpCode: t("admin_auth_otp_code"),
+    verify: t("admin_auth_verify"),
+    verifying: t("admin_auth_verifying"),
+    back: t("admin_auth_back"),
+    magicTitle: t("admin_auth_magic_title"),
+    magicSubtitle: t("admin_auth_magic_subtitle"),
+    sentTitle: t("admin_auth_sent_title"),
+    sentBody: t("admin_auth_sent_body"),
+    close: t("admin_auth_close"),
+    send: t("admin_auth_send"),
+    sending: t("admin_auth_sending"),
+    cancel: t("admin_auth_cancel"),
+    emailPlaceholder: t("admin_auth_email_placeholder"),
+    or: t("admin_auth_or"),
+  };
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -202,7 +166,11 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-50 px-4 py-12">
+    <div className="relative flex min-h-screen items-center justify-center bg-surface-50 px-4 py-20 sm:py-12">
+      <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
+        <ThemeToggle />
+        <LanguageToggle />
+      </div>
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className="card w-full max-w-md p-10">
         <AnimatePresence mode="wait">
           {step === "credentials" ? (
@@ -270,15 +238,15 @@ export default function AdminLogin() {
 
               <div className="my-5 flex items-center gap-3">
                 <div className="h-px flex-1 bg-surface-200" />
-                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-surface-400">veya</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.16em] text-surface-400">{copy.or}</span>
                 <div className="h-px flex-1 bg-surface-200" />
               </div>
 
               <a
                 href={`${API_BASE}/auth/google/start?mode=admin&next=${encodeURIComponent("/admin/events")}`}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-surface-200 bg-raised px-4 py-3 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
               >
-                <span className="text-base font-black text-blue-600">G</span>
+                <span className="text-base font-black text-status-info-content">G</span>
                 {copy.googleLogin}
               </a>
 
@@ -387,7 +355,7 @@ export default function AdminLogin() {
 
               {magicSent ? (
                 <div className="flex flex-col items-center gap-3 py-6 text-center">
-                  <CheckCircle2 className="h-12 w-12 text-emerald-500" />
+                  <CheckCircle2 className="h-12 w-12 text-status-success-content" />
                   <p className="font-semibold text-surface-800">{copy.sentTitle}</p>
                   <p className="text-sm text-surface-500">{copy.sentBody}</p>
                   <button onClick={() => { setMagicMode(false); setMagicSent(false); }} className="btn-ghost mt-2 text-sm">{copy.close}</button>

@@ -184,14 +184,14 @@ export default function AdminCrmPage() {
     noShowSuccess: (tagged: number, skipped: number) => `No-show taglama: ${tagged} etiketlendi, ${skipped} atlandı.`,
     noShowError: "No-show taglama başarısız.",
     csvSuccess: (created: number, updated: number, skipped: number, err?: string) =>
-      `CSV import: ${created} yeni, ${updated} güncellendi, ${skipped} atlandı.${err ? ` Hata: ${err}` : ""}`,
+ `CSV import: ${created} yeni, ${updated} güncellendi, ${skipped} atlandı.${err ? ` Hata: ${err}` : ""}`,
     csvError: "CSV import başarısız.",
     hubSpotSaved: "HubSpot bağlantısı kaydedildi.",
     hubSpotSaveError: "HubSpot kaydedilemedi.",
     hubSpotTestSuccess: "HubSpot token testi başarılı.",
     hubSpotTestError: "HubSpot token testi başarısız.",
     hubSpotPushSuccess: (pushed: number, created: number, updated: number, failed: number) =>
-      `HubSpot: ${pushed} gönderildi, ${created} yeni, ${updated} güncellendi, ${failed} hata.`,
+ `HubSpot: ${pushed} gönderildi, ${created} yeni, ${updated} güncellendi, ${failed} hata.`,
     hubSpotPushError: "HubSpot aktarımı başarısız.",
     customFieldsError: "Özel alanlar geçerli JSON olmalı.",
     priorityLow: "Düşük",
@@ -265,14 +265,14 @@ export default function AdminCrmPage() {
     noShowSuccess: (tagged: number, skipped: number) => `No-show tagging: ${tagged} tagged, ${skipped} skipped.`,
     noShowError: "No-show tagging failed.",
     csvSuccess: (created: number, updated: number, skipped: number, err?: string) =>
-      `CSV import: ${created} new, ${updated} updated, ${skipped} skipped.${err ? ` Error: ${err}` : ""}`,
+ `CSV import: ${created} new, ${updated} updated, ${skipped} skipped.${err ? ` Error: ${err}` : ""}`,
     csvError: "CSV import failed.",
     hubSpotSaved: "HubSpot connection saved.",
     hubSpotSaveError: "Could not save HubSpot token.",
     hubSpotTestSuccess: "HubSpot token test successful.",
     hubSpotTestError: "HubSpot token test failed.",
     hubSpotPushSuccess: (pushed: number, created: number, updated: number, failed: number) =>
-      `HubSpot: ${pushed} pushed, ${created} created, ${updated} updated, ${failed} failed.`,
+ `HubSpot: ${pushed} pushed, ${created} created, ${updated} updated, ${failed} failed.`,
     hubSpotPushError: "HubSpot push failed.",
     customFieldsError: "Custom fields must be valid JSON.",
     priorityLow: "Low",
@@ -568,7 +568,7 @@ export default function AdminCrmPage() {
   return (
     <FeatureGate requiredPlans={["enterprise"]} message={lang === "tr" ? "Event CRM Enterprise planına özeldir." : "Event CRM is available on the Enterprise plan."}>
     <div className="w-full space-y-5 antialiased text-surface-900">
-      
+
       {/* BAŞLIK GRUBU */}
       <div className="w-full flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -578,7 +578,7 @@ export default function AdminCrmPage() {
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {/* View toggle */}
-          <div className="flex rounded-xl border border-surface-200 bg-white shadow-sm overflow-hidden">
+          <div className="flex rounded-xl border border-surface-200 bg-raised shadow-sm overflow-hidden">
             <button
               type="button"
               onClick={() => setView("list")}
@@ -601,13 +601,13 @@ export default function AdminCrmPage() {
             type="button"
             onClick={() => void runTagNoShows()}
             disabled={bulkWorking}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50 disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-surface-200 bg-raised px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50 disabled:opacity-40"
           >
             <UserX className="h-3.5 w-3.5" />
             No-Show Etiketle
           </button>
           {/* CSV Import */}
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-surface-200 bg-raised px-3 py-1.5 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50">
             <Upload className="h-3.5 w-3.5" />
             CSV İçe Aktar
             <input type="file" accept=".csv" className="sr-only" onChange={handleCsvImport} />
@@ -617,7 +617,7 @@ export default function AdminCrmPage() {
 
       {/* GLOBAL ERROR BANNER */}
       {error && (
-        <div className="rounded-xl border border-red-100 bg-red-50/40 p-3.5 text-xs font-semibold text-red-600 flex items-center gap-2">
+        <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3.5 text-xs font-semibold text-status-danger-content flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -625,22 +625,22 @@ export default function AdminCrmPage() {
 
       {/* MÜKERRER KAYIT UYARI ALANI (Duplicates) */}
       {duplicates.length > 0 && (
-        <section className="w-full rounded-2xl border border-amber-200/60 bg-amber-50/20 p-4 sm:p-5">
+        <section className="w-full rounded-2xl border border-status-warning-border/60 bg-status-warning-bg/20 p-4 sm:p-5">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-amber-800">{copy.duplicates}</h2>
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-11 font-bold text-amber-800">{duplicates.length}</span>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-status-warning-content">{copy.duplicates}</h2>
+            <span className="rounded-full bg-status-warning-bg px-2 py-0.5 text-11 font-bold text-status-warning-content">{duplicates.length}</span>
           </div>
           <div className="mt-3.5 grid gap-3 lg:grid-cols-2">
             {duplicates.map((candidate) => (
-              <div key={candidate.name_key} className="rounded-xl border border-surface-200/80 bg-white p-3.5 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-3">
+              <div key={candidate.name_key} className="rounded-xl border border-surface-200/80 bg-raised p-3.5 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-3">
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-surface-900 tracking-tight">{candidate.display_name}</p>
                   <p className="mt-0.5 text-11 font-medium text-surface-400 truncate">{candidate.emails.join(" → ")}</p>
                 </div>
-                <button 
-                  type="button" 
-                  onClick={() => void mergeDuplicate(candidate)} 
-                  className="rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-11 font-semibold text-surface-800 shadow-sm hover:bg-surface-50 active:scale-95 transition-all shrink-0"
+                <button
+                  type="button"
+                  onClick={() => void mergeDuplicate(candidate)}
+                  className="rounded-xl border border-surface-200 bg-raised px-3 py-1.5 text-11 font-semibold text-surface-800 shadow-sm hover:bg-surface-50 active:scale-95 transition-all shrink-0"
                 >
                   {copy.merge}
                 </button>
@@ -651,7 +651,7 @@ export default function AdminCrmPage() {
       )}
 
       {/* GLOBAL ARAC ÇUBUĞU (FilterActionBar Stili Üst Arama Modülü) */}
-      <section className="w-full rounded-2xl border border-surface-200 bg-white p-3.5 shadow-sm">
+      <section className="w-full rounded-2xl border border-surface-200 bg-raised p-3.5 shadow-sm">
         <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-[1fr_160px_160px_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-surface-400 stroke-[2]" />
@@ -663,10 +663,10 @@ export default function AdminCrmPage() {
               placeholder={copy.searchPlaceholder}
             />
           </div>
-          
-          <select 
-            value={status} 
-            onChange={(event) => setStatus(event.target.value)} 
+
+          <select
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
             className="w-full input cursor-pointer"
           >
             <option value="">{copy.allStatuses}</option>
@@ -674,21 +674,21 @@ export default function AdminCrmPage() {
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
-          
-          <input 
-            value={tag} 
-            onChange={(event) => setTag(event.target.value)} 
-            className="w-full input px-3.5" 
-            placeholder={copy.tagPlaceholder} 
-            list="crm-tags" 
+
+          <input
+            value={tag}
+            onChange={(event) => setTag(event.target.value)}
+            className="w-full input px-3.5"
+            placeholder={copy.tagPlaceholder}
+            list="crm-tags"
           />
           <datalist id="crm-tags">
             {knownTags.map((item) => <option key={item} value={item} />)}
           </datalist>
-          
-          <button 
-            type="button" 
-            onClick={() => void loadParticipants(null)} 
+
+          <button
+            type="button"
+            onClick={() => void loadParticipants(null)}
             className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-4 text-xs font-semibold text-white transition hover:bg-surface-800 active:scale-95"
           >
             <Search className="h-3.5 w-3.5 stroke-[2.5]" />
@@ -705,7 +705,7 @@ export default function AdminCrmPage() {
               const colItems = participants.filter((p) => p.meta.lifecycle_status === col.value);
               return (
                 <div key={col.value} className="w-64 shrink-0 rounded-2xl border border-surface-200 bg-surface-50/50 overflow-hidden shadow-sm">
-                  <div className="flex items-center justify-between border-b border-surface-100 bg-white px-4 py-3">
+                  <div className="flex items-center justify-between border-b border-surface-100 bg-raised px-4 py-3">
                     <span className="text-11 font-bold uppercase tracking-wider text-surface-700">{col.label}</span>
                     <span className="rounded-full bg-surface-100 px-2 py-0.5 text-11 font-bold text-surface-500">{colItems.length}</span>
                   </div>
@@ -718,7 +718,7 @@ export default function AdminCrmPage() {
                         key={p.email}
                         type="button"
                         onClick={() => { setSelectedEmail(p.email); void loadDetail(p.email); setView("list"); }}
-                        className="w-full text-left rounded-xl border border-surface-200 bg-white p-3 shadow-sm hover:border-surface-300 transition-colors"
+                        className="w-full text-left rounded-xl border border-surface-200 bg-raised p-3 shadow-sm hover:border-surface-300 transition-colors"
                       >
                         <p className="truncate text-11 font-bold text-surface-900">{p.name}</p>
                         <p className="truncate text-11 text-surface-400">{p.email}</p>
@@ -742,10 +742,10 @@ export default function AdminCrmPage() {
 
       {/* CRM ANA ÇİFT SÜTUN DÜZENİ */}
       {view === "list" && <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)] items-start">
-        
+
         {/* SOL TARAF: KATILIMCI SEÇİM LİSTESİ */}
-        <section className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm flex flex-col">
-          <div className="flex items-center justify-between border-b border-surface-100 px-4.5 py-3.5 bg-white">
+        <section className="rounded-2xl border border-surface-200 bg-raised overflow-hidden shadow-sm flex flex-col">
+          <div className="flex items-center justify-between border-b border-surface-100 px-4.5 py-3.5 bg-raised">
             <div className="flex items-center gap-2">
               <UsersRound className="h-4 w-4 text-surface-800 stroke-[2]" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.people}</h2>
@@ -754,30 +754,30 @@ export default function AdminCrmPage() {
               {participants.length}
             </span>
           </div>
-          
+
           {/* Toplu E-posta ve Yönetim İstasyonu (Bulk Action Kısmı) */}
           <div className="border-b border-surface-100 bg-surface-50/50 p-4 space-y-3">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-11 font-bold text-surface-500 pr-1">
                 {selectedVisibleCount} {copy.selected}
               </span>
-              <button type="button" onClick={selectVisibleParticipants} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50">
+              <button type="button" onClick={selectVisibleParticipants} className="rounded-lg border border-surface-200 bg-raised px-2.5 py-1 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50">
                 {copy.selectAll}
               </button>
-              <button type="button" onClick={() => setSelectedEmails([])} className="rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-semibold text-surface-500 shadow-sm hover:bg-surface-50">
+              <button type="button" onClick={() => setSelectedEmails([])} className="rounded-lg border border-surface-200 bg-raised px-2.5 py-1 text-11 font-semibold text-surface-500 shadow-sm hover:bg-surface-50">
                 {copy.clearSelection}
               </button>
-              <button 
-                type="button" 
-                onClick={() => void exportSelected()} 
-                disabled={bulkWorking || selectedEmails.length === 0} 
-                className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50 disabled:opacity-40"
+              <button
+                type="button"
+                onClick={() => void exportSelected()}
+                disabled={bulkWorking || selectedEmails.length === 0}
+                className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-raised px-2.5 py-1 text-11 font-semibold text-surface-700 shadow-sm hover:bg-surface-50 disabled:opacity-40"
               >
                 <Download className="h-3 w-3" />
                 <span>{copy.exportCsv}</span>
               </button>
             </div>
-            
+
             <div className="space-y-2 pt-1">
               <EmailTemplateSelect
                 value={bulkTemplateId ? Number(bulkTemplateId) : null}
@@ -797,13 +797,13 @@ export default function AdminCrmPage() {
               </button>
             </div>
 
-            <div className="rounded-xl border border-surface-200 bg-white p-3 space-y-2">
+            <div className="rounded-xl border border-surface-200 bg-raised p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <Database className="h-3.5 w-3.5 text-surface-700" />
                   <span className="text-11 font-bold text-surface-800">HubSpot</span>
                 </div>
-                <span className={`rounded-md px-1.5 py-0.5 text-11 font-bold ${hubSpotStatus?.configured ? "bg-emerald-50 text-emerald-700" : "bg-surface-100 text-surface-500"}`}>
+                <span className={`rounded-md px-1.5 py-0.5 text-11 font-bold ${hubSpotStatus?.configured ? "bg-status-success-bg text-status-success-content" : "bg-surface-100 text-surface-500"}`}>
                   {hubSpotStatus?.configured ? hubSpotStatus.token_preview || copy.hubSpotConnected : copy.hubSpotNotConfigured}
                 </span>
               </div>
@@ -812,7 +812,7 @@ export default function AdminCrmPage() {
                   value={hubSpotToken}
                   onChange={(event) => setHubSpotToken(event.target.value)}
                   placeholder={copy.hubSpotTokenPlaceholder}
-                  className="min-w-0 flex-1 rounded-lg border border-surface-200 bg-white px-2 py-1.5 text-11 font-semibold outline-none focus:border-surface-900"
+                  className="min-w-0 flex-1 rounded-lg border border-surface-200 bg-raised px-2 py-1.5 text-11 font-semibold outline-none focus:border-surface-900"
                 />
                 <button type="button" onClick={() => void saveHubSpotToken()} disabled={hubSpotWorking || !hubSpotToken.trim()} className="inline-flex items-center gap-1 rounded-lg bg-surface-800 px-2.5 py-1 text-11 font-semibold text-white disabled:opacity-40">
                   {hubSpotWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : <KeyRound className="h-3 w-3" />}
@@ -820,16 +820,16 @@ export default function AdminCrmPage() {
                 </button>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <button type="button" onClick={() => void testHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-white px-2.5 py-1 text-11 font-semibold text-surface-700 disabled:opacity-40">
+                <button type="button" onClick={() => void testHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-raised px-2.5 py-1 text-11 font-semibold text-surface-700 disabled:opacity-40">
                   {copy.hubSpotTest}
                 </button>
-                <button type="button" onClick={() => void pushHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured || selectedEmails.length === 0} className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-11 font-semibold text-emerald-700 disabled:opacity-40">
+                <button type="button" onClick={() => void pushHubSpot()} disabled={hubSpotWorking || !hubSpotStatus?.configured || selectedEmails.length === 0} className="inline-flex items-center gap-1 rounded-lg border border-status-success-border bg-status-success-bg px-2.5 py-1 text-11 font-semibold text-status-success-content disabled:opacity-40">
                   {hubSpotWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
                   {copy.hubSpotPush}
                 </button>
               </div>
             </div>
-            {bulkNotice && <p className="text-11 font-bold text-emerald-600 mt-1.5 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg">{bulkNotice}</p>}
+            {bulkNotice && <p className="text-11 font-bold text-status-success-content mt-1.5 bg-status-success-bg border border-status-success-border px-2.5 py-1 rounded-lg">{bulkNotice}</p>}
           </div>
 
           {/* Katılımcı Kartları Listesi */}
@@ -840,7 +840,7 @@ export default function AdminCrmPage() {
           ) : participants.length === 0 ? (
             <div className="px-5 py-12 text-center text-xs font-semibold text-surface-400 tracking-tight">{copy.noMatches}</div>
           ) : (
-            <div className="max-h-[640px] overflow-y-auto divide-y divide-gray-100 scrollbar-none bg-white">
+            <div className="max-h-[640px] overflow-y-auto divide-y divide-outline-subtle scrollbar-none bg-raised">
               {participants.map((participant) => {
                 const active = participant.email === selectedEmail;
                 const checked = selectedEmails.includes(participant.email);
@@ -857,7 +857,7 @@ export default function AdminCrmPage() {
                       onChange={() => toggleSelectedEmail(participant.email)}
                       className="mt-1 h-3.5 w-3.5 cursor-pointer rounded-md border-surface-300 text-surface-900 focus:ring-0 focus:ring-offset-0"
                     />
-                    
+
                     <button
                       type="button"
                       onClick={() => {
@@ -871,11 +871,11 @@ export default function AdminCrmPage() {
                           <p className="truncate text-xs font-bold text-surface-900 group-hover:text-surface-900 tracking-tight">{participant.name}</p>
                           <p className="truncate text-11 font-medium text-surface-400 mt-0.5">{participant.email}</p>
                         </div>
-                        <span className="shrink-0 inline-flex rounded-md border border-surface-100 bg-white px-1.5 py-0.5 text-11 font-bold text-surface-500 uppercase tracking-tight shadow-sm">
+                        <span className="shrink-0 inline-flex rounded-md border border-surface-100 bg-raised px-1.5 py-0.5 text-11 font-bold text-surface-500 uppercase tracking-tight shadow-sm">
                           {formatTag(participant.meta.lifecycle_status ?? "lead")}
                         </span>
                       </div>
-                      
+
                       {/* Mikro Matris Sayıcıları */}
                       <div className="mt-2.5 grid grid-cols-4 gap-1 text-center text-11 font-bold text-surface-400 tracking-tight">
                         <span className="truncate bg-surface-50/70 border border-surface-100/50 py-1 rounded-md">{participant.event_count} {copy.events.toLowerCase()}</span>
@@ -883,7 +883,7 @@ export default function AdminCrmPage() {
                         <span className="truncate bg-surface-50/70 border border-surface-100/50 py-1 rounded-md">{participant.certificate_count} sert.</span>
                         <span className="truncate bg-surface-50/70 border border-surface-100/50 py-1 rounded-md">{participant.survey_count} anket</span>
                       </div>
-                      
+
                       {participant.meta.tags.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
                           {participant.meta.tags.slice(0, 3).map((item) => (
@@ -904,11 +904,11 @@ export default function AdminCrmPage() {
         {/* SAĞ TARAF: DETAY / EDİTÖR VE ZAMAN TÜNELİ PANELI */}
         <section className="space-y-4">
           {detailLoading ? (
-            <div className="rounded-2xl border border-surface-200 bg-white flex justify-center py-24 shadow-sm">
+            <div className="rounded-2xl border border-surface-200 bg-raised flex justify-center py-24 shadow-sm">
               <Loader2 className="h-6 w-6 animate-spin text-surface-400 stroke-[2.5]" />
             </div>
           ) : !detail ? (
-            <div className="rounded-2xl border border-surface-200 bg-white px-6 py-20 text-center shadow-sm">
+            <div className="rounded-2xl border border-surface-200 bg-raised px-6 py-20 text-center shadow-sm">
               <div className="flex h-11 w-11 mx-auto items-center justify-center rounded-full border border-surface-100 bg-surface-50 text-surface-400 shadow-sm">
                 <UsersRound className="h-4 w-4 stroke-[1.8]" />
               </div>
@@ -918,7 +918,7 @@ export default function AdminCrmPage() {
           ) : (
             <>
               {/* Profil Üst Başlık Kartı */}
-              <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-4">
+              <div className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm flex flex-col justify-between sm:flex-row sm:items-center gap-4">
                 <div className="flex items-center gap-3.5 min-w-0">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-900 text-white shadow-sm">
                     <User className="h-4 w-4 stroke-[2.5]" />
@@ -928,11 +928,11 @@ export default function AdminCrmPage() {
                     <p className="truncate text-xs font-medium text-surface-400">{detail.email}</p>
                   </div>
                 </div>
-                
-                <button 
-                  type="button" 
-                  onClick={() => void saveMeta()} 
-                  disabled={saving} 
+
+                <button
+                  type="button"
+                  onClick={() => void saveMeta()}
+                  disabled={saving}
                   className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-4 text-xs font-semibold text-white transition hover:bg-surface-800 disabled:opacity-40 shadow-sm shrink-0"
                 >
                   {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
@@ -948,7 +948,7 @@ export default function AdminCrmPage() {
                   [copy.certificates, detail.summary.certificates || 0],
                   [copy.surveyDone, detail.summary.surveys || 0],
                 ].map(([label, value]) => (
-                  <div key={String(label)} className="rounded-xl border border-surface-200 bg-white p-3 shadow-sm">
+                  <div key={String(label)} className="rounded-xl border border-surface-200 bg-raised p-3 shadow-sm">
                     <p className="text-11 font-bold text-surface-400 uppercase tracking-wide">{String(label)}</p>
                     <p className="mt-1 text-xl font-bold tracking-tight text-surface-900 tabular-nums">{String(value)}</p>
                   </div>
@@ -957,14 +957,14 @@ export default function AdminCrmPage() {
 
               {/* Form Ayarları ve Zaman Tüneli Yan Yana Grid Düzeni */}
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-                
+
                 {/* Sol Profil Editörü */}
-                <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
+                <div className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm space-y-4">
                   <div className="flex items-center gap-2 border-b border-surface-100 pb-2.5">
                     <Tag className="h-4 w-4 text-surface-800 stroke-[2]" />
                     <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.info}</h3>
                   </div>
-                  
+
                   <div className="grid gap-3.5 sm:grid-cols-2">
                     <label className="block w-full">
                       <span className="block text-11 font-bold text-surface-500 mb-1">{copy.status}</span>
@@ -974,12 +974,12 @@ export default function AdminCrmPage() {
                         ))}
                       </select>
                     </label>
-                    
+
                     <label className="block w-full">
                       <span className="block text-11 font-bold text-surface-500 mb-1">{copy.tags}</span>
                       <input value={tagsText} onChange={(event) => setTagsText(event.target.value)} className="w-full input" placeholder="vip, alumni, sponsor" />
                     </label>
-                    
+
                     <label className="block w-full">
                       <span className="block text-11 font-bold text-surface-500 mb-1">{copy.priority}</span>
                       <select value={priority} onChange={(event) => setPriority(event.target.value)} className="w-full input px-2.5 cursor-pointer">
@@ -989,7 +989,7 @@ export default function AdminCrmPage() {
                         <option value="urgent">Urgent</option>
                       </select>
                     </label>
-                    
+
                     <label className="block w-full">
                       <span className="block text-11 font-bold text-surface-500 mb-1">{copy.leadScore}</span>
                       <input
@@ -1001,14 +1001,14 @@ export default function AdminCrmPage() {
                         className="w-full input"
                       />
                     </label>
-                    
+
                     <DateTimeField
                       label={copy.followUp}
                       value={nextFollowUpAt}
                       onChange={setNextFollowUpAt}
                       className="sm:col-span-2"
                     />
-                    
+
                     <label className="block w-full sm:col-span-2">
                       <span className="block text-11 font-bold text-surface-500 mb-1">{copy.customFields}</span>
                       <textarea
@@ -1018,7 +1018,7 @@ export default function AdminCrmPage() {
                       />
                     </label>
                   </div>
-                  
+
                   <label className="block w-full pt-1">
                     <span className="block text-11 font-bold text-surface-500 mb-1">{copy.notes}</span>
                     <textarea
@@ -1028,15 +1028,15 @@ export default function AdminCrmPage() {
                       placeholder={copy.notesPlaceholder}
                     />
                   </label>
-                  
-                  <div className="flex items-center gap-1 text-11 font-semibold text-surface-400 pt-1 border-t border-gray-50">
+
+                  <div className="flex items-center gap-1 text-11 font-semibold text-surface-400 pt-1 border-t border-outline-subtle">
                     <Calendar className="h-3 w-3" />
                     <span>{copy.updated}: {formatDate(detail.meta.updated_at, lang)}</span>
                   </div>
                 </div>
 
                 {/* Sağ Akışkan Zaman Tüneli */}
-                <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm flex flex-col">
+                <div className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm flex flex-col">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.timeline}</h3>
                   <div className="mt-4 flex-1 max-h-[460px] overflow-y-auto pr-0.5 scrollbar-none relative pl-3.5 before:absolute before:bottom-1 before:left-1.5 before:top-1 before:w-[1px] before:bg-surface-100">
                     {detail.timeline.length === 0 ? (
@@ -1048,8 +1048,8 @@ export default function AdminCrmPage() {
                           return (
                             <div key={`${item.type}-${item.at}-${index}`} className="relative group flex items-start gap-3">
                               {/* Kronolojik Düğüm Noktası */}
-                              <div className="absolute -left-[18px] top-1 h-2 w-2 rounded-full bg-white ring-4 ring-white border border-gray-400 group-hover:border-gray-900 transition-colors" />
-                              
+                              <div className="absolute -left-[18px] top-1 h-2 w-2 rounded-full bg-raised ring-4 ring-white border border-outline-strong group-hover:border-outline-strong transition-colors" />
+
                               <div className="min-w-0 flex-1 space-y-0.5">
                                 <p className="text-xs font-semibold text-surface-800 tracking-tight group-hover:text-surface-900 flex items-center gap-1">
                                   <Icon className="h-3 w-3 shrink-0 text-surface-400" />
@@ -1067,11 +1067,11 @@ export default function AdminCrmPage() {
               </div>
 
               {/* Alt Geniş Blok: Etkinlik Katılım Geçmişi */}
-              <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
+              <div className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm space-y-4">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.history}</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {detail.history.map((item: any) => (
-                    <article key={`${item.event_id}-${item.registered_at}`} className="rounded-xl border border-surface-100/80 bg-white p-3.5 shadow-sm hover:border-surface-200 transition-colors">
+                    <article key={`${item.event_id}-${item.registered_at}`} className="rounded-xl border border-surface-100/80 bg-raised p-3.5 shadow-sm hover:border-surface-200 transition-colors">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h4 className="font-bold text-xs text-surface-900 tracking-tight truncate">{item.event_name}</h4>
@@ -1081,14 +1081,14 @@ export default function AdminCrmPage() {
                           #{item.event_id}
                         </span>
                       </div>
-                      
+
                       {/* Katılım Statü Rozetleri */}
                       <div className="mt-3 flex flex-wrap gap-1">
-                        {item.email_verified && <span className="rounded-md bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 text-11 font-bold text-emerald-700">{copy.emailVerified}</span>}
-                        {item.survey_completed && <span className="rounded-md bg-blue-50 border border-blue-100 px-1.5 py-0.5 text-11 font-bold text-blue-700">{copy.surveyDone}</span>}
+                        {item.email_verified && <span className="rounded-md bg-status-success-bg border border-status-success-border px-1.5 py-0.5 text-11 font-bold text-status-success-content">{copy.emailVerified}</span>}
+                        {item.survey_completed && <span className="rounded-md bg-status-info-bg border border-status-info-border px-1.5 py-0.5 text-11 font-bold text-status-info-content">{copy.surveyDone}</span>}
                         {(item.attendance_count || 0) > 0 && <span className="rounded-md bg-surface-900 px-1.5 py-0.5 text-11 font-bold text-white shadow-sm">{copy.checkinExists}</span>}
                       </div>
-                      
+
                       {/* Alt Sayıcı Hücre Matrisi */}
                       <div className="mt-3 grid grid-cols-3 gap-1.5 text-center text-11 font-bold text-surface-500">
                         <span className="rounded-lg bg-surface-50/70 border border-surface-100/50 px-2 py-1.5 text-surface-700 truncate">{item.tickets?.length || 0} {copy.tickets}</span>

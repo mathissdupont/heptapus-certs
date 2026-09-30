@@ -91,7 +91,7 @@ export default function QrPresentPage() {
       background: `
         radial-gradient(circle at 50% 0%, ${brandColor}20 0%, transparent 22%),
         linear-gradient(180deg, #0b1120 0%, #050816 45%, #020617 100%)
-      `,
+ `,
     }),
     [brandColor]
   );
@@ -114,7 +114,7 @@ export default function QrPresentPage() {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-[#020617]"
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden bg-inverse-surface"
       style={pageBg}
     >
       {/* Subtle accent glow */}
@@ -146,7 +146,7 @@ export default function QrPresentPage() {
           />
         )}
 
-        <div className="w-px h-12 bg-white/15" />
+        <div className="w-px h-12 bg-raised/15" />
 
         <span className="text-white/60 text-lg md:text-2xl font-semibold tracking-wider text-center">
           {brandName}
@@ -167,7 +167,7 @@ export default function QrPresentPage() {
         )}
 
         {loading ? (
-          <div className="w-72 h-72 md:w-96 md:h-96 rounded-3xl bg-white/5 border border-white/10 animate-pulse flex items-center justify-center">
+          <div className="w-72 h-72 md:w-96 md:h-96 rounded-3xl bg-raised/5 border border-white/10 animate-pulse flex items-center justify-center">
             <svg className="w-12 h-12 animate-spin text-white/30" viewBox="0 0 24 24" fill="none">
               <circle
                 cx="12"
@@ -182,16 +182,16 @@ export default function QrPresentPage() {
             </svg>
           </div>
         ) : error ? (
-          <div className="w-72 h-72 md:w-96 md:h-96 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-            <p className="text-red-400 font-semibold text-lg">{error}</p>
+          <div className="w-72 h-72 md:w-96 md:h-96 rounded-3xl bg-red-500/10 border border-status-danger-border/20 flex items-center justify-center">
+            <p className="text-status-danger-content font-semibold text-lg">{error}</p>
           </div>
         ) : qrUrl ? (
           <div className="relative">
-            <div className="absolute -inset-4 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-sm" />
+            <div className="absolute -inset-4 rounded-[2rem] bg-raised/5 border border-white/10 backdrop-blur-sm" />
             <img
               src={qrUrl}
               alt="Check-in QR"
-              className="relative w-72 h-72 md:w-96 md:h-96 rounded-2xl shadow-2xl bg-white"
+              className="relative w-72 h-72 md:w-96 md:h-96 rounded-2xl shadow-2xl bg-raised"
             />
           </div>
         ) : null}

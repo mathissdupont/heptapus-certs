@@ -136,7 +136,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       } catch (err) {}
     };
     window.addEventListener("ai-assistant-insert", handler as EventListener);
-    
+
     const clearHandler = (e: Event) => {
       try {
         setMessages([
@@ -151,7 +151,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       } catch {}
     };
     window.addEventListener("ai-assistant-clear", clearHandler as EventListener);
-    
+
     return () => {
       window.removeEventListener("ai-assistant-insert", handler as EventListener);
       window.removeEventListener("ai-assistant-clear", clearHandler as EventListener);
@@ -579,7 +579,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         <div key={idx} className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
           <div className={`flex max-w-[85%] gap-2 sm:gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
             {!isWidget && (
-              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-xs font-medium shadow-sm ${msg.role === "user" ? "border-gray-900 bg-surface-800 text-white" : "border-surface-100 bg-white text-surface-900"}`}>
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-xs font-medium shadow-sm ${msg.role === "user" ? "border-outline-strong bg-surface-800 text-white" : "border-surface-100 bg-raised text-surface-900"}`}>
                 {msg.role === "user" ? <User className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5 text-surface-500" />}
               </div>
             )}
@@ -587,8 +587,8 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
               onClick={() => msg.role === "user" && startEditingUserMessage(idx)}
               className={`rounded-2xl px-4 py-2.5 text-xs leading-relaxed shadow-sm border transition-all duration-150 ${
                 msg.role === "user"
-                  ? "cursor-pointer rounded-tr-sm bg-surface-900 border-gray-900 text-white hover:bg-surface-800"
-                  : "rounded-tl-sm border-surface-100 bg-white text-surface-800"
+                  ? "cursor-pointer rounded-tr-sm bg-surface-900 border-outline-strong text-white hover:bg-surface-800"
+                  : "rounded-tl-sm border-surface-100 bg-raised text-surface-800"
               }`}
               style={{ whiteSpace: "pre-wrap" }}
             >
@@ -599,8 +599,8 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       ))}
       {loading && (
         <div className="flex w-full justify-start">
-          <div className="flex items-center gap-2.5 rounded-2xl border border-surface-100 bg-white px-4 py-2.5 text-xs text-surface-500 shadow-sm">
-            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-900 border-t-transparent" />
+          <div className="flex items-center gap-2.5 rounded-2xl border border-surface-100 bg-raised px-4 py-2.5 text-xs text-surface-500 shadow-sm">
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-outline-strong border-t-transparent" />
             <span>{lang === "tr" ? "Hepta AI yanıt hazırlıyor..." : "Hepta AI is responding..."}</span>
           </div>
         </div>
@@ -611,9 +611,9 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 
   // Ortak Destek Formu Bileşeni (UX iyileştirmesi)
   const renderSupportForm = (isSmall = false) => (
-    <div className={`shrink-0 space-y-3 border-t border-surface-100 bg-white p-4 shadow-sm`}>
-      <div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50/40 p-3 text-xs text-amber-800">
-        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+    <div className={`shrink-0 space-y-3 border-t border-surface-100 bg-raised p-4 shadow-sm`}>
+      <div className="flex items-start gap-2 rounded-xl border border-status-warning-border bg-status-warning-bg/40 p-3 text-xs text-status-warning-content">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-status-warning-content" />
         <p className="leading-relaxed">
           {lang === "tr" ? "Sorunu detaylandırıp gönderdiğinizde teknik ekibimiz anında inceleme başlatacaktır." : "Once submitted, our team will look into your request instantly."}
         </p>
@@ -633,7 +633,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         className="w-full resize-none rounded-xl border border-surface-200 px-3.5 py-2 text-xs outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900"
       />
       <div className="flex justify-end gap-2">
-        <button onClick={() => setShowSupportForm(false)} className="rounded-xl border border-surface-200 bg-white px-3.5 py-2 text-xs font-medium text-surface-700 transition hover:bg-surface-50">
+        <button onClick={() => setShowSupportForm(false)} className="rounded-xl border border-surface-200 bg-raised px-3.5 py-2 text-xs font-medium text-surface-700 transition hover:bg-surface-50">
           {lang === "tr" ? "Vazgeç" : "Cancel"}
         </button>
         <button
@@ -649,7 +649,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
 
   // Ortak İnput ve Alt Buton Grubu
   const renderInputArea = (isSmall = false) => (
-    <div className="shrink-0 border-t border-surface-100 bg-white p-3 sm:p-4">
+    <div className="shrink-0 border-t border-surface-100 bg-raised p-3 sm:p-4">
       <div className="flex gap-2">
         <input
           ref={inputRef}
@@ -692,9 +692,9 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
   if (pageMode) {
     return (
       <div className="flex h-[calc(100dvh-7rem)] w-full flex-col gap-4 overflow-hidden bg-surface-50/60 antialiased lg:h-[calc(100vh-10rem)] lg:flex-row lg:gap-5">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-surface-200/80 bg-white shadow-sm">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-surface-200/80 bg-raised shadow-sm">
           {/* Header */}
-          <div className="flex shrink-0 items-center justify-between border-b border-surface-100 bg-white px-5 py-3.5">
+          <div className="flex shrink-0 items-center justify-between border-b border-surface-100 bg-raised px-5 py-3.5">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface-900 text-white shadow-sm">
                 <Sparkles className="h-4 w-4" />
@@ -719,7 +719,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
                 <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-surface-900" />
                 <span><strong>Sihirbaz:</strong> {summarizeMissingFields(eventWizardStep, lang)}</span>
               </div>
-              <button onClick={resetEventWizard} className="text-red-500 font-medium text-xs hover:underline self-end sm:self-auto">Sihirbazı Kapat</button>
+              <button onClick={resetEventWizard} className="text-status-danger-content font-medium text-xs hover:underline self-end sm:self-auto">Sihirbazı Kapat</button>
             </div>
           )}
 
@@ -728,10 +728,10 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
         </div>
 
         {/* Yan Panel (Quick Prompts) */}
-        <aside className="flex max-h-60 w-full shrink-0 flex-col justify-between overflow-y-auto rounded-2xl border border-surface-200/80 bg-white p-5 shadow-sm lg:max-h-none lg:w-72">
+        <aside className="flex max-h-60 w-full shrink-0 flex-col justify-between overflow-y-auto rounded-2xl border border-surface-200/80 bg-raised p-5 shadow-sm lg:max-h-none lg:w-72">
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-surface-900">
-              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <Lightbulb className="h-4 w-4 text-status-warning-content" />
               <h4 className="text-xs font-semibold tracking-tight">Hızlı Şablonlar</h4>
             </div>
             <div className="space-y-2">
@@ -781,9 +781,9 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
       )}
 
       {isOpen && (
-        <div className="admin-floating-panel fixed inset-x-2 z-50 flex h-[500px] flex-col overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-xl antialiased sm:inset-x-auto sm:right-6 sm:w-86">
+        <div className="admin-floating-panel fixed inset-x-2 z-50 flex h-[500px] flex-col overflow-hidden rounded-2xl border border-surface-200 bg-raised shadow-xl antialiased sm:inset-x-auto sm:right-6 sm:w-86">
           {/* Header */}
-          <div className="flex h-13 shrink-0 items-center justify-between border-b border-surface-100 bg-white px-4">
+          <div className="flex h-13 shrink-0 items-center justify-between border-b border-surface-100 bg-raised px-4">
             <div className="flex min-w-0 items-center gap-2">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-900 text-white">
                 <Sparkles className="h-3.5 w-3.5" />
@@ -802,7 +802,7 @@ export default function AIAssistant({ pageMode }: { pageMode?: boolean } = {}) {
           {eventWizardStep !== "idle" && (
             <div className="shrink-0 border-t border-l-2 border-l-gray-950 border-t-gray-100 bg-surface-50/50 px-4 py-2 text-11 text-surface-500 flex justify-between items-center">
               <span className="truncate"><strong>Sihirbaz:</strong> {summarizeMissingFields(eventWizardStep, lang)}</span>
-              <button onClick={resetEventWizard} className="text-red-500 font-medium">İptal</button>
+              <button onClick={resetEventWizard} className="text-status-danger-content font-medium">İptal</button>
             </div>
           )}
 

@@ -279,7 +279,7 @@ export default function ApiKeysPage() {
             <button
               onClick={() => handleDeleteKey(key.id)}
               disabled={deletingId === key.id}
-              className="p-1.5 rounded-lg text-surface-400 hover:bg-red-50 hover:text-red-600 transition-all active:scale-95 disabled:opacity-40"
+              className="p-1.5 rounded-lg text-surface-400 hover:bg-status-danger-bg hover:text-status-danger-content transition-all active:scale-95 disabled:opacity-40"
               title={copy.btnDisable}
             >
               {deletingId === key.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />}
@@ -323,10 +323,10 @@ export default function ApiKeysPage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm"
+        className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm"
       >
         <div className="flex gap-3.5 items-start">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 shadow-sm">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-status-info-border bg-status-info-bg text-status-info-content shadow-sm">
             <Terminal className="h-4 w-4 stroke-[2]" />
           </div>
           <div className="text-xs leading-relaxed text-surface-500 space-y-2 flex-1">
@@ -335,7 +335,7 @@ export default function ApiKeysPage() {
             <div className="overflow-x-auto rounded-xl border border-surface-100 bg-surface-50 p-3 font-mono text-11 text-surface-700 font-medium">
               curl -H "Authorization: Bearer YOUR_API_KEY" https://api.heptapusgroup.com/admin/events
             </div>
-            <p className="text-11 text-amber-600 font-semibold bg-amber-50/50 border border-amber-100/50 rounded-lg px-2.5 py-1 w-fit">
+            <p className="text-11 text-status-warning-content font-semibold bg-status-warning-bg/50 border border-status-warning-border/50 rounded-lg px-2.5 py-1 w-fit">
               {copy.infoWarning}
             </p>
           </div>
@@ -344,7 +344,7 @@ export default function ApiKeysPage() {
 
       {/* HATA BANNERI */}
       {error && (
-        <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
+        <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -354,7 +354,7 @@ export default function ApiKeysPage() {
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
         {keys.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-surface-200 bg-surface-50/30 p-12 text-center">
-            <div className="flex h-11 w-11 mx-auto items-center justify-center rounded-full border border-surface-100 bg-white text-surface-400 shadow-sm mb-4">
+            <div className="flex h-11 w-11 mx-auto items-center justify-center rounded-full border border-surface-100 bg-raised text-surface-400 shadow-sm mb-4">
               <Lock className="h-4 w-4 stroke-[1.8]" />
             </div>
             <p className="text-xs font-semibold text-surface-900 tracking-tight mb-1">{copy.emptyTitle}</p>
@@ -382,7 +382,7 @@ export default function ApiKeysPage() {
       </motion.div>
 
       {/* GÜVENLİK KILAVUZU (Apple Altyazı Bloğu) */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-3">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm space-y-3">
         <h3 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.securityTitle}</h3>
         <ul className="space-y-2 text-xs font-medium text-surface-500 leading-relaxed">
           <li className="flex items-start gap-1.5"><span>•</span> <span>{copy.securityTip1}</span></li>
@@ -409,10 +409,10 @@ export default function ApiKeysPage() {
               initial={{ opacity: 0, scale: 0.96, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-surface-200 bg-white/95 p-6 shadow-xl backdrop-blur-xl"
+              className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-surface-200 bg-raised/95 p-6 shadow-xl backdrop-blur-xl"
             >
               <h2 className="text-sm font-bold text-surface-900 tracking-tight mb-3">{copy.modalKeyReadyTitle}</h2>
-              <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3.5 text-xs text-amber-800 leading-relaxed mb-4">
+              <div className="rounded-xl border border-status-warning-border bg-status-warning-bg/40 p-3.5 text-xs text-status-warning-content leading-relaxed mb-4">
                 <strong>{copy.modalKeyReadyImportant}</strong> {copy.modalKeyReadyWarning}
               </div>
 
@@ -421,9 +421,9 @@ export default function ApiKeysPage() {
                 <button
                   type="button"
                   onClick={() => handleCopyKey(displayedFullKey, 0)}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-surface-200 bg-white text-surface-400 hover:border-surface-300 hover:text-surface-900 transition-all active:scale-90 shadow-sm"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-surface-200 bg-raised text-surface-400 hover:border-surface-300 hover:text-surface-900 transition-all active:scale-90 shadow-sm"
                 >
-                  {copiedKeyId === 0 ? <CheckCircle2 className="h-4 w-4 text-emerald-500 stroke-[2.5]" /> : <Copy className="h-4 w-4 stroke-[2]" />}
+                  {copiedKeyId === 0 ? <CheckCircle2 className="h-4 w-4 text-status-success-content stroke-[2.5]" /> : <Copy className="h-4 w-4 stroke-[2]" />}
                 </button>
               </div>
 
@@ -452,7 +452,7 @@ export default function ApiKeysPage() {
               initial={{ opacity: 0, scale: 0.96, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl border border-surface-200 bg-white/95 p-6 shadow-xl backdrop-blur-xl space-y-4"
+              className="relative z-10 w-full max-w-sm overflow-hidden rounded-2xl border border-surface-200 bg-raised/95 p-6 shadow-xl backdrop-blur-xl space-y-4"
             >
               <div>
                 <h2 className="text-sm font-bold text-surface-900 tracking-tight">{copy.modalCreateTitle}</h2>
@@ -469,7 +469,7 @@ export default function ApiKeysPage() {
                   placeholder={copy.placeholderKeyName}
                   value={keyName}
                   onChange={(e) => setKeyName(e.target.value)}
-                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
+                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
                   disabled={creating}
                 />
               </div>
@@ -485,7 +485,7 @@ export default function ApiKeysPage() {
                   value={expiresDays}
                   onChange={(e) => setExpiresDays(e.target.value)}
                   min="1"
-                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
+                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
                   disabled={creating}
                 />
                 <p className="text-11 text-surface-400 leading-normal pt-0.5">{copy.expiryHint}</p>
@@ -497,7 +497,7 @@ export default function ApiKeysPage() {
                   type="button"
                   onClick={() => { setShowCreateModal(false); setKeyName(""); setExpiresDays(""); }}
                   disabled={creating}
-                  className="flex-1 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 active:scale-[0.98] disabled:opacity-40"
+                  className="flex-1 rounded-xl border border-surface-200 bg-raised px-4 py-2.5 text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 active:scale-[0.98] disabled:opacity-40"
                 >
                   {copy.btnCancel}
                 </button>

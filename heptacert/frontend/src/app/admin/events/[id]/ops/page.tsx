@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { localeTag } from "@/lib/localeTag";
 import { useEffect, useMemo, useState } from "react";
@@ -52,7 +52,7 @@ function StatCard({
   icon: ElementType;
 }) {
   return (
-    <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex items-start justify-between gap-4">
+    <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card flex items-start justify-between gap-4">
       <div className="min-w-0 flex-1 space-y-1">
         <p className="text-11 font-bold uppercase tracking-widest text-surface-400 truncate">{title}</p>
         <p className="text-2xl font-bold tracking-tight text-surface-900 font-mono tabular-nums">{value}</p>
@@ -161,12 +161,12 @@ export default function EventOperationsPage() {
 
   return (
     <div className="w-full mx-auto max-w-7xl pb-24 md:pb-8 antialiased text-surface-900 space-y-5">
-      
+
       {/* ÜST ETKİNLİK NAVİGASYONU */}
       <EventAdminNav eventId={eventId} eventName={snapshot?.event_name} active="ops" />
 
       {/* ANA SAYFA BAŞLIK ALANI */}
-      <div className="rounded-xl border border-surface-200 bg-white p-5 shadow-card flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="space-y-0.5">
           <p className="text-11 font-bold uppercase tracking-widest text-surface-400">{copy.eyebrow}</p>
           <h1 className="text-xl font-bold tracking-tight text-surface-900 sm:text-2xl">
@@ -176,11 +176,11 @@ export default function EventOperationsPage() {
             <span>{copy.lastUpdate} {formatTime(snapshot?.generated_at, lang)}</span>
           </div>
         </div>
-        
+
         {/* Masaüstü Hızlı Aksiyonlar */}
         <div className="hidden flex-wrap items-center gap-2 sm:flex">
-          <Link 
-            href={`/admin/events/${eventId}/checkin?staff=1`} 
+          <Link
+            href={`/admin/events/${eventId}/checkin?staff=1`}
             className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-surface-800 active:scale-95"
           >
             <QrCode className="h-3.5 w-3.5 stroke-[2.5]" />
@@ -190,7 +190,7 @@ export default function EventOperationsPage() {
             type="button"
             onClick={() => void load({ soft: true })}
             disabled={refreshing}
-            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 active:scale-95 disabled:opacity-40"
+            className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold text-surface-700 shadow-sm transition hover:bg-surface-50 active:scale-95 disabled:opacity-40"
           >
             {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 stroke-[2]" />}
             <span>{copy.refresh}</span>
@@ -200,13 +200,13 @@ export default function EventOperationsPage() {
 
       {/* DURUM BANNERLARI VE SİNYALLER */}
       {error && (
-        <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
+        <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 shrink-0 stroke-[2]" />
           <span>{error}</span>
         </div>
       )}
       {notice && (
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-xs font-semibold text-emerald-600 flex items-center gap-2">
+        <div className="rounded-xl border border-status-success-border bg-status-success-bg/40 p-4 text-xs font-semibold text-status-success-content flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0 stroke-[2.5]" />
           <span>{notice}</span>
         </div>
@@ -224,9 +224,9 @@ export default function EventOperationsPage() {
 
           {/* Sessions + checkin log */}
           <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] items-start">
-            
+
             {/* SOL SÜTUN: OTURUM KAPASİTE DURUMLARI */}
-            <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
+            <section className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card space-y-4">
               <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-3">
                 <div className="space-y-0.5">
                   <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.sessionTitle}</h2>
@@ -234,7 +234,7 @@ export default function EventOperationsPage() {
                 </div>
                 <Clock3 className="h-4 w-4 text-surface-400 stroke-[1.8]" />
               </div>
-              
+
               <div className="space-y-2.5">
                 {snapshot.sessions.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-surface-200 p-6 text-center text-xs font-semibold text-surface-400">
@@ -242,12 +242,12 @@ export default function EventOperationsPage() {
                   </div>
                 ) : (
                   snapshot.sessions.map((session) => (
-                    <div key={session.id} className="rounded-xl border border-surface-100 bg-white p-4 shadow-sm flex items-center justify-between gap-4 transition-colors hover:border-surface-200">
+                    <div key={session.id} className="rounded-xl border border-surface-100 bg-raised p-4 shadow-sm flex items-center justify-between gap-4 transition-colors hover:border-surface-200">
                       <div className="min-w-0 space-y-1 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-xs font-bold text-surface-900 truncate tracking-tight">{session.name}</p>
                           {session.is_active && (
-                            <span className="inline-flex rounded-md border border-emerald-100 bg-emerald-50 px-1.5 py-0.5 text-11 font-bold uppercase text-emerald-700 animate-pulse shadow-sm">
+                            <span className="inline-flex rounded-md border border-status-success-border bg-status-success-bg px-1.5 py-0.5 text-11 font-bold uppercase text-status-success-content animate-pulse shadow-sm">
                               {copy.live}
                             </span>
                           )}
@@ -264,7 +264,7 @@ export default function EventOperationsPage() {
             </section>
 
             {/* SAĞ SÜTUN: GERÇEK ZAMANLI LOG AKIŞI VE GERİ ALMA MERKEZİ */}
-            <section className="rounded-xl border border-surface-200 bg-white p-5 shadow-card space-y-4">
+            <section className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card space-y-4">
               <div className="flex items-center justify-between gap-3 border-b border-surface-100 pb-3">
                 <div className="space-y-0.5">
                   <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.logTitle}</h2>
@@ -272,15 +272,15 @@ export default function EventOperationsPage() {
                 </div>
                 <UserCheck className="h-4 w-4 text-surface-400 stroke-[1.8]" />
               </div>
-              
-              <div className="max-h-[580px] divide-y divide-surface-100 overflow-y-auto pr-0.5 scrollbar-none bg-white">
+
+              <div className="max-h-[580px] divide-y divide-surface-100 overflow-y-auto pr-0.5 scrollbar-none bg-raised">
                 {snapshot.recent_checkins.length === 0 ? (
                   <div className="py-12 text-center text-xs font-semibold text-surface-400 tracking-tight">
                     {copy.noCheckins}
                   </div>
                 ) : (
                   snapshot.recent_checkins.map((record) => (
-                    <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 py-3.5 bg-white transition-colors hover:bg-surface-50/30 first:pt-0 last:pb-0">
+                    <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 py-3.5 bg-raised transition-colors hover:bg-surface-50/30 first:pt-0 last:pb-0">
                       <div className="min-w-0 space-y-0.5 flex-1">
                         <p className="text-xs font-bold text-surface-900 tracking-tight truncate">{record.attendee_name}</p>
                         <p className="text-11 font-medium text-surface-400 font-mono truncate">{record.attendee_email}</p>
@@ -290,12 +290,12 @@ export default function EventOperationsPage() {
                           <span className="font-mono text-surface-400">{formatTime(record.checked_in_at, lang)}</span>
                         </div>
                       </div>
-                      
+
                       <button
                         type="button"
                         onClick={() => void undo(record)}
                         disabled={undoingId === record.id}
-                        className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-white px-3 text-11 font-bold text-red-600 shadow-sm transition hover:bg-red-50 active:scale-90 disabled:opacity-40 shrink-0 self-end sm:self-auto"
+                        className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg border border-status-danger-border bg-raised px-3 text-11 font-bold text-status-danger-content shadow-sm transition hover:bg-status-danger-bg active:scale-90 disabled:opacity-40 shrink-0 self-end sm:self-auto"
                       >
                         {undoingId === record.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3 stroke-[2.5]" />}
                         <span>{copy.undo}</span>
@@ -311,8 +311,8 @@ export default function EventOperationsPage() {
 
       {/* MOBİL ALT AKSİYON TUTUCU (iOS Standartları) */}
       <MobileActionBar>
-        <Link 
-          href={`/admin/events/${eventId}/checkin?staff=1`} 
+        <Link
+          href={`/admin/events/${eventId}/checkin?staff=1`}
           className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-surface-900 px-4 text-xs font-bold text-white shadow-sm transition active:scale-[0.98]"
         >
           <QrCode className="h-4 w-4 stroke-[2.5]" />
@@ -322,7 +322,7 @@ export default function EventOperationsPage() {
           type="button"
           onClick={() => void load({ soft: true })}
           disabled={refreshing}
-          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 text-xs font-bold text-surface-700 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
+          className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-surface-200 bg-raised px-4 text-xs font-bold text-surface-700 shadow-sm transition active:scale-[0.98] disabled:opacity-40"
         >
           {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 stroke-[2]" />}
           <span>Yenile</span>

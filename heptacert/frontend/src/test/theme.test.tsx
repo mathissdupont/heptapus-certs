@@ -137,13 +137,7 @@ describe("theme preference", () => {
     expect(document.documentElement).toHaveClass("dark");
   });
 
-  it("keeps the working control hidden until the rollout flag is enabled", async () => {
-    vi.stubEnv("NEXT_PUBLIC_THEME_TOGGLE_ENABLED", "false");
-    const hidden = render(<I18nProvider><ThemeToggle /></I18nProvider>);
-    expect(hidden.container).toBeEmptyDOMElement();
-    hidden.unmount();
-
-    vi.stubEnv("NEXT_PUBLIC_THEME_TOGGLE_ENABLED", "true");
+  it("ships the theme control and persists the selected mode", async () => {
     localStorage.setItem("heptacert-lang", "en");
     render(<I18nProvider><ThemeToggle /></I18nProvider>);
     const button = await screen.findByRole("button", { name: "Select theme: System" });

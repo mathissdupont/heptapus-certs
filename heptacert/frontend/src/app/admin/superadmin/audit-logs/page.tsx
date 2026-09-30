@@ -30,10 +30,10 @@ function actionIcon(action: string) {
 }
 
 function actionTone(action: string) {
-  if (action.includes("login")) return "bg-emerald-50 text-emerald-700";
-  if (action.includes("logout")) return "bg-sky-50 text-sky-700";
-  if (action.includes("delete") || action.includes("revoke")) return "bg-rose-50 text-rose-700";
-  if (action.includes("update") || action.includes("edit")) return "bg-amber-50 text-amber-700";
+  if (action.includes("login")) return "bg-status-success-bg text-status-success-content";
+  if (action.includes("logout")) return "bg-status-info-bg text-status-info-content";
+  if (action.includes("delete") || action.includes("revoke")) return "bg-status-danger-bg text-status-danger-content";
+  if (action.includes("update") || action.includes("edit")) return "bg-status-warning-bg text-status-warning-content";
   return "bg-surface-100 text-surface-700";
 }
 
@@ -228,7 +228,7 @@ export default function AuditLogsPage() {
             key={value}
             onClick={() => setCategory(value)}
             className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
-              category === value ? "border-brand-200 bg-brand-50 text-brand-700" : "border-surface-200 bg-white text-surface-600 hover:bg-surface-50"
+              category === value ? "border-brand-200 bg-brand-50 text-brand-700" : "border-surface-200 bg-raised text-surface-600 hover:bg-surface-50"
             }`}
           >
             {label}
@@ -262,7 +262,7 @@ export default function AuditLogsPage() {
       {category === "security" && security && (
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="card p-5">
-            <div className="flex items-center gap-2 text-rose-700">
+            <div className="flex items-center gap-2 text-status-danger-content">
               <ShieldCheck className="h-4 w-4" />
               <p className="text-sm font-bold">{copy.securityLogs}</p>
             </div>
@@ -275,7 +275,7 @@ export default function AuditLogsPage() {
               {security.suspicious_ips.length === 0 ? (
                 <span className="text-sm text-surface-500">Eşik üstü IP yok.</span>
               ) : security.suspicious_ips.map((item) => (
-                <span key={item.ip} className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">{item.ip} · {item.count}</span>
+                <span key={item.ip} className="rounded-full bg-status-danger-bg px-3 py-1 text-xs font-semibold text-status-danger-content">{item.ip} · {item.count}</span>
               ))}
             </div>
           </div>

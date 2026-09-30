@@ -19,6 +19,8 @@
     --content-muted: 120 113 108;
     --content-faint: 168 162 158;
     --content-inverted: 255 255 255;
+    --inverse-surface: 17 24 39;
+    --inverse-content: 255 255 255;
     --border-subtle: 231 229 224;
     --border-strong: 214 211 209;
     --accent: 17 24 39;
@@ -60,6 +62,8 @@
     --content-muted: 168 162 158;
     --content-faint: 120 113 108;
     --content-inverted: 17 24 39;
+    --inverse-surface: 17 24 39;
+    --inverse-content: 255 255 255;
     --border-subtle: 47 51 59;
     --border-strong: 75 79 88;
     --accent: 229 231 235;

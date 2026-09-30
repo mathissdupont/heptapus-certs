@@ -176,13 +176,13 @@ export default function WebhooksPage() {
       />
 
       {/* Info Box */}
-      <div className="card bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4">
+      <div className="card bg-status-info-bg  border border-status-info-border  p-4">
         <div className="flex gap-3">
-          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-blue-900 dark:text-blue-100">
+          <Info className="h-5 w-5 text-status-info-content  flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-status-info-content ">
             <p className="font-semibold mb-1">Webhook nedir?</p>
             <p className="mb-2">Bir olay tetiklendiğinde sistem sizin belirlediğiniz URL'ye veri gönderir. Google Sheets entegrasyonu için bir Google Apps Script Web App URL'si oluşturup burada Katılımcı Kaydı olayına bağlayabilirsiniz.</p>
-            <p className="text-xs opacity-90 font-mono bg-white dark:bg-blue-900 px-2 py-1 rounded">
+            <p className="text-xs opacity-90 font-mono bg-raised  px-2 py-1 rounded">
               attendee.register - registration_answer_labels alanını Sheet satırına yazabilirsiniz
             </p>
           </div>
@@ -206,7 +206,7 @@ export default function WebhooksPage() {
                 <div>
                   <label className="label">
                     Olay Tipi
-                    <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-surface-200 dark:bg-gray-700 rounded-full text-surface-600 dark:text-surface-400 cursor-help" title="Hangi e-posta olayı tetiklediğinde webhook tetiklenecek">?</span>
+                    <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-surface-200  rounded-full text-surface-600 dark:text-surface-400 cursor-help" title="Hangi e-posta olayı tetiklediğinde webhook tetiklenecek">?</span>
                   </label>
                   <select
                     value={formData.event_type}
@@ -222,7 +222,7 @@ export default function WebhooksPage() {
                 <div>
                   <label className="label">
                     Webhook URL
-                    <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-surface-200 dark:bg-gray-700 rounded-full text-surface-600 dark:text-surface-400 cursor-help" title="İstek alacak sunucunuzun adresi">?</span>
+                    <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-surface-200  rounded-full text-surface-600 dark:text-surface-400 cursor-help" title="İstek alacak sunucunuzun adresi">?</span>
                   </label>
                   <input
                     type="url"
@@ -239,7 +239,7 @@ export default function WebhooksPage() {
               <div>
                 <label className="label">
                   Secret (İsteğe bağlı)
-                  <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-surface-200 dark:bg-gray-700 rounded-full text-surface-600 dark:text-surface-400 cursor-help" title="Webhook isteklerini doğrulamak için gizli anahtar">?</span>
+                  <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-surface-200  rounded-full text-surface-600 dark:text-surface-400 cursor-help" title="Webhook isteklerini doğrulamak için gizli anahtar">?</span>
                 </label>
                 <input
                   type="text"
@@ -344,7 +344,7 @@ export default function WebhooksPage() {
                         {toggling === webhook.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : webhook.is_active ? (
-                          <ToggleRight className="h-3.5 w-3.5 text-emerald-600" />
+                          <ToggleRight className="h-3.5 w-3.5 text-status-success-content" />
                         ) : (
                           <ToggleLeft className="h-3.5 w-3.5" />
                         )}
@@ -353,7 +353,7 @@ export default function WebhooksPage() {
 
                       <button
                         onClick={() => setDeleteTarget(webhook)}
-                        className="btn-ghost text-xs px-2.5 py-1.5 text-red-500 hover:bg-red-50 hover:text-red-700"
+                        className="btn-ghost text-xs px-2.5 py-1.5 text-status-danger-content hover:bg-status-danger-bg hover:text-status-danger-content"
                         title="Sil"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -376,13 +376,13 @@ export default function WebhooksPage() {
         <div className="p-5">
           <pre className="rounded-lg bg-surface-900 text-surface-100 p-4 text-xs font-mono overflow-x-auto leading-relaxed">
 {`{
-  "event": "email.sent",
-  "timestamp": "2026-03-07T12:00:00Z",
-  "data": {
-    "bulk_job_id": 123,
-    "attendee_id": 456,
-    "email": "user@example.com",
-    "status": "sent"
+ "event": "email.sent",
+ "timestamp": "2026-03-07T12:00:00Z",
+ "data": {
+ "bulk_job_id": 123,
+ "attendee_id": 456,
+ "email": "user@example.com",
+ "status": "sent"
   }
 }`}
           </pre>

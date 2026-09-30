@@ -35,7 +35,7 @@ export default function EventActivityTimeline({ eventId }: { eventId: number }) 
   }, [eventId, lang]);
 
   return (
-    <section className="w-full rounded-2xl border border-surface-200/80 bg-white p-5 sm:p-6 shadow-sm antialiased">
+    <section className="w-full rounded-2xl border border-surface-200/80 bg-raised p-5 sm:p-6 shadow-sm antialiased">
       {/* Üst Bilgi Başlığı */}
       <div className="mb-6 flex items-center justify-between gap-3">
         <div className="min-w-0">
@@ -57,7 +57,7 @@ export default function EventActivityTimeline({ eventId }: { eventId: number }) 
           <Loader2 className="h-5 w-5 animate-spin stroke-[2.5]" />
         </div>
       ) : error ? (
-        <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600">
+        <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content">
           {error}
         </div>
       ) : items.length === 0 ? (
@@ -77,9 +77,9 @@ export default function EventActivityTimeline({ eventId }: { eventId: number }) 
           <div className="space-y-6">
             {items.slice(0, 8).map((item) => (
               <div key={item.id} className="relative group">
-                
+
                 {/* Sol Kronolojik Düğüm Noktası (Dot) */}
-                <div className="absolute -left-[19px] sm:-left-[23px] top-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-white ring-4 ring-white border border-gray-400 group-hover:border-gray-900 transition-colors" />
+                <div className="absolute -left-[19px] sm:-left-[23px] top-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-raised ring-4 ring-white border border-outline-strong group-hover:border-outline-strong transition-colors" />
 
                 {/* Aktivite Gövde İçeriği */}
                 <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">

@@ -26,7 +26,7 @@ export default function IletisimPage() {
           label: "heptapusgroup.com",
           desc: "Heptapus Group bünyesindeki tüm ürünler ve şirket hakkında bilgi almak için ziyaret edin.",
           icon: Globe,
-          iconClass: "bg-violet-50 text-violet-600",
+          iconClass: "bg-status-info-bg text-status-info-content",
         },
         {
           title: "Hukuki ve KVKK",
@@ -35,7 +35,7 @@ export default function IletisimPage() {
           label: "contact@heptapusgroup.com",
           desc: "KVKK başvuruları, gizlilik talepleri ve hukuki bildirimler için.",
           icon: MessageCircle,
-          iconClass: "bg-emerald-50 text-emerald-600",
+          iconClass: "bg-status-success-bg text-status-success-content",
         },
         {
           title: "İade ve Ödeme",
@@ -44,7 +44,7 @@ export default function IletisimPage() {
           label: "contact@heptapusgroup.com",
           desc: "İade talepleri, fatura itirazları ve ödeme sorunları için.",
           icon: Mail,
-          iconClass: "bg-amber-50 text-amber-600",
+          iconClass: "bg-status-warning-bg text-status-warning-content",
         },
       ]
     : [
@@ -64,7 +64,7 @@ export default function IletisimPage() {
           label: "heptapusgroup.com",
           desc: "Visit to learn more about Heptapus Group and its products.",
           icon: Globe,
-          iconClass: "bg-violet-50 text-violet-600",
+          iconClass: "bg-status-info-bg text-status-info-content",
         },
         {
           title: "Legal and Privacy",
@@ -73,7 +73,7 @@ export default function IletisimPage() {
           label: "contact@heptapusgroup.com",
           desc: "For privacy requests, legal notices, and compliance matters.",
           icon: MessageCircle,
-          iconClass: "bg-emerald-50 text-emerald-600",
+          iconClass: "bg-status-success-bg text-status-success-content",
         },
         {
           title: "Refunds and Billing",
@@ -82,22 +82,22 @@ export default function IletisimPage() {
           label: "contact@heptapusgroup.com",
           desc: "For refund requests, invoice objections, and payment issues.",
           icon: Mail,
-          iconClass: "bg-amber-50 text-amber-600",
+          iconClass: "bg-status-warning-bg text-status-warning-content",
         },
       ];
 
   const timings = isTr
     ? [
         { channel: "Teknik Destek", time: "1-2 iş günü", color: "bg-brand-100 text-brand-700" },
-        { channel: "İade Talebi", time: "3 iş günü", color: "bg-amber-100 text-amber-700" },
-        { channel: "KVKK / Hukuki", time: "30 gün", color: "bg-emerald-100 text-emerald-700" },
-        { channel: "İş Geliştirme", time: "3-5 iş günü", color: "bg-violet-100 text-violet-700" },
+        { channel: "İade Talebi", time: "3 iş günü", color: "bg-status-warning-bg text-status-warning-content" },
+        { channel: "KVKK / Hukuki", time: "30 gün", color: "bg-status-success-bg text-status-success-content" },
+        { channel: "İş Geliştirme", time: "3-5 iş günü", color: "bg-status-info-bg text-status-info-content" },
       ]
     : [
         { channel: "Technical Support", time: "1-2 business days", color: "bg-brand-100 text-brand-700" },
-        { channel: "Refund Request", time: "3 business days", color: "bg-amber-100 text-amber-700" },
-        { channel: "Privacy / Legal", time: "30 days", color: "bg-emerald-100 text-emerald-700" },
-        { channel: "Business Development", time: "3-5 business days", color: "bg-violet-100 text-violet-700" },
+        { channel: "Refund Request", time: "3 business days", color: "bg-status-warning-bg text-status-warning-content" },
+        { channel: "Privacy / Legal", time: "30 days", color: "bg-status-success-bg text-status-success-content" },
+        { channel: "Business Development", time: "3-5 business days", color: "bg-status-info-bg text-status-info-content" },
       ];
 
   const legalLinks = isTr
@@ -116,17 +116,17 @@ export default function IletisimPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
-      <div className="mb-8 flex items-center gap-2 text-sm text-gray-400">
+      <div className="mb-8 flex items-center gap-2 text-sm text-content-muted">
         <Link href="/" className="transition-colors hover:text-brand-600">{isTr ? "Ana Sayfa" : "Home"}</Link>
         <span>/</span>
-        <span className="font-medium text-gray-600">{isTr ? "İletişim" : "Contact"}</span>
+        <span className="font-medium text-content-secondary">{isTr ? "İletişim" : "Contact"}</span>
       </div>
 
       <div className="space-y-6">
-        <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-card md:p-12">
+        <div className="rounded-2xl border border-outline-subtle bg-raised p-8 shadow-card md:p-12">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-brand-600">{isTr ? "Bize Ulaşın" : "Get in Touch"}</p>
-          <h1 className="text-3xl font-extrabold text-gray-900">{isTr ? "İletişim" : "Contact"}</h1>
-          <p className="mt-3 max-w-xl text-base leading-relaxed text-gray-500">
+          <h1 className="text-3xl font-extrabold text-content-primary">{isTr ? "İletişim" : "Contact"}</h1>
+          <p className="mt-3 max-w-xl text-base leading-relaxed text-content-muted">
             {isTr
               ? "Platform desteği, iş birlikleri veya hukuki talepler için aşağıdaki kanalları kullanabilirsiniz. Mesajınızı en kısa sürede değerlendirip size geri döneceğiz."
               : "Use the channels below for platform support, partnerships, or legal matters. We will review your message and get back to you as soon as possible."}
@@ -137,42 +137,42 @@ export default function IletisimPage() {
           {cards.map((card) => {
             const Icon = card.icon;
             return (
-              <div key={card.label} className="space-y-3 rounded-2xl border border-gray-100 bg-white p-6 shadow-card">
+              <div key={card.label} className="space-y-3 rounded-2xl border border-outline-subtle bg-raised p-6 shadow-card">
                 <div className="flex items-center gap-3">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${card.iconClass}`}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-400">{card.title}</p>
-                    <p className="text-sm font-bold text-gray-800">{card.subtitle}</p>
+                    <p className="text-xs font-medium text-content-muted">{card.title}</p>
+                    <p className="text-sm font-bold text-content-primary">{card.subtitle}</p>
                   </div>
                 </div>
                 <a href={card.href} target={card.href.startsWith("http") ? "_blank" : undefined} rel={card.href.startsWith("http") ? "noopener noreferrer" : undefined} className="block text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700 hover:underline">
                   {card.label}
                 </a>
-                <p className="text-xs leading-relaxed text-gray-500">{card.desc}</p>
+                <p className="text-xs leading-relaxed text-content-muted">{card.desc}</p>
               </div>
             );
           })}
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-card">
-          <h2 className="mb-4 text-base font-bold text-gray-800">{isTr ? "Yanıt Süreleri" : "Response Times"}</h2>
+        <div className="rounded-2xl border border-outline-subtle bg-raised p-6 shadow-card">
+          <h2 className="mb-4 text-base font-bold text-content-primary">{isTr ? "Yanıt Süreleri" : "Response Times"}</h2>
           <div className="space-y-3">
             {timings.map((item) => (
               <div key={item.channel} className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">{item.channel}</span>
+                <span className="text-sm text-content-secondary">{item.channel}</span>
                 <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.color}`}>{item.time}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 bg-gray-50 p-6">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-500">{isTr ? "Yasal Belgeler" : "Legal Documents"}</p>
+        <div className="rounded-2xl border border-outline-subtle bg-canvas p-6">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-content-muted">{isTr ? "Yasal Belgeler" : "Legal Documents"}</p>
           <div className="grid grid-cols-2 gap-3">
             {legalLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="text-sm text-gray-600 transition-colors hover:text-brand-600 hover:underline">
+              <Link key={link.href} href={link.href} className="text-sm text-content-secondary transition-colors hover:text-brand-600 hover:underline">
                 {isTr ? "→" : "→"} {link.label}
               </Link>
             ))}

@@ -14,11 +14,11 @@ export type PublicBranding = {
 };
 
 export const PRIMARY_APP_HOSTS = new Set([
-  "localhost",
-  "127.0.0.1",
-  "heptacert.com",
-  "www.heptacert.com",
-  "heptacert.com",
+ "localhost",
+ "127.0.0.1",
+ "heptacert.com",
+ "www.heptacert.com",
+ "heptacert.com",
 ]);
 
 export function isWhiteLabelBranding(branding: PublicBranding | null | undefined, host?: string | null) {

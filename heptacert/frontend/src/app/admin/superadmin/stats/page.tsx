@@ -109,7 +109,7 @@ export default function SuperAdminStatsPage() {
       {success && <div className="success-banner text-sm font-medium">{success}</div>}
 
       <form className="card space-y-6 p-6" onSubmit={handleSave}>
-        <label className="flex items-center justify-between rounded-xl border border-surface-200 bg-white p-4">
+        <label className="flex items-center justify-between rounded-xl border border-surface-200 bg-raised p-4">
           <div>
             <p className="text-sm font-bold text-surface-900">{copy.autoCount}</p>
             <p className="text-xs text-surface-500 mt-1">{copy.autoCountDesc}</p>

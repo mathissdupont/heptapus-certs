@@ -251,20 +251,20 @@ export default function SMTPConfigurationPage() {
 
           {/* GLOBAL DURUM BANNERLARI */}
           {error && (
-            <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2">
+            <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content flex items-center gap-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
           {success && (
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-xs font-semibold text-emerald-600 flex items-center gap-2">
+            <div className="rounded-xl border border-status-success-border bg-status-success-bg/40 p-4 text-xs font-semibold text-status-success-content flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 shrink-0" />
               <span>{success}</span>
             </div>
           )}
 
           {/* ANA SMTP AYAR KARTI */}
-          <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
             <h2 className="border-b border-surface-100 pb-2.5 text-xs font-bold uppercase tracking-wider text-surface-900">{copy.smtpSettings}</h2>
 
             {/* Durum Aktiflik Seçimi */}
@@ -288,7 +288,7 @@ export default function SMTPConfigurationPage() {
                     type="text"
                     value={config.smtp_host}
                     onChange={(event) => handleInputChange("smtp_host", event.target.value)}
-                    className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white pl-9 pr-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
+                    className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised pl-9 pr-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
                     placeholder="smtp.example.com"
                   />
                 </div>
@@ -300,7 +300,7 @@ export default function SMTPConfigurationPage() {
                   type="number"
                   value={config.smtp_port}
                   onChange={(event) => handleInputChange("smtp_port", Number(event.target.value || 0))}
-                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900"
+                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900"
                 />
               </label>
             </div>
@@ -326,7 +326,7 @@ export default function SMTPConfigurationPage() {
                     type="text"
                     value={config.smtp_user}
                     onChange={(event) => handleInputChange("smtp_user", event.target.value)}
-                    className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white pl-9 pr-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
+                    className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised pl-9 pr-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
                     placeholder="hesap@example.com"
                   />
                 </div>
@@ -340,7 +340,7 @@ export default function SMTPConfigurationPage() {
                     type={showPassword ? "text" : "password"}
                     value={config.smtp_password}
                     onChange={(event) => handleInputChange("smtp_password", event.target.value)}
-                    className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white pl-9 pr-9 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
+                    className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised pl-9 pr-9 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
                     placeholder="••••••••••••••••"
                   />
                   <button
@@ -364,7 +364,7 @@ export default function SMTPConfigurationPage() {
                     type="email"
                     value={config.from_email}
                     onChange={(event) => handleInputChange("from_email", event.target.value)}
-                    className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white pl-9 pr-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
+                    className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised pl-9 pr-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
                     placeholder="noreply@kurumunuz.com"
                   />
                 </div>
@@ -376,7 +376,7 @@ export default function SMTPConfigurationPage() {
                   type="text"
                   value={config.from_name}
                   onChange={(event) => handleInputChange("from_name", event.target.value)}
-                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
+                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
                   placeholder="HeptaCert"
                 />
               </label>
@@ -390,7 +390,7 @@ export default function SMTPConfigurationPage() {
                   type="email"
                   value={config.reply_to}
                   onChange={(event) => handleInputChange("reply_to", event.target.value)}
-                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
+                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
                   placeholder="destek@kurumunuz.com"
                 />
               </label>
@@ -401,7 +401,7 @@ export default function SMTPConfigurationPage() {
                   type="text"
                   value={config.auto_cc}
                   onChange={(event) => handleInputChange("auto_cc", event.target.value)}
-                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
+                  className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
                   placeholder="arsiv@kurumunuz.com"
                 />
               </label>
@@ -432,9 +432,9 @@ export default function SMTPConfigurationPage() {
           </div>
 
           {/* İKİNCİL KART: BAĞLANTI TEST MODÜLÜ */}
-          <div className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-surface-200 bg-raised p-5 sm:p-6 shadow-sm space-y-4">
             <h2 className="flex items-center gap-1.5 border-b border-surface-100 pb-2.5 text-xs font-bold uppercase tracking-wider text-surface-900">
-              <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500 stroke-[1.5]" />
+              <Zap className="h-3.5 w-3.5 text-status-warning-content fill-status-warning-content stroke-[1.5]" />
               <span>{copy.liveConnectionTest}</span>
             </h2>
 
@@ -444,7 +444,7 @@ export default function SMTPConfigurationPage() {
                 type="email"
                 value={testEmail}
                 onChange={(e) => setTestEmail(e.target.value)}
-                className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-white px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
+                className="w-full min-h-[38px] rounded-xl border border-surface-200 bg-raised px-3.5 text-xs font-semibold outline-none transition focus:border-surface-900 focus:ring-1 focus:ring-surface-900 placeholder:text-surface-400"
                 placeholder="dogrulama@example.com"
               />
             </label>
@@ -452,7 +452,7 @@ export default function SMTPConfigurationPage() {
             {/* Test Sonuç Panelleri */}
             {testResult && (
               <div className={`rounded-xl border p-3.5 text-xs font-semibold flex items-start gap-2.5 ${
-                testResult === "success" ? "border-emerald-100 bg-emerald-50/40 text-emerald-600" : "border-red-100 bg-red-50/40 text-red-600"
+                testResult === "success" ? "border-status-success-border bg-status-success-bg/40 text-status-success-content" : "border-status-danger-border bg-status-danger-bg/40 text-status-danger-content"
               }`}>
                 {testResult === "success" ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" /> : <XCircle className="h-4 w-4 shrink-0 mt-0.5" />}
                 <span className="leading-relaxed">{testMessage}</span>
@@ -462,7 +462,7 @@ export default function SMTPConfigurationPage() {
             <button
               onClick={handleTestConnection}
               disabled={testing}
-              className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-4 text-xs font-semibold text-surface-800 shadow-sm transition hover:bg-surface-50 active:scale-95 disabled:opacity-40"
+              className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-raised px-4 text-xs font-semibold text-surface-800 shadow-sm transition hover:bg-surface-50 active:scale-95 disabled:opacity-40"
             >
               {testing ? (
                 <>
@@ -480,7 +480,7 @@ export default function SMTPConfigurationPage() {
         </div>
 
         {/* SAĞ YAN SÜTUN: KAYITLI SMTP HESAPLARI LİSTESİ */}
-        <aside className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4 h-fit">
+        <aside className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm space-y-4 h-fit">
           <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.savedServers}</h2>
 
           {savedAccounts.length === 0 ? (
@@ -490,7 +490,7 @@ export default function SMTPConfigurationPage() {
           ) : (
             <div className="space-y-3.5">
               {savedAccounts.map((account) => (
-                <div key={account.id} className="rounded-xl border border-surface-100/80 bg-white p-3.5 shadow-sm space-y-2.5 hover:border-surface-200 transition-colors">
+                <div key={account.id} className="rounded-xl border border-surface-100/80 bg-raised p-3.5 shadow-sm space-y-2.5 hover:border-surface-200 transition-colors">
                   <div className="flex items-center justify-between gap-2.5">
                     <p className="truncate text-xs font-bold text-surface-900 tracking-tight">
                       {account.from_name || account.from_email || "SMTP Sunucusu"}
@@ -498,7 +498,7 @@ export default function SMTPConfigurationPage() {
                     <span
                       className={`shrink-0 inline-flex rounded-md border px-1.5 py-0.5 text-11 font-bold uppercase tracking-tight shadow-sm ${
                         account.smtp_enabled
-                          ? "border-emerald-100 bg-emerald-50 text-emerald-700 animate-pulse"
+                          ? "border-status-success-border bg-status-success-bg text-status-success-content animate-pulse"
                           : "border-surface-100 bg-surface-50 text-surface-400"
                       }`}
                     >
@@ -507,16 +507,16 @@ export default function SMTPConfigurationPage() {
                   </div>
 
                   {/* Teknik Detay Matrisi */}
-                  <div className="space-y-1 text-11 font-medium text-surface-500 leading-normal font-mono border-t border-gray-50/50 pt-2">
+                  <div className="space-y-1 text-11 font-medium text-surface-500 leading-normal font-mono border-t border-outline-subtle/50 pt-2">
                     <p className="truncate"><span className="text-surface-300 font-sans font-semibold">Host:</span> {account.smtp_host || "-"}</p>
                     <p><span className="text-surface-300 font-sans font-semibold">Port/TLS:</span> {account.smtp_port || "-"} · {account.smtp_use_tls ? copy.tlsOpen : copy.tlsClosed}</p>
                     <p className="truncate"><span className="text-surface-300 font-sans font-semibold">User:</span> {account.smtp_user || "-"}</p>
                     <p className="truncate"><span className="text-surface-300 font-sans font-semibold">{isTr ? "Gönderici" : "Sender"}:</span> {account.from_email || "-"}</p>
                     <p className="flex items-center gap-1">
-                      <ShieldCheck className={`h-3 w-3 ${account.has_password ? "text-emerald-500" : "text-surface-300"}`} />
+                      <ShieldCheck className={`h-3 w-3 ${account.has_password ? "text-status-success-content" : "text-surface-300"}`} />
                       <span className="font-sans font-medium text-11 text-surface-400">{account.has_password ? copy.credentialsEncrypted : copy.noPassword}</span>
                     </p>
-                    <p className="text-11 text-surface-400 font-sans pt-1 border-t border-gray-50/30">
+                    <p className="text-11 text-surface-400 font-sans pt-1 border-t border-outline-subtle/30">
                       {new Date(account.updated_at).toLocaleDateString(localeTag(lang), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>

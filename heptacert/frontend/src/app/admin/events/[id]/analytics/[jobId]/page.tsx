@@ -107,7 +107,7 @@ export default function DeliveryAnalyticsPage() {
       const [statsRes, logsRes] = await Promise.all([
         apiFetch(`/admin/events/${eventId}/bulk-email-jobs/${jobId}/delivery-stats`),
         apiFetch(
-          `/admin/events/${eventId}/bulk-email-jobs/${jobId}/delivery-logs?${new URLSearchParams({
+ `/admin/events/${eventId}/bulk-email-jobs/${jobId}/delivery-logs?${new URLSearchParams({
             ...(statusFilter && { status: statusFilter }),
             page: page.toString(),
             limit: '50',
@@ -129,7 +129,7 @@ export default function DeliveryAnalyticsPage() {
 
   if (isNaN(eventId) || isNaN(jobId)) {
     return (
-      <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2 antialiased">
+      <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content flex items-center gap-2 antialiased">
         <AlertCircle className="h-4 w-4" />
         <span>{copy.invalidParam}</span>
       </div>
@@ -146,7 +146,7 @@ export default function DeliveryAnalyticsPage() {
 
   if (!stats) {
     return (
-      <div className="rounded-xl border border-red-100 bg-red-50/40 p-4 text-xs font-semibold text-red-600 flex items-center gap-2 antialiased">
+      <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content flex items-center gap-2 antialiased">
         <AlertCircle className="h-4 w-4" />
         <span>{copy.loadError}</span>
       </div>
@@ -157,16 +157,16 @@ export default function DeliveryAnalyticsPage() {
   const CleanStatCard = ({ label, value, color = 'blue' }: any) => {
     const borders: Record<string, string> = {
       blue: 'border-surface-200',
-      green: 'border-emerald-200/60 bg-emerald-50/10',
-      amber: 'border-amber-200/60 bg-amber-50/10',
-      red: 'border-red-200/60 bg-red-50/10',
+      green: 'border-status-success-border/60 bg-status-success-bg/10',
+      amber: 'border-status-warning-border/60 bg-status-warning-bg/10',
+      red: 'border-status-danger-border/60 bg-status-danger-bg/10',
     };
 
     const textColors: Record<string, string> = {
       blue: 'text-surface-900',
-      green: 'text-emerald-700',
-      amber: 'text-amber-700',
-      red: 'text-red-600',
+      green: 'text-status-success-content',
+      amber: 'text-status-warning-content',
+      red: 'text-status-danger-content',
     };
 
     return (
@@ -199,7 +199,7 @@ export default function DeliveryAnalyticsPage() {
           <button
             type="button"
             onClick={() => void fetchData()}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-surface-200 bg-white text-surface-500 shadow-sm hover:bg-surface-50 active:scale-95 transition-all"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-surface-200 bg-raised text-surface-500 shadow-sm hover:bg-surface-50 active:scale-95 transition-all"
           >
             <RefreshCw className="h-3.5 w-3.5 stroke-[2]" />
           </button>
@@ -216,15 +216,15 @@ export default function DeliveryAnalyticsPage() {
       </div>
 
       {/* 2. DURUM DAĞILIMI (Breakdown Matrix) */}
-      <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm space-y-4">
+      <div className="rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm space-y-4">
         <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900 border-b border-surface-100 pb-2.5">{copy.statusBreakdown}</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
-            { label: copy.sent, count: stats.sent, pct: ((stats.sent / stats.total_recipients) * 100).toFixed(1), color: "text-emerald-600 bg-emerald-50/50" },
-            { label: copy.pending, count: stats.pending, pct: ((stats.pending / stats.total_recipients) * 100).toFixed(1), color: "text-amber-600 bg-amber-50/50" },
-            { label: copy.openedUnique, count: stats.opened, pct: stats.open_rate, color: "text-blue-600 bg-blue-50/50" },
-            { label: copy.bounce, count: stats.bounced, pct: stats.bounce_rate, color: "text-orange-600 bg-orange-50/50" },
-            { label: copy.failed, count: stats.failed, pct: stats.failure_rate, color: "text-red-600 bg-red-50/50" },
+            { label: copy.sent, count: stats.sent, pct: ((stats.sent / stats.total_recipients) * 100).toFixed(1), color: "text-status-success-content bg-status-success-bg/50" },
+            { label: copy.pending, count: stats.pending, pct: ((stats.pending / stats.total_recipients) * 100).toFixed(1), color: "text-status-warning-content bg-status-warning-bg/50" },
+            { label: copy.openedUnique, count: stats.opened, pct: stats.open_rate, color: "text-status-info-content bg-status-info-bg/50" },
+            { label: copy.bounce, count: stats.bounced, pct: stats.bounce_rate, color: "text-status-warning-content bg-status-warning-bg/50" },
+            { label: copy.failed, count: stats.failed, pct: stats.failure_rate, color: "text-status-danger-content bg-status-danger-bg/50" },
           ].map((item, idx) => (
             <div key={idx} className="rounded-xl border border-surface-100 bg-surface-50/30 p-3 text-center space-y-1">
               <p className="text-11 font-semibold text-surface-400 tracking-tight">{item.label}</p>
@@ -238,9 +238,9 @@ export default function DeliveryAnalyticsPage() {
       </div>
 
       {/* 3. GÖNDERİM GÜNLÜĞÜ VERİ TABLOSU */}
-      <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden flex flex-col">
+      <div className="rounded-2xl border border-surface-200 bg-raised shadow-sm overflow-hidden flex flex-col">
         {/* Tablo Başlık Alanı ve Filtre */}
-        <div className="px-5 py-4 border-b border-surface-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
+        <div className="px-5 py-4 border-b border-surface-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-raised">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-surface-800 stroke-[2]" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-surface-900">{copy.deliveryLog}</h2>
@@ -253,7 +253,7 @@ export default function DeliveryAnalyticsPage() {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="appearance-none rounded-xl border border-surface-200 bg-white pl-3 pr-7 py-1.5 text-xs font-semibold text-surface-700 outline-none hover:border-surface-300 transition-all cursor-pointer"
+              className="appearance-none rounded-xl border border-surface-200 bg-raised pl-3 pr-7 py-1.5 text-xs font-semibold text-surface-700 outline-none hover:border-surface-300 transition-all cursor-pointer"
             >
               <option value="">{copy.allStatuses}</option>
               <option value="sent">{copy.sent}</option>
@@ -285,7 +285,7 @@ export default function DeliveryAnalyticsPage() {
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-outline-subtle">
                 {logs?.logs.map(log => (
                   <tr key={log.id} className="transition-colors hover:bg-surface-50/40">
                     <td className="px-5 py-3.5 text-xs font-bold text-surface-900 tracking-tight">{log.attendee.name}</td>
@@ -294,13 +294,13 @@ export default function DeliveryAnalyticsPage() {
                       <span
                         className={`inline-flex rounded-md border px-2 py-0.5 text-11 font-bold tracking-tight shadow-sm ${
                           log.status === 'sent'
-                            ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
+                            ? 'border-status-success-border bg-status-success-bg text-status-success-content'
                             : log.status === 'failed'
-                            ? 'border-red-100 bg-red-50 text-red-600'
+                            ? 'border-status-danger-border bg-status-danger-bg text-status-danger-content'
                             : log.status === 'bounced'
-                            ? 'border-orange-100 bg-orange-50 text-orange-700'
+                            ? 'border-status-warning-border bg-status-warning-bg text-status-warning-content'
                             : log.status === 'opened'
-                            ? 'border-blue-100 bg-blue-50 text-blue-700'
+                            ? 'border-status-info-border bg-status-info-bg text-status-info-content'
                             : 'border-surface-100 bg-surface-50 text-surface-500'
                         }`}
                       >
@@ -324,7 +324,7 @@ export default function DeliveryAnalyticsPage() {
                         : '-'}
                     </td>
                     {stats.failure_rate > 0 && (
-                      <td className="px-5 py-3.5 text-xs font-semibold text-red-500 max-w-xs truncate" title={log.reason}>
+                      <td className="px-5 py-3.5 text-xs font-semibold text-status-danger-content max-w-xs truncate" title={log.reason}>
                         {log.reason || '-'}
                       </td>
                     )}
@@ -337,7 +337,7 @@ export default function DeliveryAnalyticsPage() {
 
         {/* 4. SAYFALAMA KONTROLLERİ (Pagination) */}
         {logs && logs.total > logs.limit && (
-          <div className="px-5 py-3.5 border-t border-surface-100 bg-white flex items-center justify-between text-xs text-surface-400 font-semibold tracking-tight">
+          <div className="px-5 py-3.5 border-t border-surface-100 bg-raised flex items-center justify-between text-xs text-surface-400 font-semibold tracking-tight">
             <div>
               {copy.page} {logs.page} / {Math.ceil(logs.total / logs.limit)} <span className="font-normal text-surface-300">({logs.total} {copy.records})</span>
             </div>
@@ -346,7 +346,7 @@ export default function DeliveryAnalyticsPage() {
                 type="button"
                 onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1}
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-sm"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-raised text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-sm"
               >
                 <ChevronLeft className="h-4 w-4 stroke-[2]" />
               </button>
@@ -354,7 +354,7 @@ export default function DeliveryAnalyticsPage() {
                 type="button"
                 onClick={() => setPage(page + 1)}
                 disabled={page >= Math.ceil(logs.total / logs.limit)}
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-white text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-sm"
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-surface-100 bg-raised text-surface-400 transition-all hover:text-surface-900 disabled:opacity-30 shadow-sm"
               >
                 <ChevronRight className="h-4 w-4 stroke-[2]" />
               </button>

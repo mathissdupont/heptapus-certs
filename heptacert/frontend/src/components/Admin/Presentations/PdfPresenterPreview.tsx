@@ -90,8 +90,8 @@ function PreviewCanvas({
   return (
     <div className="min-w-0">
       <p className="mb-2 text-11 font-black uppercase tracking-[0.18em] text-surface-400">{label}</p>
-      <div ref={containerRef} className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-surface-200 bg-white">
-        <canvas ref={canvasRef} aria-label={label} className="max-h-full max-w-full bg-white" />
+      <div ref={containerRef} className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-surface-200 bg-raised">
+        <canvas ref={canvasRef} aria-label={label} className="max-h-full max-w-full bg-raised" />
       </div>
     </div>
   );
@@ -161,7 +161,7 @@ export default function PdfPresenterPreview({
 
   if (loading) {
     return (
-      <div className="flex min-h-36 items-center justify-center rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+      <div className="flex min-h-36 items-center justify-center rounded-2xl border border-surface-200 bg-raised p-5 shadow-sm">
         <Loader2 className="mr-2 h-4 w-4 animate-spin text-surface-400" />
         <span className="text-sm font-bold text-surface-500">{loadingLabel}</span>
       </div>
@@ -170,7 +170,7 @@ export default function PdfPresenterPreview({
 
   if (failed || !pdf || pageCount <= 0) {
     return (
-      <div className="flex min-h-36 flex-col items-center justify-center rounded-2xl border border-surface-200 bg-white p-5 text-center shadow-sm">
+      <div className="flex min-h-36 flex-col items-center justify-center rounded-2xl border border-surface-200 bg-raised p-5 text-center shadow-sm">
         <FileText className="mb-2 h-6 w-6 text-surface-300" />
         <p className="text-sm font-bold text-surface-500">{unavailableLabel}</p>
       </div>
@@ -180,7 +180,7 @@ export default function PdfPresenterPreview({
   const hasNext = pageIndex + 1 < pageCount;
 
   return (
-    <section className="grid grid-cols-2 gap-3 rounded-2xl border border-surface-200 bg-white p-3 shadow-sm">
+    <section className="grid grid-cols-2 gap-3 rounded-2xl border border-surface-200 bg-raised p-3 shadow-sm">
       <PreviewCanvas pdf={pdf} pageIndex={pageIndex} pageCount={pageCount} label={currentLabel} />
       {hasNext ? (
         <PreviewCanvas pdf={pdf} pageIndex={pageIndex + 1} pageCount={pageCount} label={nextLabel} />

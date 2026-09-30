@@ -21,16 +21,16 @@ function SsoSuccessContent() {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
-      <p className="text-sm text-gray-600">Giriş yapılıyor...</p>
+      <Loader2 className="w-6 h-6 animate-spin text-status-info-content" />
+      <p className="text-sm text-content-secondary">Giriş yapılıyor...</p>
     </div>
   );
 }
 
 export default function SsoSuccessPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <Suspense fallback={<Loader2 className="w-6 h-6 animate-spin text-indigo-600" />}>
+    <div className="min-h-screen bg-canvas flex items-center justify-center">
+      <Suspense fallback={<Loader2 className="w-6 h-6 animate-spin text-status-info-content" />}>
         <SsoSuccessContent />
       </Suspense>
     </div>

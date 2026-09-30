@@ -22,13 +22,13 @@ export function getRaffleStatusMeta(status: string) {
   if (status === "drawn") {
     return {
       label: "Kazananlar çekildi",
-      className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      className: "border-status-success-border bg-status-success-bg text-status-success-content",
     };
   }
 
   return {
     label: "Taslak",
-    className: "border-amber-200 bg-amber-50 text-amber-700",
+    className: "border-status-warning-border bg-status-warning-bg text-status-warning-content",
   };
 }
 

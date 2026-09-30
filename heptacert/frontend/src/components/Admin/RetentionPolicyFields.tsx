@@ -111,11 +111,11 @@ export default function RetentionPolicyFields({
               type="checkbox"
               checked={Boolean(policy.include_name_email)}
               onChange={(e) => onPatch({ include_name_email: e.target.checked })}
-              className="mt-0.5 h-4 w-4 rounded-md border-surface-300 text-amber-600 focus:ring-0 cursor-pointer"
+              className="mt-0.5 h-4 w-4 rounded-md border-surface-300 text-status-warning-content focus:ring-0 cursor-pointer"
             />
             <span className="text-xs font-semibold text-surface-800">
               {t("retention_include_name_email")}
-              <span className="block text-11 font-medium text-amber-700">{t("retention_include_name_email_warn")}</span>
+              <span className="block text-11 font-medium text-status-warning-content">{t("retention_include_name_email_warn")}</span>
             </span>
           </label>
         </div>

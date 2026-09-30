@@ -32,9 +32,9 @@ type SubscriptionRow = {
 const ADMIN_PLAN_OPTIONS = ["starter", "pro", "growth", "enterprise"] as const;
 const PLAN_TONES: Record<string, string> = {
   starter: "bg-surface-100 text-surface-700",
-  pro: "bg-violet-100 text-violet-700",
-  growth: "bg-rose-100 text-rose-700",
-  enterprise: "bg-amber-100 text-amber-700",
+  pro: "bg-status-info-bg text-status-info-content",
+  growth: "bg-status-danger-bg text-status-danger-content",
+  enterprise: "bg-status-warning-bg text-status-warning-content",
 };
 
 export default function SuperadminSubscriptionsPage() {
@@ -208,7 +208,7 @@ export default function SuperadminSubscriptionsPage() {
 
       <form onSubmit={grantSubscription} className="card grid gap-4 p-5 lg:grid-cols-[minmax(0,1.4fr)_220px_150px_auto] lg:items-end">
         <div className="lg:col-span-4 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-status-info-bg text-status-info-content">
             <Gift className="h-5 w-5" />
           </div>
           <div>
@@ -269,13 +269,13 @@ export default function SuperadminSubscriptionsPage() {
                 </div>
                 <div className="rounded-2xl border border-surface-200 bg-surface-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{copy.status}</p>
-                  <p className={`mt-2 text-sm font-semibold ${row.is_active ? "text-emerald-700" : "text-surface-500"}`}>{row.is_active ? copy.activeState : copy.inactiveState}</p>
+                  <p className={`mt-2 text-sm font-semibold ${row.is_active ? "text-status-success-content" : "text-surface-500"}`}>{row.is_active ? copy.activeState : copy.inactiveState}</p>
                 </div>
               </div>
 
               <div className="mt-4 flex items-center justify-between">
                 <p className="text-xs text-surface-400">{row.order_id ? `Order ${row.order_id}` : "Manual"}</p>
-                <button onClick={() => setRevokeId(row.id)} className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-100">
+                <button onClick={() => setRevokeId(row.id)} className="flex items-center gap-2 rounded-2xl border border-status-danger-border bg-status-danger-bg px-3 py-2 text-sm font-medium text-status-danger-content transition hover:bg-status-danger-bg">
                   <Trash2 className="h-4 w-4" />
                   {copy.deleteTitle}
                 </button>

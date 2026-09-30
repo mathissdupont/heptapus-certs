@@ -18,7 +18,7 @@ function EventCard({ event, cardCopy }: { event: MarketplaceEventOut; cardCopy: 
   return (
     <Link
       href={`/marketplace/${event.id}`}
-      className="group block bg-white rounded-xl border border-surface-200 overflow-hidden hover:shadow-md transition-all duration-200"
+      className="group block bg-raised rounded-xl border border-surface-200 overflow-hidden hover:shadow-md transition-all duration-200"
     >
       {event.event_banner_url ? (
         <div className="overflow-hidden">
@@ -54,7 +54,7 @@ function EventCard({ event, cardCopy }: { event: MarketplaceEventOut; cardCopy: 
             )}
             {event.org_name && <span className="truncate">{event.org_name}</span>}
           </div>
-          <span className={`text-sm font-semibold flex-shrink-0 ml-2 ${isFree ? "text-green-600" : "text-surface-900"}`}>
+          <span className={`text-sm font-semibold flex-shrink-0 ml-2 ${isFree ? "text-status-success-content" : "text-surface-900"}`}>
             {isFree ? cardCopy.free : `₺${event.marketplace_price?.toLocaleString(localeTag(lang))}`}
           </span>
         </div>
@@ -121,7 +121,7 @@ export default function MarketplacePage() {
   return (
     <div className="min-h-screen bg-surface-50">
       {/* Header */}
-      <div className="bg-white border-b border-surface-200 px-4 py-10">
+      <div className="bg-raised border-b border-surface-200 px-4 py-10">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-3xl font-bold text-surface-900 mb-1">{copy.pageTitle}</h1>
           <p className="text-surface-500 text-sm mb-4">
@@ -135,7 +135,7 @@ export default function MarketplacePage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={copy.searchPlaceholder}
-              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-surface-200 text-sm text-surface-900 placeholder:text-surface-400 bg-white focus:outline-none focus:ring-2 focus:ring-surface-900 focus:border-transparent transition"
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-surface-200 text-sm text-surface-900 placeholder:text-surface-400 bg-raised focus:outline-none focus:ring-2 focus:ring-surface-900 focus:border-transparent transition"
             />
           </div>
         </div>
@@ -150,7 +150,7 @@ export default function MarketplacePage() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 !selectedCategory
                   ? "bg-surface-900 text-white border-surface-900"
-                  : "bg-white text-surface-600 border-surface-200 hover:border-surface-400 hover:text-surface-900"
+                  : "bg-raised text-surface-600 border-surface-200 hover:border-surface-400 hover:text-surface-900"
               }`}
             >
               {copy.allFilter}
@@ -162,7 +162,7 @@ export default function MarketplacePage() {
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   selectedCategory === cat
                     ? "bg-surface-900 text-white border-surface-900"
-                    : "bg-white text-surface-600 border-surface-200 hover:border-surface-400 hover:text-surface-900"
+                    : "bg-raised text-surface-600 border-surface-200 hover:border-surface-400 hover:text-surface-900"
                 }`}
               >
                 {cat}

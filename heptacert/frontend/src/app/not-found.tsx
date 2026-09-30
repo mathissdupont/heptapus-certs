@@ -22,8 +22,8 @@ export default function NotFound() {
           transition={{ duration: 0.4, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
           className="flex justify-center mb-6"
         >
-          <div className="w-20 h-20 rounded-2xl bg-white border border-gray-200 shadow-sm flex items-center justify-center">
-            <FileQuestion className="w-9 h-9 text-gray-400" />
+          <div className="w-20 h-20 rounded-2xl bg-raised border border-outline-subtle shadow-sm flex items-center justify-center">
+            <FileQuestion className="w-9 h-9 text-content-muted" />
           </div>
         </motion.div>
 
@@ -32,15 +32,15 @@ export default function NotFound() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15 }}
-          className="text-sm font-semibold tracking-widest text-indigo-500 uppercase mb-2"
+          className="text-sm font-semibold tracking-widest text-status-info-content uppercase mb-2"
         >
           404
         </motion.p>
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-3">
+        <h1 className="text-2xl font-bold text-content-primary mb-3">
           Sayfa bulunamadı
         </h1>
-        <p className="text-gray-500 text-sm leading-relaxed mb-8">
+        <p className="text-content-muted text-sm leading-relaxed mb-8">
           Aradığın sayfa taşınmış, silinmiş ya da hiç var olmamış olabilir.
           URL'yi kontrol edip tekrar deneyin.
         </p>
@@ -49,14 +49,14 @@ export default function NotFound() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
           <Link
             href="/"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-inverse-surface text-white text-sm font-medium hover:bg-inverse-surface transition-colors"
           >
             <Home className="w-4 h-4" />
             Ana sayfaya dön
           </Link>
           <Link
             href="/discover"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-raised border border-outline-subtle text-content-secondary text-sm font-medium hover:bg-canvas transition-colors shadow-sm"
           >
             <Search className="w-4 h-4" />
             Etkinlikleri keşfet
@@ -64,20 +64,20 @@ export default function NotFound() {
         </div>
 
         {/* Quick links */}
-        <div className="flex items-center justify-center gap-1 text-xs text-gray-400 flex-wrap">
-          <Link href="/login" className="hover:text-gray-600 px-2 py-1 transition-colors">
+        <div className="flex items-center justify-center gap-1 text-xs text-content-muted flex-wrap">
+          <Link href="/login" className="hover:text-content-secondary px-2 py-1 transition-colors">
             Giriş yap
           </Link>
           <span>·</span>
-          <Link href="/register" className="hover:text-gray-600 px-2 py-1 transition-colors">
+          <Link href="/register" className="hover:text-content-secondary px-2 py-1 transition-colors">
             Kayıt ol
           </Link>
           <span>·</span>
-          <Link href="/pricing" className="hover:text-gray-600 px-2 py-1 transition-colors">
+          <Link href="/pricing" className="hover:text-content-secondary px-2 py-1 transition-colors">
             Fiyatlar
           </Link>
           <span>·</span>
-          <a href="https://docs.heptacert.com" className="hover:text-gray-600 px-2 py-1 transition-colors">
+          <a href="https://docs.heptacert.com" className="hover:text-content-secondary px-2 py-1 transition-colors">
             Docs
           </a>
         </div>
@@ -88,7 +88,7 @@ export default function NotFound() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
-        className="absolute bottom-8 text-xs text-gray-300 font-medium tracking-wide"
+        className="absolute bottom-8 text-xs text-content-muted font-medium tracking-wide"
       >
         HeptaCert
       </motion.div>
