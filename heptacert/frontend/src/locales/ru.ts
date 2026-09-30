@@ -2720,4 +2720,11 @@ export const ru: Record<TranslationKey, string> = {
   profile_certificate_views: "Просмотры сертификатов",
   profile_cv_exports: "Экспорт CV",
   profile_privacy_audit_count: "В журнале аудита записано изменений конфиденциальности: {count}.",
+  org_detail_organization_back: "Назад к мероприятиям организации",
+  org_detail_social_links: "Ссылки",
+  org_detail_posting: "Публикация...",
+  org_detail_login_to_post: "Войдите, чтобы создать публикацию или оставить комментарий.",
+  org_detail_sign_in: "Войти",
+  org_detail_reply: "Ответить",
+  org_detail_session_count: "Сессий: {count}",
 };

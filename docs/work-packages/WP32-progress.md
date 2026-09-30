@@ -26,7 +26,7 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **124** legacy language branches on public/secondary routes.
+  1. Continue the remaining **114** legacy language branches on public/secondary routes.
      Admin plan gates now use the nine-language catalog and central feature keys, but
      remaining user-facing literals still need review before global coverage is complete.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
@@ -39,13 +39,13 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **124 legacy TR/EN binary branches**;
+  hiding the real gap. The current ratchet records **114 legacy TR/EN binary branches**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. The authenticated admin scopes have
   reached zero; the remaining queue is in public/secondary routes. Catalogs contain
-  **2,662 keys × 9**.
+  **2,669 keys × 9**.
 
 ## Phase status
 
@@ -140,7 +140,9 @@ Newest first. Each entry: what changed, why, evidence, gotchas, next step.
 - Localized the profile wallet preview and analytics block, including private/public
   visibility guidance, counters and audit-log feedback. The larger legacy profile copy
   object remains in the queue for the next wave.
-- Ratchet: legacy TR/EN branches **178 → 124**. Catalogs now contain **2,662 keys × 9**;
+- Rewired the public organization detail and community feed to its existing nine-language
+  catalog contract, adding the missing post, reply, sign-in, session and link labels.
+- Ratchet: legacy TR/EN branches **178 → 114**. Catalogs now contain **2,669 keys × 9**;
   light-only colors remain **0**. Evidence: UI contracts and TypeScript pass; **93/93**
   frontend tests pass.
 - Next: migrate the remaining profile/community organization copy, then registration and

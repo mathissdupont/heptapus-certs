@@ -2720,4 +2720,11 @@ export const nl: Record<TranslationKey, string> = {
   profile_certificate_views: "Certificaatweergaven",
   profile_cv_exports: "CV-exports",
   profile_privacy_audit_count: "{count} privacywijzigingen vastgelegd in het auditlogboek.",
+  org_detail_organization_back: "Terug naar de evenementen van de organisatie",
+  org_detail_social_links: "Links",
+  org_detail_posting: "Bezig met plaatsen...",
+  org_detail_login_to_post: "Meld je aan om een bericht of reactie te plaatsen.",
+  org_detail_sign_in: "Aanmelden",
+  org_detail_reply: "Beantwoorden",
+  org_detail_session_count: "{count} sessies",
 };

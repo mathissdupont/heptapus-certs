@@ -52,7 +52,7 @@ export default function PublicOrganizationDetailPage() {
   const params = useParams();
   const router = useRouter();
   const orgPublicId = Array.isArray(params?.id) ? params.id[0] : params?.id;
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const [org, setOrg] = useState<PublicOrganizationDetail | null>(null);
   const [viewer, setViewer] = useState<PublicMemberMe | null>(null);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -67,33 +67,20 @@ export default function PublicOrganizationDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [isWhiteLabel, setIsWhiteLabel] = useState(false);
 
-  const copy = useMemo(() => lang === "tr" ? {
-    back: "Topluluklara Dön",
-    organizationBack: "Kurum etkinliklerine dön",
-    loading: "Topluluk yükleniyor...",
-    error: "Topluluk bulunamadı.",
-    followers: "Takipçi",
-    events: "Etkinlik",
-    follow: "Takip Et",
-    unfollow: "Takibi Bırak",
-    loginToFollow: "Takip için giriş yap",
-    feed: "Topluluk Akışı",
-    noEvents: "Bu topluluk henüz etkinlik yayınlamadı.",
-    social: "İletişim",
-  } : {
-    back: "Back to Communities",
-    organizationBack: "Back to organization events",
-    loading: "Loading community...",
-    error: "Community not found.",
-    followers: "Followers",
-    events: "Events",
-    follow: "Follow",
-    unfollow: "Unfollow",
-    loginToFollow: "Sign in to follow",
-    feed: "Community Feed",
-    noEvents: "This organization has not published any events yet.",
-    social: "Links",
-  }, [lang]);
+  const copy = useMemo(() => ({
+    back: t("org_detail_back"),
+    organizationBack: t("org_detail_organization_back"),
+    loading: t("org_detail_loading"),
+    error: t("org_detail_error"),
+    followers: t("org_detail_followers"),
+    events: t("org_detail_events"),
+    follow: t("org_detail_follow"),
+    unfollow: t("org_detail_unfollow"),
+    loginToFollow: t("org_detail_login_follow"),
+    feed: t("org_detail_feed_section"),
+    noEvents: t("org_detail_no_events"),
+    social: t("org_detail_social_links"),
+  }), [t]);
 
   useEffect(() => {
     if (!orgPublicId) {
@@ -407,9 +394,7 @@ export default function PublicOrganizationDetailPage() {
                     value={postBody}
                     onChange={(event) => setPostBody(event.target.value)}
                     maxLength={1500}
-                    placeholder={lang === "tr"
-                      ? "Bu toplulukta bir tartışma başlat..."
-                      : "Start a discussion in this community..."}
+                    placeholder={t("org_detail_post_placeholder")}
                   />
                   <div className="flex justify-between items-center">
                     <p className="text-xs text-content-muted">
@@ -424,12 +409,12 @@ export default function PublicOrganizationDetailPage() {
                       {posting ? (
                         <>
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          {lang === "tr" ? "Paylaşılıyor..." : "Posting..."}
+                          {t("org_detail_posting")}
                         </>
                       ) : (
                         <>
                           <Send className="h-4 w-4" />
-                          {lang === "tr" ? "Paylaş" : "Post"}
+                          {t("org_detail_post_submit")}
                         </>
                       )}
                     </button>
@@ -438,15 +423,13 @@ export default function PublicOrganizationDetailPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-6 text-center">
                   <p className="text-sm text-content-muted mb-4">
-                    {lang === "tr"
-                      ? "Paylaşım yapmak veya yorum yazmak için giriş yapın."
-                      : "Sign in to create a post or leave a comment."}
+                    {t("org_detail_login_to_post")}
                   </p>
                   <button
                     onClick={() => (window.location.href = "/login?mode=member")}
                     className="inline-flex items-center rounded-lg bg-raised border border-outline-subtle px-4 py-2 text-sm font-medium text-content-secondary hover:bg-canvas transition shadow-sm"
                   >
-                    {lang === "tr" ? "Üye Girişi" : "Sign In"}
+                    {t("org_detail_sign_in")}
                   </button>
                 </div>
               )}
@@ -461,9 +444,7 @@ export default function PublicOrganizationDetailPage() {
             ) : posts.length === 0 ? (
               <div className="rounded-xl border border-dashed border-outline-strong bg-canvas px-6 py-12 text-center text-sm text-content-muted">
                 <p>
-                  {lang === "tr"
-                    ? "Henüz paylaşım yok. İlk gönderiyi sen oluştur!"
-                    : "No posts yet. Be the first one to start a conversation!"}
+                  {t("org_detail_no_feed")}
                 </p>
               </div>
             ) : (
@@ -572,9 +553,7 @@ export default function PublicOrganizationDetailPage() {
                                   [post.public_id]: event.target.value,
                                 }))
                               }
-                              placeholder={
-                                lang === "tr" ? "Yorum yaz..." : "Write a comment..."
-                              }
+                              placeholder={t("feed_comment_placeholder")}
                               className="flex-1 rounded-lg border border-outline-subtle bg-raised px-3 py-2 text-sm text-content-primary outline-none transition focus:border-outline-strong focus:ring-1 focus:ring-outline-strong"
                             />
                             <button
@@ -586,7 +565,7 @@ export default function PublicOrganizationDetailPage() {
                               }
                               className="rounded-lg bg-inverse-surface px-4 py-2 text-sm font-medium text-white transition hover:bg-inverse-surface disabled:opacity-60 shadow-sm"
                             >
-                              {lang === "tr" ? "Yanıtla" : "Reply"}
+                              {t("org_detail_reply")}
                             </button>
                           </div>
                         )}
@@ -639,7 +618,7 @@ export default function PublicOrganizationDetailPage() {
                       </h3>
                       <div className="inline-flex items-center gap-1.5 rounded-md bg-canvas px-2 py-1 text-xs font-medium text-content-secondary border border-outline-subtle">
                         <Users className="h-3 w-3" />
-                        {event.session_count} {lang === "tr" ? "Oturum" : "Sessions"}
+                        {t("org_detail_session_count", { count: event.session_count })}
                       </div>
                     </div>
                   </Link>

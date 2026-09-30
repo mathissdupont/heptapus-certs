@@ -2720,4 +2720,11 @@ export const de: Record<TranslationKey, string> = {
   profile_certificate_views: "Zertifikatsaufrufe",
   profile_cv_exports: "CV-Exporte",
   profile_privacy_audit_count: "{count} Datenschutzänderungen wurden im Auditprotokoll erfasst.",
+  org_detail_organization_back: "Zurück zu den Veranstaltungen der Organisation",
+  org_detail_social_links: "Links",
+  org_detail_posting: "Wird veröffentlicht...",
+  org_detail_login_to_post: "Melde dich an, um einen Beitrag oder Kommentar zu verfassen.",
+  org_detail_sign_in: "Anmelden",
+  org_detail_reply: "Antworten",
+  org_detail_session_count: "{count} Sitzungen",
 };

@@ -2717,6 +2717,13 @@ export const tr = {
   profile_certificate_views: "Sertifika görüntüleme",
   profile_cv_exports: "CV dışa aktarım",
   profile_privacy_audit_count: "{count} gizlilik değişikliği denetim kaydına işlendi.",
+  org_detail_organization_back: "Kurum etkinliklerine dön",
+  org_detail_social_links: "İletişim",
+  org_detail_posting: "Paylaşılıyor...",
+  org_detail_login_to_post: "Paylaşım yapmak veya yorum yazmak için giriş yapın.",
+  org_detail_sign_in: "Üye Girişi",
+  org_detail_reply: "Yanıtla",
+  org_detail_session_count: "{count} oturum",
 } as const;
 
 export type TranslationKey = keyof typeof tr;
