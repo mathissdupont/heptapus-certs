@@ -25,7 +25,7 @@ from .ai_content_api import _claude
 from .cache import cache
 from .main import CurrentUser, Organization, Role, get_current_user, get_db, require_role, settings, write_audit_log
 from .models import Event, User
-from .organization_access_api import get_organization_for_access, organization_id_from_request
+from .organization_access_api import ensure_organization_feature, get_organization_for_access, organization_id_from_request
 from .presentation_converter import is_powerpoint_path
 from .presentation_models import PresentationDeck, PresentationSpeakerNote
 from .presentation_renderer import render_deck_pptx
@@ -417,7 +417,8 @@ async def _authorized_deck(db: AsyncSession, me: CurrentUser, deck_id: int, requ
     deck = await _load_deck_row(db, PresentationDeck.id == deck_id)
     if not deck:
         raise HTTPException(status_code=404, detail="Presentation not found")
-    await get_organization_for_access(db, me, permission, deck["organization_id"] or organization_id_from_request(request))
+    organization = await get_organization_for_access(db, me, permission, deck["organization_id"] or organization_id_from_request(request))
+    await ensure_organization_feature(db, organization, "presentations")
     return deck
 
 
@@ -426,6 +427,7 @@ async def _authorized_event_org(db: AsyncSession, me: CurrentUser, event_id: int
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     org = await get_organization_for_access(db, me, permission, organization_id_from_request(request))
+    await ensure_organization_feature(db, org, "presentations")
     if getattr(org, "user_id", None) != event.admin_id:
         raise HTTPException(status_code=404, detail="Event not found")
     return event, org
@@ -748,6 +750,7 @@ async def list_decks(
     db: AsyncSession = Depends(get_db),
 ) -> list[DeckOut]:
     org = await get_organization_for_access(db, me, "presentations:read", organization_id_from_request(request))
+    await ensure_organization_feature(db, org, "presentations")
     rows = (
         await _load_deck_row(
             db,
@@ -845,6 +848,7 @@ async def create_deck(
     db: AsyncSession = Depends(get_db),
 ) -> DeckOut:
     org = await get_organization_for_access(db, me, "presentations:write", organization_id_from_request(request))
+    await ensure_organization_feature(db, org, "presentations")
     deck = PresentationDeck(
         organization_id=org.id,
         created_by=me.id,
@@ -878,6 +882,7 @@ async def generate_deck(
     db: AsyncSession = Depends(get_db),
 ) -> DeckOut:
     org = await get_organization_for_access(db, me, "presentations:write", organization_id_from_request(request))
+    await ensure_organization_feature(db, org, "presentations")
     slides, provider = await _generate_slides(payload)
     deck = PresentationDeck(
         organization_id=org.id,

@@ -35,7 +35,7 @@ from .main import (
     _get_event_for_admin,
     get_current_user,
     get_db,
-    require_email_system_access,
+    require_feature_plan,
     require_role,
     settings,
     _get_ms365_access_token_for_excel,
@@ -44,6 +44,8 @@ from .main import (
 )
 
 router = APIRouter()
+# Keep the existing decorator name local while binding it to the segmentation policy.
+require_email_system_access = require_feature_plan("segmentation")
 
 STANDARD_SEGMENTS = {
     "attended_no_certificate": {

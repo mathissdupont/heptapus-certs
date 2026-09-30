@@ -110,7 +110,7 @@ export default function EmailDashboard() {
   );
 
   return (
-    <FeatureGate requiredPlans={["growth", "enterprise"]}>
+    <FeatureGate featureKey="email">
       <div className="flex w-full flex-col gap-6 pb-16 antialiased text-surface-900">
         {/* GLOBAL BAŞLIK KARTI */}
         <PageHeader title={copy.title} subtitle={copy.subtitle} icon={<Mail className="h-4 w-4 stroke-[2]" />} />

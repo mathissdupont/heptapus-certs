@@ -785,6 +785,7 @@ export default function AdminAttendeesPage() {
       {/* PLAN GATE KORUMASI */}
       {planOk === false && (
         <PlanGateCard
+          featureKey="checkin"
           feature={copy.planGateFeature}
           serverMessage={planGateMessage}
         />

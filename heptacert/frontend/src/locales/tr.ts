@@ -2669,6 +2669,15 @@ export const tr = {
   admin_team_permission_email_write: "E-posta işlemleri yapabilir",
   admin_team_permission_analytics_read: "Analitikleri görebilir",
   admin_team_permission_settings_write: "Etkinlik ayarlarını değiştirebilir",
+  plan_gate_lock_label: "Plan kilidi",
+  plan_gate_title: "{plans} plan gerekli",
+  plan_gate_enterprise_title: "Enterprise plan gerekli",
+  plan_gate_feature_generic: "Bu özellik",
+  plan_gate_body: "{feature}, uygun ücretli planlarda kullanılabilir. Plan yükseltildiğinde bu ekran otomatik olarak açılır.",
+  plan_gate_team_body: "Bu alan çalışanlar ve ekip üyeleri için yalnızca etkinlik sahibi kurum Enterprise plandaysa açılır. Kurum sahibi planı yükselttiğinde yetkili kullanıcılar bu ekranı kullanabilir.",
+  plan_gate_cta: "Planları Gör",
+  plan_gate_loading: "Abonelik doğrulanıyor...",
+  plan_gate_error: "Abonelik durumu doğrulanamadı. Sayfayı yenileyip tekrar deneyin.",
 } as const;
 
 export type TranslationKey = keyof typeof tr;

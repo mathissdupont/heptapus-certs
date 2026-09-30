@@ -483,7 +483,7 @@ export default function AdminCheckinPage() {
 
         {/* PLAN GATE KORUMALARI */}
         {planOk === false && (
-          <PlanGateCard feature={copy.labelPlanFeature} serverMessage={planGateMessage} />
+          <PlanGateCard featureKey="checkin" feature={copy.labelPlanFeature} serverMessage={planGateMessage} />
         )}
 
         {planOk !== false && (

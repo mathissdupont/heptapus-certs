@@ -46,6 +46,7 @@ from .main import (
     get_current_public_member,
     get_db,
     _ensure_event_allowed_for_request_host,
+    _event_owner_has_feature_plan,
     _get_event_visibility,
     _resolve_public_event,
 )
@@ -142,6 +143,8 @@ async def _resolve_networking_event(event_id: str, db: AsyncSession, request: Re
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
     await _ensure_event_allowed_for_request_host(request, db, event)
+    if not await _event_owner_has_feature_plan(event.id, db, "networking"):
+        raise HTTPException(status_code=404, detail="Networking is not enabled for this event")
     if not is_networking_meetings_enabled(event):
         raise HTTPException(status_code=404, detail="Networking is not enabled for this event")
     return event

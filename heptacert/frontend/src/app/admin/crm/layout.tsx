@@ -5,7 +5,7 @@ import { FeatureGate } from "@/lib/useSubscription";
 
 export default function AdminCrmLayout({ children }: { children: ReactNode }) {
   return (
-    <FeatureGate requiredPlans={["enterprise"]} message="CRM Enterprise planına özeldir.">
+    <FeatureGate featureKey="crm">
       {children}
     </FeatureGate>
   );

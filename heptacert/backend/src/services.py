@@ -71,6 +71,7 @@ __all__ = [
     "_get_active_subscription_for_user",
     "_subscription_is_active_plan",
     "_event_owner_has_enterprise_plan",
+    "_event_owner_has_feature_plan",
     "_check_event_owner_has_premium_for_teams",
     "_get_event_email_verification_required",
     "_get_event_registration_quota",
@@ -800,6 +801,10 @@ def _subscription_is_active_plan(sub: Optional[Subscription], allowed_plans: set
     return subscription_is_active_plan(sub, allowed_plans)
 
 async def _event_owner_has_enterprise_plan(event_id: int, db: AsyncSession) -> bool:
+    return await _event_owner_has_feature_plan(event_id, db, "team")
+
+
+async def _event_owner_has_feature_plan(event_id: int, db: AsyncSession, feature_key: str) -> bool:
     event_owner_res = await db.execute(select(Event.admin_id).where(Event.id == event_id))
     event_owner_id = event_owner_res.scalar_one_or_none()
     if event_owner_id is None:
@@ -808,7 +813,9 @@ async def _event_owner_has_enterprise_plan(event_id: int, db: AsyncSession) -> b
     if owner and owner.role == Role.superadmin:
         return True
     sub = await _get_active_subscription_for_user(int(event_owner_id), db)
-    return _subscription_is_active_plan(sub, {"enterprise"})
+    from .plan_policy import feature_required_plans
+
+    return _subscription_is_active_plan(sub, set(feature_required_plans(feature_key)))
 
 async def _check_event_owner_has_premium_for_teams(
     event_id: int,

@@ -404,7 +404,7 @@ export default function AdminCrmPage() {
   }, [query, status, tag]);
 
   return (
-    <FeatureGate requiredPlans={["enterprise"]} message={translate(lang, "migrated_app_admin_crm_event_crm_is_available_on_the_enterprise_p_d06fd65c")}>
+    <FeatureGate featureKey="crm" message={translate(lang, "migrated_app_admin_crm_event_crm_is_available_on_the_enterprise_p_d06fd65c")}>
     <div className="w-full space-y-5 antialiased text-surface-900">
 
       {/* BAŞLIK GRUBU */}

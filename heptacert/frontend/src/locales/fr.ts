@@ -2672,4 +2672,13 @@ export const fr: Record<TranslationKey, string> = {
   admin_team_permission_email_write: "Peut gérer les courriels",
   admin_team_permission_analytics_read: "Peut visualiser l'analyse",
   admin_team_permission_settings_write: "Peut changer les paramètres de l'événement",
+  plan_gate_lock_label: "Restriction de forfait",
+  plan_gate_title: "Forfait {plans} requis",
+  plan_gate_enterprise_title: "Forfait Enterprise requis",
+  plan_gate_feature_generic: "Cette fonctionnalité",
+  plan_gate_body: "{feature} est disponible avec les forfaits payants éligibles. Cet écran se déverrouille automatiquement après une mise à niveau.",
+  plan_gate_team_body: "Pour le personnel et les membres de l'équipe, cet espace est disponible uniquement si l'organisation du propriétaire de l'événement dispose du forfait Enterprise. Les utilisateurs autorisés y accèdent après la mise à niveau.",
+  plan_gate_cta: "Voir les forfaits",
+  plan_gate_loading: "Vérification de l'abonnement...",
+  plan_gate_error: "Impossible de vérifier l'abonnement. Actualisez la page et réessayez.",
 };

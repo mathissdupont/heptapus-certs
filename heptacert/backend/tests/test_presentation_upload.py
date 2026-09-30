@@ -10,7 +10,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from src.main import Event, Organization, Role, SessionLocal, User, app, create_access_token, hash_password, settings
+from src.main import Event, Organization, Role, SessionLocal, Subscription, User, app, create_access_token, hash_password, settings
 from src.presentation_models import PresentationDeck
 from src.presentation_conversion_worker import _mark_conversion_failure, _recover_stale_decks
 
@@ -54,6 +54,7 @@ async def _seed_upload_event() -> tuple[int, int, str]:
         )
         db.add(admin)
         await db.flush()
+        db.add(Subscription(user_id=admin.id, plan_id="growth", is_active=True))
         organization = Organization(
             user_id=admin.id,
             public_id=f"org_upload_{unique}",

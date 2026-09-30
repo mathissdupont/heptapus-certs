@@ -37,16 +37,17 @@ from .main import (
     _get_event_attendaonce_counts, _get_event_email_verification_required,
     _get_event_for_admin, _get_raffle_for_admin, _pick_raffle_winners,
     _raffle_to_out, get_current_user, get_db, is_raffles_enabled,
-    require_paid_plan, require_role, write_audit_log,
+    require_feature_plan, require_role, write_audit_log,
 )
 
 router = APIRouter()
+require_raffles_plan = require_feature_plan("raffles")
 
 
 @router.get(
     "/api/admin/events/{event_id}/raffles",
     response_model=List[EventRaffleOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_raffles_plan)],
 )
 async def list_event_raffles(
     event_id: int,
@@ -79,7 +80,7 @@ async def list_event_raffles(
 @router.get(
     "/api/admin/events/{event_id}/raffles/audit",
     response_model=List[AuditLogOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_raffles_plan)],
 )
 async def list_event_raffle_audit_logs(
     event_id: int,
@@ -104,7 +105,7 @@ async def list_event_raffle_audit_logs(
 @router.post(
     "/api/admin/events/{event_id}/raffles",
     response_model=EventRaffleOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_raffles_plan)],
 )
 async def create_event_raffle(
     event_id: int,
@@ -156,7 +157,7 @@ async def create_event_raffle(
 @router.patch(
     "/api/admin/events/{event_id}/raffles/{raffle_id}",
     response_model=EventRaffleOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_raffles_plan)],
 )
 async def update_event_raffle(
     event_id: int,
@@ -221,7 +222,7 @@ async def update_event_raffle(
 
 @router.delete(
     "/api/admin/events/{event_id}/raffles/{raffle_id}",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_raffles_plan)],
 )
 async def delete_event_raffle(
     event_id: int,
@@ -251,7 +252,7 @@ async def delete_event_raffle(
 @router.post(
     "/api/admin/events/{event_id}/raffles/{raffle_id}/draw",
     response_model=EventRaffleOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_raffles_plan)],
 )
 async def draw_event_raffle(
     event_id: int,
@@ -309,7 +310,7 @@ async def draw_event_raffle(
 @router.post(
     "/api/admin/events/{event_id}/raffles/{raffle_id}/redraw",
     response_model=EventRaffleOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_raffles_plan)],
 )
 async def redraw_event_raffle(
     event_id: int,
@@ -365,7 +366,7 @@ async def redraw_event_raffle(
 
 @router.get(
     "/api/admin/events/{event_id}/raffles/{raffle_id}/export",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_raffles_plan)],
 )
 async def export_event_raffle(
     event_id: int,
@@ -447,7 +448,7 @@ async def export_event_raffle(
 @router.post(
     "/api/admin/events/{event_id}/raffles/{raffle_id}/reset",
     response_model=EventRaffleOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_paid_plan)],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_raffles_plan)],
 )
 async def reset_event_raffle(
     event_id: int,

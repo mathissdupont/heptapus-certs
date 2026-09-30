@@ -337,7 +337,7 @@ export default function EventRafflesPage() {
 
       {planOk === false ? (
         <PlanGateCard
-          feature="Çoklu oturum katılımına göre çekiliş oluşturma ve kazanan seçme"
+          featureKey="raffles"
           serverMessage={planGateMessage}
         />
       ) : (

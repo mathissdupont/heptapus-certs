@@ -93,7 +93,7 @@ export default function LiveModeratorPage() {
     <div className="mx-auto max-w-5xl space-y-6 pb-10">
       <EventAdminNav eventId={eventId} eventName={eventName} active="live" className="mb-2" />
       {planOk === false ? (
-        <PlanGateCard feature="Canlı Katılım (Q&A + Poll)" serverMessage={planGateMessage} />
+        <PlanGateCard featureKey="live_engagement" feature={t("live_title")} serverMessage={planGateMessage} />
       ) : (
         <>
           <PageHeader title={t("live_title")} subtitle={eventName} actions={

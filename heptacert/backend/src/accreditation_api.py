@@ -18,9 +18,12 @@ from .main import (
     Role,
     get_current_user,
     get_db,
+    require_feature_plan,
     require_role,
+    _get_event_for_admin,
 )
 from .organization_access_api import (
+    ensure_organization_feature,
     get_organization_for_access,
     organization_id_from_request,
 )
@@ -32,12 +35,15 @@ from .accreditation_models import (
 )
 
 router = APIRouter()
+require_accreditation_plan = require_feature_plan("accreditation")
 
 
 async def _admin_org(db: AsyncSession, me: CurrentUser, request: Request) -> Organization:
-    return await get_organization_for_access(
+    organization = await get_organization_for_access(
         db, me, "organization:view", organization_id_from_request(request)
     )
+    await ensure_organization_feature(db, organization, "accreditation")
+    return organization
 
 
 # ── Accreditation Bodies (read-only, seeded) ──────────────────────────────────
@@ -228,13 +234,17 @@ def _cpd_out(c: EventCpdConfig, body: AccreditationBody) -> EventCpdOut:
     )
 
 
-@router.get("/api/admin/events/{event_id}/cpd")
+@router.get(
+    "/api/admin/events/{event_id}/cpd",
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_accreditation_plan)],
+)
 async def get_event_cpd(
     event_id: int,
     request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await _get_event_for_admin(event_id, me, db, "analytics:read")
     row = (
         await db.execute(
             select(EventCpdConfig, AccreditationBody)
@@ -249,7 +259,7 @@ async def get_event_cpd(
 
 @router.put(
     "/api/admin/events/{event_id}/cpd",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_accreditation_plan)],
 )
 async def upsert_event_cpd(
     event_id: int,
@@ -258,6 +268,7 @@ async def upsert_event_cpd(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await _get_event_for_admin(event_id, me, db, "settings:write")
     body = await db.get(AccreditationBody, payload.body_id)
     if not body:
         raise HTTPException(status_code=404, detail="Accreditation body not found")
@@ -289,9 +300,14 @@ async def upsert_event_cpd(
 
 @router.delete(
     "/api/admin/events/{event_id}/cpd",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_accreditation_plan)],
 )
-async def delete_event_cpd(event_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_event_cpd(
+    event_id: int,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _get_event_for_admin(event_id, me, db, "settings:write")
     c = (
         await db.execute(select(EventCpdConfig).where(EventCpdConfig.event_id == event_id))
     ).scalar_one_or_none()

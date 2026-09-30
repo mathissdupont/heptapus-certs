@@ -297,7 +297,7 @@ export default function AdminSessionsPage() {
         {/* Plan gate */}
         {planOk === false && (
           <PlanGateCard
-            feature="Oturum yönetimi, QR ile yoklama ve katılım takibi"
+            featureKey="checkin"
             serverMessage={planGateMessage}
           />
         )}

@@ -238,7 +238,7 @@ export default function SMTPConfigurationPage() {
   }
 
   return (
-    <FeatureGate requiredPlans={["growth", "enterprise"]}>
+    <FeatureGate featureKey="email">
       <div className="grid max-w-6xl gap-5 xl:grid-cols-[minmax(0,1fr)_320px] antialiased text-surface-900 w-full">
 
         {/* SOL ALAN: FORM VE BAĞLANTI TESTİ */}

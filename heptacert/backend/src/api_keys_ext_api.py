@@ -16,10 +16,12 @@ from .main import (
     Role,
     get_current_user,
     get_db,
+    require_feature_plan,
     require_role,
 )
 
 router = APIRouter()
+require_api_plan = require_feature_plan("api")
 
 # Grantable API-key scopes derive from the single source of truth in services.py
 # so they can never drift out of sync with the scope-enforcement mapper
@@ -53,7 +55,7 @@ class ApiKeyOutFull(BaseModel):
     created_at: datetime
 
 
-@router.get("/api/admin/api-keys/scopes")
+@router.get("/api/admin/api-keys/scopes", dependencies=[Depends(require_api_plan)])
 async def list_api_scopes(
     _: CurrentUser = Depends(get_current_user),
 ):
@@ -63,7 +65,7 @@ async def list_api_scopes(
 @router.get(
     "/api/admin/api-keys/v2",
     response_model=list[ApiKeyOutFull],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_api_plan)],
 )
 async def list_api_keys_full(
     me: CurrentUser = Depends(get_current_user),
@@ -83,7 +85,7 @@ async def list_api_keys_full(
     "/api/admin/api-keys/v2",
     response_model=dict,
     status_code=201,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_api_plan)],
 )
 async def create_api_key_with_scopes(
     payload: "ApiKeyCreateFullIn",
@@ -124,7 +126,7 @@ async def create_api_key_with_scopes(
 @router.patch(
     "/api/admin/api-keys/{key_id}/scopes",
     response_model=ApiKeyOutFull,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_api_plan)],
 )
 async def update_api_key(
     key_id: int,

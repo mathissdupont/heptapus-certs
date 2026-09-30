@@ -161,7 +161,7 @@ export default function BulkEmailsPage() {
   const selectedTemplateItem = templates.find((template) => template.id === selectedTemplate) || null;
 
   return (
-    <FeatureGate requiredPlans={["growth", "enterprise"]}>
+    <FeatureGate featureKey="email">
       <div className="w-full flex flex-col gap-5 antialiased text-surface-900 pb-16">
 
         {/* ÜST ETKİNLİK NAVİGASYONU */}

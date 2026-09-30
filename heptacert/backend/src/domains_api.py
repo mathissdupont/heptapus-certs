@@ -47,9 +47,11 @@ async def _resolve_org(
     bir uye, profile_write izniyle uyesi oldugu kurumun (kendi bos org'unun degil)
     domain'lerini yonetebilir. Kurum sahibi izin kontrolunden muaftir.
     """
-    from .organization_access_api import get_organization_for_access, organization_id_from_request
+    from .organization_access_api import ensure_organization_feature, get_organization_for_access, organization_id_from_request
 
-    return await get_organization_for_access(db, me, permission, organization_id_from_request(request))
+    organization = await get_organization_for_access(db, me, permission, organization_id_from_request(request))
+    await ensure_organization_feature(db, organization, "domains")
+    return organization
 
 
 class DomainCreateIn(BaseModel):

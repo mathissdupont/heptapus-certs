@@ -10,6 +10,7 @@ from src.main import (
     Organization,
     Role,
     SessionLocal,
+    Subscription,
     User,
     app,
     create_access_token,
@@ -40,6 +41,7 @@ async def _seed_presentation_deck(
         )
         db.add(admin)
         await db.flush()
+        db.add(Subscription(user_id=admin.id, plan_id="growth", is_active=True))
 
         org = Organization(
             user_id=admin.id,

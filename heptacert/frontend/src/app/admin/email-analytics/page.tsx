@@ -62,7 +62,7 @@ export default function EmailAnalyticsPage() {
   }
 
   return (
-    <FeatureGate requiredPlans={["growth", "enterprise"]}>
+    <FeatureGate featureKey="advanced_analytics">
       <div className="flex w-full flex-col gap-5 antialiased text-surface-900">
 
         {/* SAYFA BAŞLIĞI */}

@@ -58,12 +58,15 @@ from .main import (
     limiter,
     require_role,
     _ensure_event_allowed_for_request_host,
+    _event_owner_has_feature_plan,
     _get_event_for_admin,
     _get_event_visibility,
     _resolve_public_event,
+    require_feature_plan,
 )
 
 router = APIRouter()
+require_live_engagement_plan = require_feature_plan("live_engagement")
 
 
 # ── helpers ─────────────────────────────────────────────────────────────────
@@ -73,6 +76,8 @@ async def _resolve_live_event(event_id: str, db: AsyncSession, request: Request)
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
     await _ensure_event_allowed_for_request_host(request, db, event)
+    if not await _event_owner_has_feature_plan(event.id, db, "live_engagement"):
+        raise HTTPException(status_code=404, detail="Live engagement is not enabled for this event")
     if not is_live_engagement_enabled(event):
         raise HTTPException(status_code=404, detail="Live engagement is not enabled for this event")
     return event
@@ -264,7 +269,7 @@ async def vote_live_poll(
 # ── moderator / presenter (admin) ───────────────────────────────────────────
 
 @router.get("/api/admin/events/{event_id}/live/questions", response_model=list[LiveQuestionOut],
-            dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+            dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_live_engagement_plan)])
 async def moderator_list_questions(
     event_id: int,
     session_id: Optional[int] = Query(default=None),
@@ -280,7 +285,7 @@ async def moderator_list_questions(
 
 
 @router.post("/api/admin/events/{event_id}/live/questions/{qid}/moderate", response_model=LiveQuestionOut,
-             dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+             dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_live_engagement_plan)])
 async def moderate_question(
     event_id: int,
     qid: int,
@@ -301,7 +306,7 @@ async def moderate_question(
 
 
 @router.get("/api/admin/events/{event_id}/live/polls", response_model=list[LivePollOut],
-            dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+            dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_live_engagement_plan)])
 async def moderator_list_polls(
     event_id: int,
     session_id: Optional[int] = Query(default=None),
@@ -318,7 +323,7 @@ async def moderator_list_polls(
 
 
 @router.post("/api/admin/events/{event_id}/live/polls", response_model=LivePollOut, status_code=201,
-             dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+             dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_live_engagement_plan)])
 async def create_poll(
     event_id: int,
     payload: LivePollIn,
@@ -341,7 +346,7 @@ async def create_poll(
 
 
 @router.post("/api/admin/events/{event_id}/live/polls/{pid}/status", response_model=LivePollOut,
-             dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+             dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_live_engagement_plan)])
 async def set_poll_status(
     event_id: int,
     pid: int,
@@ -359,7 +364,7 @@ async def set_poll_status(
 
 
 @router.delete("/api/admin/events/{event_id}/live/polls/{pid}",
-               dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+               dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_live_engagement_plan)])
 async def delete_poll(
     event_id: int,
     pid: int,

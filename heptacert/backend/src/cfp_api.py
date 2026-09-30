@@ -64,13 +64,16 @@ from .main import (
     get_optional_public_member,
     require_role,
     _ensure_event_allowed_for_request_host,
+    _event_owner_has_feature_plan,
     _get_event_for_admin,
     _get_event_visibility,
     _resolve_public_event,
+    require_feature_plan,
 )
 from .organization_access_api import OrganizationMember
 
 router = APIRouter()
+require_cfp_plan = require_feature_plan("cfp")
 
 _EDITABLE_STATUSES = {"submitted"}
 
@@ -203,7 +206,7 @@ async def get_cfp_public_info(
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
     await _ensure_event_allowed_for_request_host(request, db, event)
-    if not is_cfp_enabled(event):
+    if not is_cfp_enabled(event) or not await _event_owner_has_feature_plan(event.id, db, "cfp"):
         return CfpPublicInfoOut(cfp_enabled=False)
 
     cfg = _get_cfp_config(event)
@@ -235,6 +238,8 @@ async def _resolve_cfp_event(event_id: str, db: AsyncSession, request: Request) 
     if not event or _get_event_visibility(event) == "private":
         raise HTTPException(status_code=404, detail="Event not found")
     await _ensure_event_allowed_for_request_host(request, db, event)
+    if not await _event_owner_has_feature_plan(event.id, db, "cfp"):
+        raise HTTPException(status_code=404, detail="Call for Papers is not open for this event")
     if not is_cfp_enabled(event):
         raise HTTPException(status_code=404, detail="Call for Papers is not open for this event")
     return event
@@ -358,7 +363,7 @@ async def withdraw_cfp_submission(
 # ── organizer / reviewer endpoints ──────────────────────────────────────────────
 
 @router.get("/api/admin/events/{event_id}/cfp/config", response_model=CfpConfigOut,
-            dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+            dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_cfp_plan)])
 async def get_cfp_config(
     event_id: int,
     me: CurrentUser = Depends(get_current_user),
@@ -376,7 +381,7 @@ async def get_cfp_config(
 
 
 @router.put("/api/admin/events/{event_id}/cfp/config", response_model=CfpConfigOut,
-            dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+            dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_cfp_plan)])
 async def set_cfp_config(
     event_id: int,
     payload: CfpConfigIn,
@@ -413,7 +418,7 @@ async def set_cfp_config(
 
 
 @router.get("/api/admin/events/{event_id}/cfp/reviewers", response_model=list[CfpReviewerOut],
-            dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+            dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_cfp_plan)])
 async def list_cfp_reviewers(
     event_id: int,
     me: CurrentUser = Depends(get_current_user),
@@ -461,7 +466,7 @@ async def _load_submission_reviews(db: AsyncSession, submission_ids: list[int]) 
 
 
 @router.get("/api/admin/events/{event_id}/cfp/submissions", response_model=list[CfpSubmissionOut],
-            dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+            dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_cfp_plan)])
 async def list_cfp_submissions_admin(
     event_id: int,
     status: Optional[str] = Query(default=None),
@@ -489,7 +494,7 @@ async def _get_admin_submission(ev: Event, sid: int, db: AsyncSession) -> CfpSub
 
 
 @router.post("/api/admin/events/{event_id}/cfp/submissions/{sid}/assign", response_model=CfpSubmissionOut,
-             dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+             dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_cfp_plan)])
 async def assign_cfp_reviewers(
     event_id: int,
     sid: int,
@@ -516,7 +521,7 @@ async def assign_cfp_reviewers(
 
 
 @router.put("/api/admin/events/{event_id}/cfp/submissions/{sid}/review", response_model=CfpSubmissionOut,
-            dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+            dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_cfp_plan)])
 async def submit_cfp_review(
     event_id: int,
     sid: int,
@@ -571,7 +576,7 @@ def _parse_hhmm(value: Optional[str]) -> Optional[_time]:
 
 
 @router.post("/api/admin/events/{event_id}/cfp/submissions/{sid}/decide", response_model=CfpSubmissionOut,
-             dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+             dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_cfp_plan)])
 async def decide_cfp_submission(
     event_id: int,
     sid: int,

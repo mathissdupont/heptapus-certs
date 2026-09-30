@@ -31,6 +31,7 @@ import OrgRetentionDefault from "@/components/Admin/OrgRetentionDefault";
 import { useToast } from "@/hooks/useToast";
 import { normalizeExternalUrl } from "@/lib/url";
 import HeptaCertLogoMark from "@/components/Brand/HeptaCertLogoMark";
+import { FeatureGate } from "@/lib/useSubscription";
 
 const TABS = [
   { id: "account", label: "Hesap", description: "Şifre ve e-posta", icon: Lock },
@@ -1505,10 +1506,10 @@ export default function AdminSettingsPage() {
             {activeTab === "2fa" && <TwoFATab />}
             {activeTab === "transactions" && <TransactionsTab />}
             {activeTab === "modules" && <ModulesTab />}
-            {activeTab === "domain" && <CustomDomainTab />}
-            {activeTab === "team" && <OrganizationTeamTab />}
+            {activeTab === "domain" && <FeatureGate featureKey="domains"><CustomDomainTab /></FeatureGate>}
+            {activeTab === "team" && <FeatureGate featureKey="team"><OrganizationTeamTab /></FeatureGate>}
             {activeTab === "compliance" && <ComplianceTab />}
-            {activeTab === "branding" && <BrandingTab />}
+            {activeTab === "branding" && <FeatureGate featureKey="branding"><BrandingTab /></FeatureGate>}
           </motion.div>
         </AnimatePresence>
       </div>

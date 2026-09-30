@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "./api";
-import { FEATURE_METADATA } from "./featureMetadata";
+import { FEATURE_METADATA, getFeatureMetadata, type FeatureKey } from "./featureMetadata";
+import { translate, useI18n, type Lang } from "./i18n";
 
 export interface SubscriptionInfo {
   active: boolean;
@@ -66,52 +67,63 @@ export function isPlanGateError(message?: string | null) {
 }
 
 export function planGateCopy({
-  feature = "Bu özellik",
+  lang = "tr",
+  feature,
   requiredPlans = ["pro", "growth", "enterprise"],
   serverMessage,
 }: {
+  lang?: Lang;
   feature?: string;
   requiredPlans?: string[];
   serverMessage?: string | null;
 }) {
   const required = planListLabel(requiredPlans);
-  const enterpriseForTeam = (serverMessage || "").toLocaleLowerCase("tr-TR").includes("enterprise");
+  const normalizedMessage = (serverMessage || "").toLocaleLowerCase("tr-TR");
+  const enterpriseForTeam = ["çalışan", "calisan", "ekip", "staff", "team member", "employee"].some((marker) =>
+    normalizedMessage.includes(marker),
+  );
   if (enterpriseForTeam) {
     return {
-      title: "Enterprise plan gerekli",
-      body:
- "Bu alan çalışanlar ve ekip üyeleri için yalnızca etkinlik sahibi kurum Enterprise plandaysa açılır. Kurum sahibi planı yükselttiğinde yetkili kullanıcılar bu ekranı kullanabilir.",
+      title: translate(lang, "plan_gate_enterprise_title"),
+      body: translate(lang, "plan_gate_team_body"),
       detail: serverMessage || undefined,
-      cta: "Planları Gör",
+      cta: translate(lang, "plan_gate_cta"),
     };
   }
   return {
-    title: `${required} plan gerekli`,
-    body: `${feature} ücretli planlarda kullanılabilir. Plan yükseltildiğinde bu ekran otomatik olarak açılır.`,
+    title: translate(lang, "plan_gate_title", { plans: required }),
+    body: translate(lang, "plan_gate_body", {
+      feature: feature || translate(lang, "plan_gate_feature_generic"),
+    }),
     detail: serverMessage || undefined,
-    cta: "Planları Gör",
+    cta: translate(lang, "plan_gate_cta"),
   };
 }
 
 export function PlanGateCard({
+  featureKey,
   feature,
-  requiredPlans = ["pro", "growth", "enterprise"],
+  requiredPlans,
   serverMessage,
   compact = false,
 }: {
+  featureKey?: FeatureKey;
   feature?: string;
   requiredPlans?: string[];
   serverMessage?: string | null;
   compact?: boolean;
 }) {
-  const copy = planGateCopy({ feature, requiredPlans, serverMessage });
+  const { lang, t } = useI18n();
+  const effectiveRequiredPlans = requiredPlans
+    ?? (featureKey ? getFeatureMetadata(featureKey).requiredPlans : ["pro", "growth", "enterprise"]);
+  const copy = planGateCopy({ lang, feature, requiredPlans: effectiveRequiredPlans, serverMessage });
   return (
     <div className={`rounded-[28px] border border-surface-200 bg-raised shadow-sm ${compact ? "p-5" : "p-7 sm:p-8"}`}>
       <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl border border-surface-200 bg-surface-50 text-surface-700">
           <span className="text-lg font-black">↑</span>
         </div>
-        <p className="text-xs font-black uppercase tracking-[0.22em] text-surface-400">Plan kilidi</p>
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-surface-400">{t("plan_gate_lock_label")}</p>
         <h2 className="mt-2 text-xl font-black text-surface-950">{copy.title}</h2>
         <p className="mt-3 text-sm leading-6 text-surface-600">{copy.body}</p>
         {copy.detail && (
@@ -134,22 +146,31 @@ export function useSubscription() {
 
   useEffect(() => {
     let mounted = true;
-    apiFetch("/billing/subscription")
-      .then((r) => r.json())
-      .then((s: SubscriptionInfo) => {
-        if (!mounted) return;
-        setSubscription(s);
-      })
-      .catch((e) => {
-        if (!mounted) return;
-        setError(e?.message || "Abonelik bilgisi yüklenemedi.");
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setLoading(false);
-      });
+    const load = () => {
+      setLoading(true);
+      setError(null);
+      apiFetch("/billing/subscription")
+        .then((r) => r.json())
+        .then((s: SubscriptionInfo) => {
+          if (!mounted) return;
+          setSubscription(s);
+        })
+        .catch((e) => {
+          if (!mounted) return;
+          setSubscription(null);
+          setError(e?.message || "subscription_fetch_failed");
+        })
+        .finally(() => {
+          if (!mounted) return;
+          setLoading(false);
+        });
+    };
+    const handleOrganizationChange = () => load();
+    void load();
+    window.addEventListener("heptacert:organization-context-change", handleOrganizationChange);
     return () => {
       mounted = false;
+      window.removeEventListener("heptacert:organization-context-change", handleOrganizationChange);
     };
   }, []);
 
@@ -160,35 +181,54 @@ export function useSubscription() {
     return planAllows(subscription.plan_id, allowed);
   }
 
-  return { loading, subscription, error, hasPlan } as const;
+  function hasFeature(featureKey: FeatureKey) {
+    return hasPlan(getFeatureMetadata(featureKey).requiredPlans);
+  }
+
+  return { loading, subscription, error, hasPlan, hasFeature } as const;
 }
 
 export function FeatureGate({
-  requiredPlans = FEATURE_METADATA.automation.requiredPlans,
+  featureKey,
+  feature,
+  requiredPlans,
   children,
   message,
   redirectTo = false,
 }: {
+  featureKey?: FeatureKey;
+  feature?: string;
   requiredPlans?: string[];
   children: React.ReactNode;
   message?: React.ReactNode;
   redirectTo?: string | false;
 }) {
-  const { loading, hasPlan } = useSubscription();
+  const { t } = useI18n();
+  const { loading, error, hasPlan } = useSubscription();
   const router = useRouter();
-  const allowed = hasPlan(requiredPlans);
+  const effectiveRequiredPlans = requiredPlans
+    ?? (featureKey ? getFeatureMetadata(featureKey).requiredPlans : FEATURE_METADATA.automation.requiredPlans);
+  const allowed = hasPlan(effectiveRequiredPlans);
 
   useEffect(() => {
-    if (!loading && !allowed && redirectTo) {
+    if (!loading && !error && !allowed && redirectTo) {
       router.replace(redirectTo);
     }
-  }, [allowed, loading, redirectTo, router]);
+  }, [allowed, error, loading, redirectTo, router]);
 
-  if (loading) return <div className="p-8 text-center text-sm text-surface-500">Yükleniyor...</div>;
+  if (loading) return <div className="p-8 text-center text-sm text-surface-500">{t("plan_gate_loading")}</div>;
+  if (error) {
+    return (
+      <div className="rounded-[28px] border border-status-warning-border bg-status-warning-bg p-6 text-center text-sm font-semibold text-status-warning-content" role="alert">
+        {t("plan_gate_error")}
+      </div>
+    );
+  }
   if (!allowed) {
     return (
       <PlanGateCard
-        requiredPlans={requiredPlans}
+        feature={feature}
+        requiredPlans={effectiveRequiredPlans}
         serverMessage={typeof message === "string" ? message : undefined}
       />
     );

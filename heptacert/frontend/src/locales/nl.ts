@@ -2672,4 +2672,13 @@ export const nl: Record<TranslationKey, string> = {
   admin_team_permission_email_write: "Kan e-mails beheren",
   admin_team_permission_analytics_read: "Kan analyse bekijken",
   admin_team_permission_settings_write: "Kan gebeurtenisinstellingen wijzigen",
+  plan_gate_lock_label: "Planbeperking",
+  plan_gate_title: "{plans}-abonnement vereist",
+  plan_gate_enterprise_title: "Enterprise-abonnement vereist",
+  plan_gate_feature_generic: "Deze functie",
+  plan_gate_body: "{feature} is beschikbaar in geschikte betaalde abonnementen. Dit scherm wordt na een upgrade automatisch ontgrendeld.",
+  plan_gate_team_body: "Voor medewerkers en teamleden is dit onderdeel alleen beschikbaar als de organisatie van de evenementhouder een Enterprise-abonnement heeft. Bevoegde gebruikers krijgen toegang na de upgrade.",
+  plan_gate_cta: "Abonnementen bekijken",
+  plan_gate_loading: "Abonnement controleren...",
+  plan_gate_error: "De abonnementsstatus kon niet worden gecontroleerd. Vernieuw de pagina en probeer het opnieuw.",
 };

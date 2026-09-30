@@ -18,13 +18,13 @@ def _client():
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
 
 
-async def _admin(email: str, org_public_id: str):
+async def _admin(email: str, org_public_id: str, plan_id: str = "growth"):
     async with SessionLocal() as db:
         admin = User(email=email, password_hash=hash_password("AdminPass123!"), role=Role.admin)
         db.add(admin)
         await db.flush()
         db.add(Organization(user_id=admin.id, public_id=org_public_id, org_name="Org", brand_color="#111111", settings={}))
-        db.add(Subscription(user_id=admin.id, plan_id="growth", is_active=True))
+        db.add(Subscription(user_id=admin.id, plan_id=plan_id, is_active=True))
         await db.commit()
         await db.refresh(admin)
         return admin.id, {"Authorization": f"Bearer {create_access_token(user_id=admin.id, role=Role.admin)}"}
@@ -102,6 +102,37 @@ class TestEventAdminCrud:
         async with _client() as ac:
             resp = await ac.post("/api/admin/events", json={"name": "NoAuth"})
         assert resp.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_custom_registration_requires_pro_plan(self):
+        registration_fields = [{
+            "id": "company",
+            "label": "Company",
+            "type": "text",
+            "required": False,
+        }]
+        _starter_id, starter_headers = await _admin(
+            "ev-custom-starter@test.com", "org_ev_custom_starter", "starter"
+        )
+        _pro_id, pro_headers = await _admin(
+            "ev-custom-pro@test.com", "org_ev_custom_pro", "pro"
+        )
+
+        async with _client() as ac:
+            blocked = await ac.post(
+                "/api/admin/events",
+                headers=starter_headers,
+                json={"name": "Starter Event", "config": {"registration_fields": registration_fields}},
+            )
+            allowed = await ac.post(
+                "/api/admin/events",
+                headers=pro_headers,
+                json={"name": "Pro Event", "config": {"registration_fields": registration_fields}},
+            )
+
+        assert blocked.status_code == 403, blocked.text
+        assert allowed.status_code == 201, allowed.text
+        assert allowed.json()["config"]["registration_fields"][0]["id"] == "company"
 
 
 class TestEventOrgIsolation:

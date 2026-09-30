@@ -1953,28 +1953,26 @@ from fastapi import Header as FastAPIHeader
 
 
 
-async def require_paid_plan(
+async def _require_plan_access(
     request: Request,
-    me: CurrentUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    me: CurrentUser,
+    db: AsyncSession,
+    required_plans: tuple[str, ...],
 ):
-    """Paid event features use the owner plan; collaborators require owner Enterprise."""
+    """Apply a plan policy to the current user or the owner of an event route."""
     if me.role == Role.superadmin:
         return me
 
     billing_user_id = me.id
-    allowed_plans = {"pro", "growth", "enterprise"}
+    allowed_plans = set(required_plans)
     event_id_raw = request.path_params.get("event_id")
     if event_id_raw is not None:
         try:
             event_id = int(event_id_raw)
         except (TypeError, ValueError):
             raise HTTPException(status_code=404, detail="Event not found")
-        event_owner_res = await db.execute(select(Event.admin_id).where(Event.id == event_id))
-        event_owner_id = event_owner_res.scalar_one_or_none()
-        if event_owner_id is None:
-            raise HTTPException(status_code=404, detail="Event not found")
-        billing_user_id = int(event_owner_id)
+        event = await _get_event_for_admin(event_id, me, db, "event:view")
+        billing_user_id = int(event.admin_id)
         owner = await db.get(User, billing_user_id)
         if owner and owner.role == Role.superadmin:
             return me
@@ -1996,41 +1994,46 @@ async def require_paid_plan(
             )
         raise HTTPException(
             status_code=403,
-            detail="Bu ozellik sadece Pro, Growth ve Enterprise planlarında kullanılabilir.",
-        )
-    now = datetime.now(timezone.utc)
-    expires_at = ensure_utc(sub.expires_at)
-    if expires_at and expires_at < now:
-        raise HTTPException(
-            status_code=403,
-            detail="Aboneliğiniz sona ermiş. Lutfen planınızı yenileyin.",
+            detail=f"This feature requires an active {', '.join(plan.title() for plan in required_plans)} plan.",
         )
     return me
 
 
-async def require_email_system_access(
+async def require_paid_plan(
+    request: Request,
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Email system features (bulk mail, templates, etc) require Growth or Enterprise plan. Superadmins bypass."""
-    if me.role == Role.superadmin:
-        return me
+    """Paid event features use the owner plan; collaborators require owner Enterprise."""
+    return await _require_plan_access(request, me, db, ("pro", "growth", "enterprise"))
+
+
+def require_feature_plan(feature_key: str):
+    """Build a FastAPI dependency from the central feature policy registry."""
     from .plan_policy import feature_required_plans
-    res = await db.execute(
-        select(Subscription)
-        .where(Subscription.user_id == me.id, Subscription.is_active == True)
-        .order_by(Subscription.expires_at.desc())
-        .limit(1)
-    )
-    sub = res.scalar_one_or_none()
-    # Single source: "email" feature policy decides which plans qualify; the
-    # helper handles is_active + plan rank + expiry consistently.
-    if not _subscription_is_active_plan(sub, set(feature_required_plans("email"))):
-        raise HTTPException(
-            status_code=403,
-            detail="Oto-mail sistemi Growth ve Enterprise planlarında kullanılabilir.",
-        )
-    return me
+
+    required_plans = feature_required_plans(feature_key)
+
+    async def dependency(
+        request: Request,
+        me: CurrentUser = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+    ):
+        return await _require_plan_access(request, me, db, required_plans)
+
+    dependency.__name__ = f"require_{feature_key}_plan"
+    return dependency
+
+
+async def require_email_system_access(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Growth feature guard retained as a compatibility dependency for email and automation routers."""
+    from .plan_policy import feature_required_plans
+
+    return await _require_plan_access(request, me, db, feature_required_plans("email"))
 
 
 
@@ -6945,7 +6948,7 @@ async def apply_cert_template(
     "/api/admin/webhooks",
     response_model=WebhookSubscriptionOut,
     status_code=201,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("webhooks"))],
 )
 async def create_webhook_subscription(
     payload: WebhookSubscriptionIn,
@@ -6984,7 +6987,7 @@ async def create_webhook_subscription(
 @app.get(
     "/api/admin/webhooks",
     response_model=list[WebhookSubscriptionOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("webhooks"))],
 )
 async def list_webhooks(
     me: CurrentUser = Depends(get_current_user),
@@ -7000,7 +7003,7 @@ async def list_webhooks(
 @app.patch(
     "/api/admin/webhooks/{webhook_id}",
     response_model=WebhookSubscriptionOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("webhooks"))],
 )
 async def update_webhook(
     webhook_id: int,
@@ -7035,7 +7038,7 @@ async def update_webhook(
 
 @app.delete(
     "/api/admin/webhooks/{webhook_id}",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("webhooks"))],
 )
 async def delete_webhook(
     webhook_id: int,
@@ -7060,7 +7063,7 @@ async def delete_webhook(
 
 @app.post(
     "/api/admin/webhooks/{webhook_id}/test",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("webhooks"))],
 )
 async def test_webhook(
     webhook_id: int,
@@ -7669,9 +7672,24 @@ async def list_orders(me: CurrentUser = Depends(get_current_user), db: AsyncSess
 
 
 @app.get("/api/billing/subscription")
-async def my_subscription(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def my_subscription(
+    request: Request,
+    me: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    billing_user_id = me.id
+    raw_organization_id = request.headers.get("X-Organization-Id") or request.query_params.get("organization_id")
+    if raw_organization_id:
+        try:
+            organization_id = int(raw_organization_id)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Invalid organization context")
+        from .organization_access_api import get_organization_for_access
+
+        organization = await get_organization_for_access(db, me, "organization:view", organization_id)
+        billing_user_id = organization.user_id
     res = await db.execute(
-        select(Subscription).where(Subscription.user_id == me.id, Subscription.is_active == True)
+        select(Subscription).where(Subscription.user_id == billing_user_id, Subscription.is_active == True)
         .order_by(Subscription.expires_at.desc()).limit(1)
     )
     sub = res.scalar_one_or_none()
@@ -8357,12 +8375,14 @@ async def create_event(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from .organization_access_api import get_organization_for_access, organization_id_from_request
+    from .organization_access_api import ensure_organization_feature, get_organization_for_access, organization_id_from_request
 
     selected_organization_id = organization_id_from_request(request)
     organization = await get_organization_for_access(db, me, "events:manage", selected_organization_id)
     next_config = dict(payload.config or {})
     if "registration_fields" in next_config:
+        if next_config.get("registration_fields"):
+            await ensure_organization_feature(db, organization, "custom_registration")
         next_config["registration_fields"] = _validate_registration_fields_for_write(next_config.get("registration_fields"))
     next_config["visibility"] = _normalize_event_visibility(next_config.get("visibility"))
     # New events should require KVKK consent by default.
@@ -9446,6 +9466,9 @@ async def rename_event(
     next_config = dict(ev.config or {})
     config_dirty = False
     if "registration_fields" in payload.model_fields_set:
+        if payload.registration_fields:
+            from .plan_policy import feature_required_plans
+            await _require_plan_access(request, me, db, feature_required_plans("custom_registration"))
         next_config["registration_fields"] = _validate_registration_fields_for_write(
             payload.registration_fields,
             existing_fields=existing_registration_fields,
@@ -9688,6 +9711,7 @@ async def upload_event_banner(
 @app.put("/api/admin/events/{event_id}/config", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def save_event_config(
     event_id: int,
+    request: Request,
     payload: Dict[str, Any] = Body(...),
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -9700,6 +9724,9 @@ async def save_event_config(
     existing_registration_fields = _get_event_registration_fields(ev)
     next_config = dict(ev.config or {})
     if "registration_fields" in payload:
+        if payload.get("registration_fields"):
+            from .plan_policy import feature_required_plans
+            await _require_plan_access(request, me, db, feature_required_plans("custom_registration"))
         next_config["registration_fields"] = _validate_registration_fields_for_write(
             payload.get("registration_fields"),
             existing_fields=existing_registration_fields,
@@ -10057,8 +10084,17 @@ async def get_admin_organization_settings(request: Request, me: CurrentUser = De
 
 @app.patch("/api/admin/organization/settings", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
 async def update_admin_organization_settings(payload: dict[str, Any], request: Request, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    from .organization_access_api import get_organization_for_access, organization_id_from_request
+    from .organization_access_api import ensure_organization_feature, get_organization_for_access, organization_id_from_request
     org = await get_organization_for_access(db, me, "organization:profile_write", organization_id_from_request(request))
+
+    branding_fields = {
+        "brand_color",
+        "certificate_footer",
+        "hide_heptacert_home",
+        "verification_path",
+    }
+    if branding_fields.intersection(payload):
+        await ensure_organization_feature(db, org, "branding")
 
     settings_data = dict(getattr(org, "settings", {}) or {})
     for key in (
@@ -10112,8 +10148,9 @@ async def upload_admin_organization_logo(
     me: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from .organization_access_api import get_organization_for_access, organization_id_from_request
+    from .organization_access_api import ensure_organization_feature, get_organization_for_access, organization_id_from_request
     org = await get_organization_for_access(db, me, "organization:profile_write", organization_id_from_request(request))
+    await ensure_organization_feature(db, org, "branding")
     data, ext = await _read_safe_raster_upload(file)
     safe_name = f"org-logos/org_{org.id}/logo{ext}"
     dest = Path(settings.local_storage_dir) / safe_name
@@ -10126,7 +10163,7 @@ async def upload_admin_organization_logo(
     return {"brand_logo": org.brand_logo}
 
 
-@app.get("/api/admin/api-keys", response_model=list[ApiKeyOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+@app.get("/api/admin/api-keys", response_model=list[ApiKeyOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("api"))])
 async def list_api_keys(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(ApiKey).where(ApiKey.user_id == me.id).order_by(ApiKey.created_at.desc()))
     api_keys = res.scalars().all()
@@ -10146,7 +10183,7 @@ async def list_api_keys(me: CurrentUser = Depends(get_current_user), db: AsyncSe
     ]
 
 
-@app.post("/api/admin/api-keys", response_model=ApiKeyCreateOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+@app.post("/api/admin/api-keys", response_model=ApiKeyCreateOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("api"))])
 async def create_api_key(payload: ApiKeyCreateIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     full_key = f"hc_live_{secrets.token_urlsafe(32)}"
     key_prefix = full_key[:8]
@@ -10180,7 +10217,7 @@ async def create_api_key(payload: ApiKeyCreateIn, me: CurrentUser = Depends(get_
     )
 
 
-@app.delete("/api/admin/api-keys/{key_id}", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+@app.delete("/api/admin/api-keys/{key_id}", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("api"))])
 async def delete_api_key(key_id: int, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == me.id))
     api_key = res.scalar_one_or_none()
@@ -10199,18 +10236,18 @@ _DEFINED_SCOPES = [{"value": k, "label": v} for k, v in GRANTABLE_SCOPES.items()
 
 
 
-@app.get("/api/admin/api-keys/scopes", dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+@app.get("/api/admin/api-keys/scopes", dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("api"))])
 async def list_api_key_scopes():
     return _DEFINED_SCOPES
 
 
-@app.get("/api/admin/api-keys/v2", response_model=list[ApiKeyOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+@app.get("/api/admin/api-keys/v2", response_model=list[ApiKeyOut], dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("api"))])
 async def list_api_keys_v2(me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(ApiKey).where(ApiKey.user_id == me.id).order_by(ApiKey.created_at.desc()))
     return [_api_key_to_out(k) for k in res.scalars().all()]
 
 
-@app.post("/api/admin/api-keys/v2", response_model=ApiKeyCreateOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+@app.post("/api/admin/api-keys/v2", response_model=ApiKeyCreateOut, status_code=201, dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("api"))])
 async def create_api_key_v2(payload: ApiKeyCreateIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     full_key = f"hc_live_{secrets.token_urlsafe(32)}"
     key_prefix = full_key[:8]
@@ -10235,7 +10272,7 @@ async def create_api_key_v2(payload: ApiKeyCreateIn, me: CurrentUser = Depends(g
     return ApiKeyCreateOut(**out.model_dump(), full_key=full_key)
 
 
-@app.patch("/api/admin/api-keys/{key_id}/scopes", response_model=ApiKeyOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin))])
+@app.patch("/api/admin/api-keys/{key_id}/scopes", response_model=ApiKeyOut, dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_feature_plan("api"))])
 async def update_api_key_scopes(key_id: int, payload: ApiKeyScopePatchIn, me: CurrentUser = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     res = await db.execute(select(ApiKey).where(ApiKey.id == key_id, ApiKey.user_id == me.id))
     api_key = res.scalar_one_or_none()
@@ -10436,7 +10473,7 @@ async def issue_certificate(
 
     billing_user_id = ev.admin_id
 
-    # Enforce hologram: only Growth/Enterprise can disable it for the organizer account
+    # Hologram removal follows the central Branding policy (Pro+).
     if not cfg.show_hologram and me.role != Role.superadmin:
         _sub_h = await db.execute(
             select(Subscription)
@@ -10444,8 +10481,8 @@ async def issue_certificate(
             .order_by(Subscription.expires_at.desc()).limit(1)
         )
         _sub_h_row = _sub_h.scalar_one_or_none()
-        # Hologram removal is a Growth+ capability (distinct from Pro branding).
-        if not _subscription_is_active_plan(_sub_h_row, {"growth", "enterprise"}):
+        from .plan_policy import feature_required_plans
+        if not _subscription_is_active_plan(_sub_h_row, set(feature_required_plans("branding"))):
             cfg.show_hologram = True
 
     # Lock the billing user's row so the balance check + debit below are atomic
@@ -14073,7 +14110,7 @@ async def bulk_certify_attendees(
     if not attendees:
         raise HTTPException(status_code=400, detail="Katılımcı listesi boş")
 
-    # Determine hologram policy: only Growth/Enterprise can disable it
+    # Determine hologram policy from the central Branding policy (Pro+).
     billing_user_id = ev.admin_id
     _allow_no_hologram = me.role == Role.superadmin
     if not _allow_no_hologram:
@@ -14083,8 +14120,8 @@ async def bulk_certify_attendees(
             .order_by(Subscription.expires_at.desc()).limit(1)
         )
         _sub_hb_row = _sub_hb.scalar_one_or_none()
-        # Hologram removal is a Growth+ capability (distinct from Pro branding).
-        _allow_no_hologram = _subscription_is_active_plan(_sub_hb_row, {"growth", "enterprise"})
+        from .plan_policy import feature_required_plans
+        _allow_no_hologram = _subscription_is_active_plan(_sub_hb_row, set(feature_required_plans("branding")))
 
     # Fetch attendaonce counts
     rec_res = await db.execute(

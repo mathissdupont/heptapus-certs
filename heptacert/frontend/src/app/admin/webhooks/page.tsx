@@ -158,7 +158,7 @@ export default function WebhooksPage() {
   };
 
   return (
-    <FeatureGate requiredPlans={["growth","enterprise"]}>
+    <FeatureGate featureKey="webhooks">
       <div className="flex flex-col gap-6">
       <PageHeader
         title="Webhooks"

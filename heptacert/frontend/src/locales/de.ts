@@ -2672,4 +2672,13 @@ export const de: Record<TranslationKey, string> = {
   admin_team_permission_email_write: "Kann E-Mails verwalten",
   admin_team_permission_analytics_read: "Kann Analytics anzeigen",
   admin_team_permission_settings_write: "Kann Ereigniseinstellungen ändern",
+  plan_gate_lock_label: "Tarifbeschränkung",
+  plan_gate_title: "{plans}-Tarif erforderlich",
+  plan_gate_enterprise_title: "Enterprise-Tarif erforderlich",
+  plan_gate_feature_generic: "Diese Funktion",
+  plan_gate_body: "{feature} ist in den entsprechenden kostenpflichtigen Tarifen verfügbar. Nach einem Upgrade wird dieser Bereich automatisch freigeschaltet.",
+  plan_gate_team_body: "Für Mitarbeitende und Teammitglieder ist dieser Bereich nur verfügbar, wenn die Organisation des Veranstalters den Enterprise-Tarif nutzt. Nach dem Upgrade erhalten berechtigte Personen Zugriff.",
+  plan_gate_cta: "Tarife anzeigen",
+  plan_gate_loading: "Abonnement wird geprüft...",
+  plan_gate_error: "Der Abonnementstatus konnte nicht geprüft werden. Laden Sie die Seite neu und versuchen Sie es erneut.",
 };

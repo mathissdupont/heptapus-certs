@@ -191,7 +191,7 @@ export default function EventAutomationsPage() {
   }
 
   return (
-    <FeatureGate requiredPlans={["growth", "enterprise"]} message={copy.gate}>
+    <FeatureGate featureKey="automation" message={copy.gate}>
     <div className="w-full flex flex-col gap-5 antialiased text-surface-900">
 
       {/* ÜST NAVİGASYON VE BAŞLIK BARLARI */}

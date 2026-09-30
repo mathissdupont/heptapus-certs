@@ -27,7 +27,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from .main import (
     Base, CurrentUser, Event, Role,
-    get_current_user, get_db, require_role,
+    get_current_user, get_db, require_feature_plan, require_role,
     _get_event_for_admin as _get_scoped_event,
     _get_event_registration_fields,
     _validate_registration_fields_for_write,
@@ -43,6 +43,7 @@ from .services import _get_event_retention_policy, _normalize_retention_policy
 from .anonymization_service import recompute_event_anonymize_after, anonymize_event_pending
 
 router = APIRouter()
+require_custom_registration_plan = require_feature_plan("custom_registration")
 
 
 # ── Event-type feature presets (ADR-0018) ───────────────────────────────────────
@@ -90,7 +91,7 @@ class RegFieldsReplaceIn(BaseModel):
 
 @router.get(
     "/api/admin/events/{event_id}/registration-fields",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_custom_registration_plan)],
     tags=["registration-fields"],
 )
 async def get_registration_fields(
@@ -105,7 +106,7 @@ async def get_registration_fields(
 
 @router.put(
     "/api/admin/events/{event_id}/registration-fields",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_custom_registration_plan)],
     tags=["registration-fields"],
 )
 async def replace_registration_fields(
@@ -127,7 +128,7 @@ async def replace_registration_fields(
 
 @router.post(
     "/api/admin/events/{event_id}/registration-fields",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_custom_registration_plan)],
     tags=["registration-fields"],
     status_code=201,
 )

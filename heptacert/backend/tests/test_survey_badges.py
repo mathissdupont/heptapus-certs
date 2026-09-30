@@ -326,6 +326,9 @@ async def test_email_verified_events_defer_option_capacity_until_confirmation():
 @pytest.mark.asyncio
 async def test_admin_can_change_registration_option_capacity_without_old_values_returning():
     owner = await _create_admin("capacity-update-owner@example.com")
+    async with SessionLocal() as sess:
+        async with sess.begin():
+            sess.add(Subscription(user_id=owner.id, plan_id="pro", is_active=True))
     token = create_access_token(user_id=owner.id, role=Role.admin)
 
     transport = ASGITransport(app=app)
@@ -460,6 +463,9 @@ async def test_admin_cannot_accidentally_clear_registration_fields():
 @pytest.mark.asyncio
 async def test_admin_rejects_invalid_registration_field_shapes():
     owner = await _create_admin("invalid-shape-owner@example.com")
+    async with SessionLocal() as sess:
+        async with sess.begin():
+            sess.add(Subscription(user_id=owner.id, plan_id="pro", is_active=True))
     token = create_access_token(user_id=owner.id, role=Role.admin)
 
     transport = ASGITransport(app=app)

@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
 
-from src.main import app, SessionLocal, User, Organization, Role, create_access_token
+from src.main import app, SessionLocal, User, Organization, Subscription, Role, create_access_token
 from src.domains import Domain
 
 
@@ -11,6 +11,7 @@ async def _create_user(email: str) -> User:
             user = User(email=email, password_hash="x", role=Role.admin)
             sess.add(user)
             await sess.flush()
+            sess.add(Subscription(user_id=user.id, plan_id="growth", is_active=True))
             user_id = user.id
     async with SessionLocal() as sess:
         return await sess.get(User, user_id)

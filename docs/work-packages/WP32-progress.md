@@ -26,9 +26,9 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Audit every frontend plan gate against the backend entitlement contract, starting
-     with `FeatureGate`, `PlanGateCard`, event navigation and settings. Record and fix
-     mismatched plan IDs, UI-only locks and API routes that do not enforce the same gate.
+  1. Continue the remaining **178** legacy language branches on public/secondary routes.
+     Admin plan gates now use the nine-language catalog and central feature keys, but
+     remaining user-facing literals still need review before global coverage is complete.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
      available. Draft the remaining routes under `docs/drafts/legal/` if useful, but
@@ -36,11 +36,7 @@
      `/kullanim-kosullari`, `/gizlilik`, `/kvkk`, `/mesafeli-satis`, `/iade` and
      `/acik-riza`. They currently serve English to the seven non-TR/EN locales and must
      not be called complete merely because machine-readable catalog parity passes.
-  3. Continue the remaining **178** legacy language branches on public/secondary routes.
-     Admin, `components/Admin` and `lib/assistant` now have zero direct TR/EN branches
-     and zero `pickLang()` calls, but remaining user-facing literals still need a separate
-     review before nine-language coverage is called globally complete.
-  4. Keep transactional routes unprefixed, keep the shipped theme controls available,
+  3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
   hiding the real gap. The current ratchet records **178 legacy TR/EN binary branches**;
@@ -49,7 +45,7 @@
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. The authenticated admin scopes have
   reached zero; the remaining queue is in public/secondary routes. Catalogs contain
-  **2,614 keys × 9**.
+  **2,623 keys × 9**.
 
 ## Phase status
 
@@ -135,6 +131,30 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-09-30 — plan gates audited and enforced end to end
+
+- Audited every feature in the central plan registry and recorded the result in
+  `WP32-plan-gate-audit.md`. Frontend metadata now exactly matches all backend feature
+  keys and required plans; a new parity test prevents either side drifting silently.
+- Rebuilt `FeatureGate`/`PlanGateCard` around typed feature keys and localized their full
+  loading, restriction and failure states in all nine catalogs. A subscription request
+  failure no longer appears as an upgrade demand or triggers a redirect.
+- Closed API bypasses for CFP, networking, live engagement, advanced analytics, raffles,
+  lead forms, domains, branding, custom registration, certificate presets, API keys,
+  presentations and accreditation. Automation, email and segmentation now bind to their
+  own central policy keys. Growth lead forms and Pro branding now agree with pricing;
+  raffles correctly require Growth rather than generic Pro access.
+- Plan checks now use the selected organization/event owner for employees and authorize
+  event access before checking entitlement, preserving tenant-isolation 404 behavior.
+- Added plan-aware layouts to accreditation, API keys, integrations, presentations and
+  reports, plus organization domain/team/branding subsections and event presentations.
+- Catalogs contain **2,623 keys × 9**. Evidence: frontend UI contracts and TypeScript
+  pass; **93/93** frontend tests pass; the production build generates **132/132** static
+  pages; and the complete backend suite passes **594/594** tests. Event creation has a
+  direct regression check proving custom registration is blocked on Starter and allowed
+  on Pro.
+- Next: resume the 178-item public/secondary language queue.
 
 ### 2026-09-30 — authenticated admin language debt removed
 

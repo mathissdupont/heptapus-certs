@@ -2672,4 +2672,13 @@ export const en: Record<TranslationKey, string> = {
   admin_team_permission_email_write: "Can manage emails",
   admin_team_permission_analytics_read: "Can view analytics",
   admin_team_permission_settings_write: "Can change event settings",
+  plan_gate_lock_label: "Plan restriction",
+  plan_gate_title: "{plans} plan required",
+  plan_gate_enterprise_title: "Enterprise plan required",
+  plan_gate_feature_generic: "This feature",
+  plan_gate_body: "{feature} is available on eligible paid plans. This screen unlocks automatically after an upgrade.",
+  plan_gate_team_body: "For staff and team members, this area is available only when the event owner's organization has an Enterprise plan. Authorized users gain access after the owner upgrades.",
+  plan_gate_cta: "View Plans",
+  plan_gate_loading: "Checking subscription...",
+  plan_gate_error: "We could not verify the subscription status. Refresh the page and try again.",
 };

@@ -2672,4 +2672,13 @@ export const pt: Record<TranslationKey, string> = {
   admin_team_permission_email_write: "Pode gerenciar e-mails",
   admin_team_permission_analytics_read: "Pode visualizar análise",
   admin_team_permission_settings_write: "Pode alterar a configuração do evento",
+  plan_gate_lock_label: "Restrição do plano",
+  plan_gate_title: "É necessário o plano {plans}",
+  plan_gate_enterprise_title: "É necessário o plano Enterprise",
+  plan_gate_feature_generic: "Esta funcionalidade",
+  plan_gate_body: "{feature} está disponível nos planos pagos elegíveis. Este ecrã é desbloqueado automaticamente após a atualização do plano.",
+  plan_gate_team_body: "Para colaboradores e membros da equipa, esta área só está disponível quando a organização proprietária do evento tem o plano Enterprise. Os utilizadores autorizados obtêm acesso após a atualização.",
+  plan_gate_cta: "Ver planos",
+  plan_gate_loading: "A verificar a subscrição...",
+  plan_gate_error: "Não foi possível verificar a subscrição. Atualize a página e tente novamente.",
 };

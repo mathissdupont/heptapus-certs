@@ -183,9 +183,9 @@ function TimelineCard({
 export default function AdvancedAnalyticsPage() {
   const params = useParams();
   const eventId = params.id as string;
-  const { loading: subscriptionLoading, hasPlan } = useSubscription();
-  const canViewAnalytics = hasPlan(["growth", "enterprise"]);
-  const { lang } = useI18n();
+  const { loading: subscriptionLoading, error: subscriptionError, hasFeature } = useSubscription();
+  const canViewAnalytics = hasFeature("advanced_analytics");
+  const { lang, t } = useI18n();
   const isTr = lang === "tr";
 
   const copy = {
@@ -325,6 +325,10 @@ export default function AdvancedAnalyticsPage() {
     );
   }
 
+  if (subscriptionError) {
+    return <div className="rounded-3xl border border-status-warning-border bg-status-warning-bg p-6 text-center text-sm font-semibold text-status-warning-content" role="alert">{t("plan_gate_error")}</div>;
+  }
+
   const isTicketedEvent = engagement?.ticketing_enabled === true;
   const hasCertificates = engagement?.certificate_enabled !== false;
   const hasBadges = engagement?.gamification_enabled !== false || (badges?.total_badges ?? 0) > 0;
@@ -401,13 +405,13 @@ export default function AdvancedAnalyticsPage() {
       {/* PLAN GATE KORUMALARI */}
       {!canViewAnalytics ? (
         <PlanGateCard
+          featureKey="advanced_analytics"
           feature={copy.planFeature}
-          requiredPlans={["growth", "enterprise"]}
         />
       ) : planGateMessage ? (
         <PlanGateCard
+          featureKey="advanced_analytics"
           feature={copy.planFeature}
-          requiredPlans={["growth", "enterprise"]}
           serverMessage={planGateMessage}
         />
       ) : (

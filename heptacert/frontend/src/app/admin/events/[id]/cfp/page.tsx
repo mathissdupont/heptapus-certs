@@ -102,7 +102,7 @@ export default function CfpAdminPage() {
       <EventAdminNav eventId={eventId} eventName={eventName} active="cfp" className="mb-2" />
 
       {planOk === false ? (
-        <PlanGateCard feature="Bildiri Çağrısı (CFP)" serverMessage={planGateMessage} />
+        <PlanGateCard featureKey="cfp" feature={t("cfp_admin_title")} serverMessage={planGateMessage} />
       ) : (
         <>
           <PageHeader

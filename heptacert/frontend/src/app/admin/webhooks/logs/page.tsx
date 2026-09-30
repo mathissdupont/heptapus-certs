@@ -203,7 +203,7 @@ export default function WebhookLogsPage() {
   }
 
   return (
-    <FeatureGate requiredPlans={["growth","enterprise"]}>
+    <FeatureGate featureKey="webhooks">
       <div className="p-6">
       <PageHeader
         title="Webhook Teslimat Günlüklerine"

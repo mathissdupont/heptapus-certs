@@ -22,6 +22,7 @@ from .main import (
     require_role,
     write_audit_log,
 )
+from .plan_policy import feature_required_plans, subscription_is_active_plan
 
 
 router = APIRouter()
@@ -189,7 +190,11 @@ async def _active_member_for_org(db: AsyncSession, organization_id: int, me: Cur
     return result.scalar_one_or_none()
 
 
-async def organization_owner_has_enterprise_plan(db: AsyncSession, organization: Organization) -> bool:
+async def organization_owner_has_plan(
+    db: AsyncSession,
+    organization: Organization,
+    required_plans: set[str] | tuple[str, ...] | list[str],
+) -> bool:
     owner = await db.get(User, organization.user_id)
     if owner and owner.role == Role.superadmin:
         return True
@@ -200,17 +205,29 @@ async def organization_owner_has_enterprise_plan(db: AsyncSession, organization:
         .limit(1)
     )
     sub = result.scalar_one_or_none()
-    # Central policy helper: is_active + Enterprise plan rank + non-expired.
-    from .plan_policy import subscription_is_active_plan
-    return subscription_is_active_plan(sub, {"enterprise"})
+    return subscription_is_active_plan(sub, required_plans)
+
+
+async def organization_owner_has_enterprise_plan(db: AsyncSession, organization: Organization) -> bool:
+    return await organization_owner_has_plan(db, organization, {"enterprise"})
+
+
+async def ensure_organization_feature(
+    db: AsyncSession,
+    organization: Organization,
+    feature_key: str,
+) -> None:
+    required_plans = feature_required_plans(feature_key)
+    if not await organization_owner_has_plan(db, organization, required_plans):
+        plan_label = ", ".join(plan.title() for plan in required_plans)
+        raise HTTPException(
+            status_code=403,
+            detail=f"This feature requires an active {plan_label} plan.",
+        )
 
 
 async def ensure_organization_enterprise(db: AsyncSession, organization: Organization) -> None:
-    if not await organization_owner_has_enterprise_plan(db, organization):
-        raise HTTPException(
-            status_code=403,
-            detail="Bu alan yalnizca Enterprise planda kullanilabilir.",
-        )
+    await ensure_organization_feature(db, organization, "team")
 
 
 async def user_can_manage_owner_organization(

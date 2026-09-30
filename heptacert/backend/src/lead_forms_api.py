@@ -20,7 +20,7 @@ from .main import (
     require_role,
 )
 from .organization_access_api import (
-    ensure_organization_enterprise,
+    ensure_organization_feature,
     get_organization_for_access,
     organization_id_from_request,
 )
@@ -43,7 +43,7 @@ async def _admin_org(db: AsyncSession, me: CurrentUser, request: Request) -> Org
         db, me, "organization:view", organization_id_from_request(request)
     )
     if me.role != Role.superadmin:
-        await ensure_organization_enterprise(db, org)
+        await ensure_organization_feature(db, org, "lead_forms")
     return org
 
 

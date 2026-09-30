@@ -372,7 +372,7 @@ export default function EventSegmentsPage() {
   const latestSheetJob = exportJobs.find(job => Boolean(job.google_spreadsheet_url)) || exportJobs.find(job => job.sync_google_sheets);
 
   return (
-    <FeatureGate requiredPlans={["growth", "enterprise"]} message={copy.gate}>
+    <FeatureGate featureKey="segmentation" message={copy.gate}>
       <div className="w-full flex flex-col gap-5 antialiased text-surface-900 pb-16">
 
         {/* ÜST NAVİGASYON */}

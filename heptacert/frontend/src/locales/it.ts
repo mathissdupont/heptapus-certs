@@ -2672,4 +2672,13 @@ export const it: Record<TranslationKey, string> = {
   admin_team_permission_email_write: "Può gestire le email",
   admin_team_permission_analytics_read: "Può visualizzare l'analisi",
   admin_team_permission_settings_write: "Può modificare le impostazioni degli eventi",
+  plan_gate_lock_label: "Limitazione del piano",
+  plan_gate_title: "È richiesto il piano {plans}",
+  plan_gate_enterprise_title: "È richiesto il piano Enterprise",
+  plan_gate_feature_generic: "Questa funzione",
+  plan_gate_body: "{feature} è disponibile nei piani a pagamento compatibili. Questa schermata si sblocca automaticamente dopo l'upgrade.",
+  plan_gate_team_body: "Per il personale e i membri del team, quest'area è disponibile solo se l'organizzazione proprietaria dell'evento ha il piano Enterprise. Gli utenti autorizzati ottengono l'accesso dopo l'upgrade.",
+  plan_gate_cta: "Vedi i piani",
+  plan_gate_loading: "Verifica dell'abbonamento...",
+  plan_gate_error: "Non è stato possibile verificare l'abbonamento. Aggiorna la pagina e riprova.",
 };

@@ -1502,7 +1502,7 @@ export default function EventSettingsPage() {
             </div>
 
             {!hasGrowthPlan ? (
-              <div className="pt-2"><PlanGateCard feature={copy.autoEmail} requiredPlans={["growth", "enterprise"]} compact /></div>
+              <div className="pt-2"><PlanGateCard featureKey="email" feature={copy.autoEmail} compact /></div>
             ) : (
               <div className="space-y-4.5">
                 <label className="inline-flex cursor-pointer items-center gap-2.5 select-none py-1">

@@ -170,7 +170,7 @@ export default function ScheduleEmailPage() {
   if (loading) return <div className="p-8 text-center">{copy.loading}</div>;
 
   return (
-    <FeatureGate>
+    <FeatureGate featureKey="email">
       <div className="p-8">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">

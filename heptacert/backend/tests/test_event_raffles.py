@@ -28,13 +28,13 @@ async def _create_admin(email: str) -> User:
         return await sess.get(User, user_id)
 
 
-async def _grant_paid_plan(user: User) -> None:
+async def _grant_paid_plan(user: User, plan_id: str = "growth") -> None:
     async with SessionLocal() as sess:
         async with sess.begin():
             sess.add(
                 Subscription(
                     user_id=user.id,
-                    plan_id="pro",
+                    plan_id=plan_id,
                     is_active=True,
                     started_at=datetime.now(timezone.utc),
                     expires_at=datetime.now(timezone.utc) + timedelta(days=30),
@@ -91,6 +91,24 @@ async def _seed_event_for_raffles(owner: User) -> dict:
             attendee_ids = [attendee.id for attendee in attendees]
 
     return {"event_id": event_id, "attendee_ids": attendee_ids}
+
+
+@pytest.mark.asyncio
+async def test_event_raffles_require_growth_or_enterprise_plan():
+    owner = await _create_admin("raffle-pro-gate@example.com")
+    await _grant_paid_plan(owner, "pro")
+    token = create_access_token(user_id=owner.id, role=Role.admin)
+    seeded = await _seed_event_for_raffles(owner)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get(
+            f"/api/admin/events/{seeded['event_id']}/raffles",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+    assert response.status_code == 403
+    assert "Growth" in response.json()["detail"]
 
 
 @pytest.mark.asyncio

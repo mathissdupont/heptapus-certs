@@ -2672,4 +2672,13 @@ export const ru: Record<TranslationKey, string> = {
   admin_team_permission_email_write: "Может управлять электронной почтой",
   admin_team_permission_analytics_read: "Посмотреть Аналитика",
   admin_team_permission_settings_write: "Может изменить настройки событий",
+  plan_gate_lock_label: "Ограничение тарифа",
+  plan_gate_title: "Требуется тариф {plans}",
+  plan_gate_enterprise_title: "Требуется тариф Enterprise",
+  plan_gate_feature_generic: "Эта функция",
+  plan_gate_body: "{feature} доступна в подходящих платных тарифах. После повышения тарифа этот экран откроется автоматически.",
+  plan_gate_team_body: "Для сотрудников и участников команды этот раздел доступен только при тарифе Enterprise у организации владельца события. После повышения тарифа авторизованные пользователи получат доступ.",
+  plan_gate_cta: "Посмотреть тарифы",
+  plan_gate_loading: "Проверяем подписку...",
+  plan_gate_error: "Не удалось проверить подписку. Обновите страницу и повторите попытку.",
 };

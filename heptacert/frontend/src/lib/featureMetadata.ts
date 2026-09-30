@@ -1,6 +1,10 @@
 export type FeatureKey =
   | "checkin"
   | "ticketing"
+  | "agenda"
+  | "cfp"
+  | "networking"
+  | "live_engagement"
   | "bulk_certificates"
   | "custom_registration"
   | "automation"
@@ -35,6 +39,10 @@ type FeatureMetadata = {
 export const FEATURE_METADATA: Record<FeatureKey, FeatureMetadata> = {
   checkin: { requiredPlans: ["pro", "growth", "enterprise"], title: { tr: "Check-in", en: "Check-in" } },
   ticketing: { requiredPlans: ["pro", "growth", "enterprise"], title: { tr: "Biletleme", en: "Ticketing" } },
+  agenda: { requiredPlans: ["starter", "pro", "growth", "enterprise"], title: { tr: "Ajanda", en: "Agenda" } },
+  cfp: { requiredPlans: ["growth", "enterprise"], title: { tr: "Bildiri Çağrısı (CFP)", en: "Call for Papers" } },
+  networking: { requiredPlans: ["growth", "enterprise"], title: { tr: "Networking ve 1:1 Toplantı", en: "Networking & Meetings" } },
+  live_engagement: { requiredPlans: ["pro", "growth", "enterprise"], title: { tr: "Canlı Katılım (Q&A + Poll)", en: "Live Engagement" } },
   bulk_certificates: { requiredPlans: ["pro", "growth", "enterprise"], title: { tr: "Toplu sertifika", en: "Bulk certificates" } },
   custom_registration: { requiredPlans: ["pro", "growth", "enterprise"], title: { tr: "Ozel kayit formlari", en: "Custom registration" } },
   automation: { requiredPlans: ["growth", "enterprise"], title: { tr: "Otomasyon", en: "Automation" } },
@@ -43,14 +51,14 @@ export const FEATURE_METADATA: Record<FeatureKey, FeatureMetadata> = {
   advanced_analytics: { requiredPlans: ["growth", "enterprise"], title: { tr: "Gelismis analitik", en: "Advanced analytics" } },
   webhooks: { requiredPlans: ["growth", "enterprise"], title: { tr: "Webhook API", en: "Webhook API" } },
   domains: { requiredPlans: ["growth", "enterprise"], title: { tr: "Ozel alan adi", en: "Custom domains" } },
-  branding: { requiredPlans: ["growth", "enterprise"], title: { tr: "Marka yonetimi", en: "Branding" } },
+  branding: { requiredPlans: ["pro", "growth", "enterprise"], title: { tr: "Marka yonetimi", en: "Branding" } },
   api: { requiredPlans: ["growth", "enterprise"], title: { tr: "API erisimi", en: "API access" } },
-  certificate_templates: { requiredPlans: ["growth", "enterprise"], title: { tr: "Sertifika sablonlari", en: "Certificate templates" } },
+  certificate_templates: { requiredPlans: ["pro", "growth", "enterprise"], title: { tr: "Sertifika sablonlari", en: "Certificate templates" } },
   presentations: { requiredPlans: ["growth", "enterprise"], title: { tr: "Sunumlar", en: "Presentations" } },
   raffles: { requiredPlans: ["growth", "enterprise"], title: { tr: "Cekilisler", en: "Raffles" } },
   accreditation: { requiredPlans: ["enterprise"], title: { tr: "Akreditasyon", en: "Accreditation" }, enterpriseOnlyForStaff: true },
   crm: { requiredPlans: ["enterprise"], title: { tr: "Event CRM", en: "Event CRM" }, enterpriseOnlyForStaff: true },
-  lead_forms: { requiredPlans: ["enterprise"], title: { tr: "Lead formlari", en: "Lead forms" }, enterpriseOnlyForStaff: true },
+  lead_forms: { requiredPlans: ["growth", "enterprise"], title: { tr: "Lead formlari", en: "Lead forms" } },
   integrations: { requiredPlans: ["enterprise"], title: { tr: "Kurumsal entegrasyonlar", en: "Enterprise integrations" }, enterpriseOnlyForStaff: true },
   lms: { requiredPlans: ["enterprise"], title: { tr: "LMS", en: "LMS" }, enterpriseOnlyForStaff: true },
   training: { requiredPlans: ["enterprise"], title: { tr: "Kurum ici egitim", en: "Training compliance" }, enterpriseOnlyForStaff: true },

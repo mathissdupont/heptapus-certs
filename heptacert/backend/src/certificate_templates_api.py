@@ -25,10 +25,12 @@ from .main import (
     _get_event_for_admin,
     get_current_user,
     get_db,
+    require_feature_plan,
     require_role,
 )
 
 router = APIRouter()
+require_certificate_templates_plan = require_feature_plan("certificate_templates")
 
 
 class CertificateTemplatePresetIn(BaseModel):
@@ -149,7 +151,7 @@ def _serialize_preset(item: CertificateTemplatePreset) -> CertificateTemplatePre
 @router.get(
     "/api/admin/certificate-template-presets",
     response_model=list[CertificateTemplatePresetOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_certificate_templates_plan)],
 )
 async def list_certificate_template_presets(
     request: Request,
@@ -165,7 +167,7 @@ async def list_certificate_template_presets(
     "/api/admin/events/{event_id}/certificate-template-presets",
     response_model=CertificateTemplatePresetOut,
     status_code=201,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_certificate_templates_plan)],
 )
 async def save_event_certificate_template_preset(
     event_id: int,
@@ -215,7 +217,7 @@ async def save_event_certificate_template_preset(
 @router.post(
     "/api/admin/events/{event_id}/certificate-template-presets/{preset_id}/apply",
     response_model=EventOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_certificate_templates_plan)],
 )
 async def apply_certificate_template_preset(
     event_id: int,
@@ -251,7 +253,7 @@ async def apply_certificate_template_preset(
 @router.get(
     "/api/admin/certificate-template-presets/{preset_id}/versions",
     response_model=list[TemplateVersionOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_certificate_templates_plan)],
 )
 async def list_certificate_template_preset_versions(
     preset_id: str,
@@ -270,7 +272,7 @@ async def list_certificate_template_preset_versions(
 @router.post(
     "/api/admin/certificate-template-presets/{preset_id}/rollback/{version}",
     response_model=CertificateTemplatePresetOut,
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_certificate_templates_plan)],
 )
 async def rollback_certificate_template_preset(
     preset_id: str,
@@ -300,7 +302,7 @@ async def rollback_certificate_template_preset(
 @router.get(
     "/api/admin/certificate-template-presets/{preset_id}/snapshots",
     response_model=list[TemplateRegressionSnapshotOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_certificate_templates_plan)],
 )
 async def list_certificate_template_snapshots(
     preset_id: str,
@@ -319,7 +321,7 @@ async def list_certificate_template_snapshots(
 @router.get(
     "/api/admin/certificate-template-presets/builtin",
     response_model=list[CertificateTemplatePresetOut],
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_certificate_templates_plan)],
     summary="List built-in (platform-level) certificate template presets",
 )
 async def list_builtin_certificate_template_presets(
@@ -338,7 +340,7 @@ async def list_builtin_certificate_template_presets(
 
 @router.delete(
     "/api/admin/certificate-template-presets/{preset_id}",
-    dependencies=[Depends(require_role(Role.admin, Role.superadmin))],
+    dependencies=[Depends(require_role(Role.admin, Role.superadmin)), Depends(require_certificate_templates_plan)],
 )
 async def delete_certificate_template_preset(
     preset_id: str,

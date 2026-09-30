@@ -26,13 +26,15 @@ from .main import (
     is_raffles_enabled,
     is_ticketing_enabled,
     normalize_event_type,
+    require_feature_plan,
     _get_event_for_admin,
 )
 
 router = APIRouter()
+require_advanced_analytics_plan = require_feature_plan("advanced_analytics")
 
 
-@router.get("/api/admin/events/{event_id}/analytics")
+@router.get("/api/admin/events/{event_id}/analytics", dependencies=[Depends(require_advanced_analytics_plan)])
 async def get_event_analytics(
     event_id: int,
     current_user: User = Depends(get_current_user),
@@ -81,7 +83,7 @@ async def get_event_analytics(
     }
 
 
-@router.get("/api/admin/events/{event_id}/analytics/engagement")
+@router.get("/api/admin/events/{event_id}/analytics/engagement", dependencies=[Depends(require_advanced_analytics_plan)])
 async def get_engagement_analytics(
     event_id: int,
     current_user: User = Depends(get_current_user),
@@ -200,7 +202,7 @@ async def get_engagement_analytics(
     }
 
 
-@router.get("/api/admin/events/{event_id}/analytics/badges")
+@router.get("/api/admin/events/{event_id}/analytics/badges", dependencies=[Depends(require_advanced_analytics_plan)])
 async def get_badge_analytics(
     event_id: int,
     current_user: User = Depends(get_current_user),
@@ -242,7 +244,7 @@ async def get_badge_analytics(
     }
 
 
-@router.get("/api/admin/events/{event_id}/analytics/tiers")
+@router.get("/api/admin/events/{event_id}/analytics/tiers", dependencies=[Depends(require_advanced_analytics_plan)])
 async def get_tier_analytics(
     event_id: int,
     current_user: User = Depends(get_current_user),
@@ -301,7 +303,7 @@ async def get_tier_analytics(
     }
 
 
-@router.get("/api/admin/events/{event_id}/analytics/timeline")
+@router.get("/api/admin/events/{event_id}/analytics/timeline", dependencies=[Depends(require_advanced_analytics_plan)])
 async def get_timeline_analytics(
     event_id: int,
     current_user: User = Depends(get_current_user),
@@ -386,7 +388,7 @@ async def get_timeline_analytics(
     }
 
 
-@router.get("/api/admin/events/{event_id}/analytics/export.csv")
+@router.get("/api/admin/events/{event_id}/analytics/export.csv", dependencies=[Depends(require_advanced_analytics_plan)])
 async def export_event_analytics_csv(
     event_id: int,
     current_user: User = Depends(get_current_user),
@@ -444,7 +446,7 @@ async def export_event_analytics_csv(
     )
 
 
-@router.get("/api/admin/events/{event_id}/analytics/export.xlsx")
+@router.get("/api/admin/events/{event_id}/analytics/export.xlsx", dependencies=[Depends(require_advanced_analytics_plan)])
 async def export_event_analytics_xlsx(
     event_id: int,
     current_user: User = Depends(get_current_user),

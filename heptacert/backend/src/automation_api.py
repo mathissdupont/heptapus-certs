@@ -39,11 +39,13 @@ from .main import (
     _get_public_event_identifier,
     get_current_user,
     get_db,
-    require_email_system_access,
+    require_feature_plan,
     require_role,
 )
 
 router = APIRouter()
+# Keep the existing decorator name local while binding it to the automation policy.
+require_email_system_access = require_feature_plan("automation")
 
 AutomationTrigger = Literal[
     "attended_event",
