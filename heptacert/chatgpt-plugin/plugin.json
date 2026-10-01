@@ -83,7 +83,7 @@
         }
       },
       "publication": {
-        "countries": ["TR", "AD", "AL", "AM", "AT", "AZ", "BA", "BE", "BG", "CH", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GB", "GE", "GR", "HR", "HU", "IE", "IS", "IT", "KZ", "LI", "LT", "LU", "LV", "MC", "MD", "ME", "MK", "MT", "NL", "NO", "PL", "PT", "RO", "RS", "SE", "SI", "SK", "SM", "UA", "VA"],
+        "countries": ["TR", "US", "AD", "AL", "AM", "AT", "AZ", "BA", "BE", "BG", "CH", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GB", "GE", "GR", "HR", "HU", "IE", "IS", "IT", "KZ", "LI", "LT", "LU", "LV", "MC", "MD", "ME", "MK", "MT", "NL", "NO", "PL", "PT", "RO", "RS", "SE", "SI", "SK", "SM", "UA", "VA"],
         "release_notes": "Adds event email templates, confirmed bulk-email jobs, delivery reporting, certificate template previews and survey configuration. Aligns REST and MCP scope checks, limits delivery-log output, redacts survey webhook keys, and corrects listing metadata."
       }
     }

@@ -25,7 +25,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type TranslationKey } from "@/lib/i18n";
 
 type SurveyQuestion = {
   id: string;
@@ -66,22 +66,6 @@ type ResponseStats = {
   pending: number;
 };
 
-const QUESTION_TYPES_TR = [
-  { value: "text", label: "Kısa Metin" },
-  { value: "textarea", label: "Uzun Metin" },
-  { value: "multiple_choice", label: "Çoktan Seçmeli" },
-  { value: "rating", label: "Değerlendirme" },
-  { value: "yes_no", label: "Evet/Hayır" },
-];
-
-const QUESTION_TYPES_EN = [
-  { value: "text", label: "Short Text" },
-  { value: "textarea", label: "Long Text" },
-  { value: "multiple_choice", label: "Multiple Choice" },
-  { value: "rating", label: "Rating" },
-  { value: "yes_no", label: "Yes/No" },
-];
-
 const EXTERNAL_PROVIDERS = [
   { value: "typeform", label: "Typeform" },
   { value: "qualtrics", label: "Qualtrics" },
@@ -92,150 +76,138 @@ const EXTERNAL_PROVIDERS = [
 export default function SurveysPage() {
   const params = useParams();
   const eventId = params.id as string;
-  const { lang } = useI18n();
-  const isTr = lang === "tr";
+  const { lang, t } = useI18n();
+  const formatPercent = (value: number) => new Intl.NumberFormat(localeTag(lang), {
+    style: "percent", maximumFractionDigits: 0,
+  }).format(value / 100);
 
   const copy = {
-    pageTitle: isTr ? "Katılımcı Anketleri" : "Participant Surveys",
-    pageSubtitle: isTr
-      ? "Anket kurgusunu yönetin, cevapları izleyin ve sertifika akışına etkisini kontrol edin."
-      : "Manage survey setup, monitor responses, and control the effect on certificate flow.",
-    surveyMode: isTr ? "Anket Modu" : "Survey Mode",
-    modeBoth: isTr ? "Çift Akış" : "Dual Flow",
-    modeBuiltin: isTr ? "Yerleşik" : "Built-in",
-    modeExternal: isTr ? "Harici" : "External",
-    modeDisabled: isTr ? "Kapalı" : "Disabled",
-    requiredHint: isTr ? "Sertifika öncesi zorunlu" : "Required before certificate",
-    optionalHint: isTr ? "Opsiyonel deneyim" : "Optional experience",
-    questionCount: isTr ? "Soru Sayısı" : "Question Count",
-    questionsReady: isTr ? "Hazır sorular mevcut" : "Questions ready",
-    noQuestions: isTr ? "Soru tanımlanmadı" : "No questions defined",
-    completed: isTr ? "Tamamlayanlar" : "Completed",
-    completionRate: (rate: number) => isTr ? `%${rate} tamamlanma` : `${rate}% completion`,
-    pending: isTr ? "Bekleyenler" : "Pending",
-    pendingHint: isTr ? "Henüz yanıt vermeyenler" : "Yet to respond",
-    tabConfig: isTr ? "Anket Ayarları" : "Survey Settings",
-    tabResponses: (count: number) => isTr ? `Cevaplar (${count})` : `Responses (${count})`,
-    loadError: isTr ? "Anket verisi yüklenemedi" : "Failed to load survey data",
-    saveSuccess: isTr ? "Anket ayarları kaydedildi" : "Survey settings saved",
-    saveError: isTr ? "Kaydedilemedi" : "Could not save",
-    copyError: isTr ? "Panoya kopyalama başarısız oldu" : "Failed to copy to clipboard",
-    errorQuestionRequired: isTr ? "Soru ID ve soru metni zorunludur" : "Question ID and text are required",
-    errorDuplicateId: isTr ? "Aynı soru ID zaten kullanılıyor" : "This question ID is already in use",
-    errorNoOptions: isTr
-      ? "Çoktan seçmeli sorular için en az bir seçenek girin"
-      : "Enter at least one option for multiple choice questions",
-    errorDuplicateOption: isTr ? "Aynı seçenek zaten eklenmiş" : "This option has already been added",
-    generalSetup: isTr ? "Genel Kurgu" : "General Setup",
-    generalSetupDesc: isTr
-      ? "Anketin sertifika akışını nasıl etkileyeceğini ve hangi kanal ile toplanacağını belirleyin."
-      : "Define how the survey affects the certificate flow and which channel it is collected through.",
-    required: isTr ? "Zorunlu" : "Required",
-    optional: isTr ? "Opsiyonel" : "Optional",
-    requireBeforeCert: isTr ? "Sertifika öncesi anketi zorunlu tut" : "Require survey before certificate",
-    requireBeforeCertDesc: isTr
-      ? "Açılırsa katılımcı sertifika indirmeden önce anketi tamamlamak zorunda olur. Kapatılırsa anket sadece geri bildirim aracı olarak kalır."
-      : "When enabled, the participant must complete the survey before downloading the certificate. When disabled, the survey remains as a feedback tool only.",
-    disableSurvey: isTr ? "Anketi tamamen kapat" : "Disable Survey Entirely",
-    disableSurveyDesc: isTr
-      ? "Bu mod açıksa katılımcı kartında ve kayıt sonrası akışta anket adımı hiç gösterilmez."
-      : "When this mode is on, the survey step will not be shown on the participant card or in the post-registration flow.",
-    surveyClosed: isTr ? "Anket kapalı" : "Survey closed",
-    closeSurvey: isTr ? "Anketi kapat" : "Close Survey",
-    builtinForm: isTr ? "Yerleşik Form" : "Built-in Form",
-    builtinFormDesc: isTr ? "Tüm soru ve cevaplar panel içinde toplanır." : "All questions and answers are collected within the panel.",
-    externalProvider: isTr ? "Harici Sağlayıcı" : "External Provider",
-    externalProviderDesc: isTr ? "Typeform veya benzeri bir aracı bağlayın." : "Connect Typeform or a similar tool.",
-    hybridUsage: isTr ? "Hibrit Kullanım" : "Hybrid Usage",
-    hybridUsageDesc: isTr ? "İsterseniz iki akışı birlikte sunun." : "Offer both flows together if needed.",
-    builtinQuestions: isTr ? "Yerleşik Sorular" : "Built-in Questions",
-    builtinQuestionsDesc: isTr
-      ? "Katılımcılardan toplayacağınız soru setini oluşturun."
-      : "Build the question set you will collect from participants.",
-    questionCountBadge: (count: number) => isTr ? `${count} soru` : `${count} questions`,
-    noQuestionsYet: isTr
-      ? "Henüz soru eklenmedi. İlk soruyu aşağıdaki formdan oluşturabilirsiniz."
-      : "No questions added yet. Create your first question using the form below.",
-    optionsLabel: (opts: string[]) => isTr ? `Seçenekler: ${opts.join(", ")}` : `Options: ${opts.join(", ")}`,
-    addQuestion: isTr ? "Yeni Soru Ekle" : "Add New Question",
-    questionId: isTr ? "Soru ID" : "Question ID",
-    questionType: isTr ? "Soru Türü" : "Question Type",
-    questionText: isTr ? "Soru Metni" : "Question Text",
-    questionTextPlaceholder: isTr ? "Sorunuzu yazın" : "Enter your question",
-    options: isTr ? "Seçenekler" : "Options",
-    optionPlaceholder: isTr ? "Seçenek yazın" : "Type an option",
-    addOption: isTr ? "Ekle" : "Add",
-    noOptionsYet: isTr ? "Henüz seçenek eklenmedi." : "No options added yet.",
-    makeRequired: isTr ? "Bu soru zorunlu olsun" : "Make this question required",
-    addQuestionBtn: isTr ? "Soruyu Ekle" : "Add Question",
-    externalProviderTitle: isTr ? "Harici Sağlayıcı" : "External Provider",
-    externalProviderTitleDesc: isTr
-      ? "Typeform veya benzeri bir araçtan yanıt alıp sertifika akışına bağlayın."
-      : "Collect responses from Typeform or a similar tool and connect them to the certificate flow.",
-    providerLabel: isTr ? "Sağlayıcı" : "Provider",
-    providerSelect: isTr ? "Seçin" : "Select",
-    surveyUrl: isTr ? "Anket URL" : "Survey URL",
-    webhookKey: isTr ? "Webhook Anahtarı" : "Webhook Key",
-    webhookKeyHint: isTr ? "Boş bırakırsanız sistem otomatik anahtar üretir." : "If left empty, the system will generate a key automatically.",
-    webhookInfo: isTr ? "Webhook Bağlantı Bilgisi" : "Webhook Connection Info",
-    webhookDesc: isTr
-      ? (endpoint: string) =>
- `Harici sağlayıcınız her tamamlanan anketten sonra bu endpointi çağırmalı ve X-Webhook-Key header'ı ile anahtarı göndermeli.`
-      : (_: string) =>
- "Your external provider must call this endpoint after each completed survey and send the key via the X-Webhook-Key header.",
-    attendeeLinks: isTr ? "Katılımcı bağlantıları" : "Attendee Links",
-    attendeeLinksDesc: isTr
-      ? "Genel anket adresi sadece giriş noktasıdır. Form, yalnızca kişiye özel token ile açılır."
-      : "The general survey address is only an entry point. The form opens only with a person-specific token.",
-    surveyClosedLinks: isTr
-      ? "Anket kapalı olduğu için katılımcıya ayrı bir anket bağlantısı gösterilmez."
-      : "Since the survey is closed, no separate survey link is shown to the participant.",
-    generalEntryAddress: isTr ? "Genel giriş adresi" : "General entry address",
-    copyLink: isTr ? "Linki kopyala" : "Copy link",
-    copyLinkSuccess: isTr ? "Genel anket adresi panoya kopyalandı" : "General survey address copied to clipboard",
-    goToAttendees: isTr ? "Katılımcılara git" : "Go to attendees",
-    personalLinkHint: isTr
-      ? "Kişiye özel anket bağlantısını katılımcılar ekranındaki ilgili kişi satırından kopyalayın."
-      : "Copy the personalized survey link from the relevant person's row on the attendees screen.",
-    liveSummary: isTr ? "Canlı Özet" : "Live Summary",
-    flowReady: isTr ? "Katılımcı akışı hazır" : "Participant flow is ready",
-    flowDesc: (required: boolean) =>
-      isTr
-        ? `Mevcut kurguda katılımcı ${required ? "anketi bitirince" : "isterse ankete girip"} sertifika adımına devam edecek.`
-        : `In the current setup, the participant will proceed to the certificate step ${required ? "after completing the survey" : "optionally via the survey"}.`,
-    modeLabel: isTr ? "Mod" : "Mode",
-    questionCountLabel: isTr ? "Soru sayısı" : "Question count",
-    webhookLabel: isTr ? "Webhook" : "Webhook",
-    webhookReady: isTr ? "Hazır" : "Ready",
-    webhookNotNeeded: isTr ? "Gerekmiyor" : "Not needed",
-    webhookWillGenerate: isTr ? "Kayıt anında üretilecek" : "Will be generated on save",
-    builtinResponse: isTr ? "Yerleşik yanıt" : "Built-in responses",
-    externalResponse: isTr ? "Harici yanıt" : "External responses",
-    saveSettings: isTr ? "Anket Ayarlarını Kaydet" : "Save Survey Settings",
-    totalResponses: isTr ? "Toplam Yanıt" : "Total Responses",
-    completionRateLabel: isTr ? "Tamamlama Oranı" : "Completion Rate",
-    filterResult: isTr ? "Filtre Sonucu" : "Filter Result",
-    searchPlaceholder: isTr ? "Ad, e-posta veya external response ID ara" : "Search name, email or external response ID",
-    allResponses: isTr ? "Tüm Yanıtlar" : "All Responses",
-    builtin: isTr ? "Yerleşik" : "Built-in",
-    external: isTr ? "Harici" : "External",
-    noResponses: isTr ? "Henüz gösterilecek anket cevabı yok" : "No survey responses to show yet",
-    noResponsesHint: isTr
-      ? "Filtreleri temizleyin veya katılımcıların anketi tamamlamasını bekleyin."
-      : "Clear filters or wait for participants to complete the survey.",
-    attendeeLabel: (id: number) => isTr ? `Katılımcı #${id}` : `Attendee #${id}`,
-    noEmail: isTr ? "E-posta bilgisi yok" : "No email on record",
-    externalResponseId: isTr ? "External Response ID" : "External Response ID",
-    completedBadge: isTr ? "Tamamlandı" : "Completed",
-    noBuiltinAnswers: isTr
-      ? "Bu yanıt kaydında gösterilecek yerleşik soru cevabı bulunmuyor."
-      : "No built-in question answers found in this response record.",
-    noAnswer: isTr ? "Yanıt yok" : "No answer",
-    yes: isTr ? "Evet" : "Yes",
-    no: isTr ? "Hayır" : "No",
+    pageTitle: t("admin_surveys_page_title"),
+    pageSubtitle: t("admin_surveys_page_subtitle"),
+    surveyMode: t("admin_surveys_survey_mode"),
+    modeBoth: t("admin_surveys_mode_both"),
+    modeBuiltin: t("admin_surveys_mode_builtin"),
+    modeExternal: t("admin_surveys_mode_external"),
+    modeDisabled: t("admin_surveys_mode_disabled"),
+    requiredHint: t("admin_surveys_required_hint"),
+    optionalHint: t("admin_surveys_optional_hint"),
+    questionCount: t("admin_surveys_question_count"),
+    questionsReady: t("admin_surveys_questions_ready"),
+    noQuestions: t("admin_surveys_no_questions"),
+    completed: t("admin_surveys_completed"),
+    pending: t("admin_surveys_pending"),
+    pendingHint: t("admin_surveys_pending_hint"),
+    tabConfig: t("admin_surveys_tab_config"),
+    loadError: t("admin_surveys_load_error"),
+    saveSuccess: t("admin_surveys_save_success"),
+    saveError: t("admin_surveys_save_error"),
+    copyError: t("admin_surveys_copy_error"),
+    errorQuestionRequired: t("admin_surveys_error_question_required"),
+    errorDuplicateId: t("admin_surveys_error_duplicate_id"),
+    errorNoOptions: t("admin_surveys_error_no_options"),
+    errorDuplicateOption: t("admin_surveys_error_duplicate_option"),
+    generalSetup: t("admin_surveys_general_setup"),
+    generalSetupDesc: t("admin_surveys_general_setup_desc"),
+    required: t("admin_surveys_required"),
+    optional: t("admin_surveys_optional"),
+    requireBeforeCert: t("admin_surveys_require_before_cert"),
+    requireBeforeCertDesc: t("admin_surveys_require_before_cert_desc"),
+    disableSurvey: t("admin_surveys_disable_survey"),
+    disableSurveyDesc: t("admin_surveys_disable_survey_desc"),
+    surveyClosed: t("admin_surveys_survey_closed"),
+    closeSurvey: t("admin_surveys_close_survey"),
+    builtinForm: t("admin_surveys_builtin_form"),
+    builtinFormDesc: t("admin_surveys_builtin_form_desc"),
+    externalProvider: t("admin_surveys_external_provider"),
+    externalProviderDesc: t("admin_surveys_external_provider_desc"),
+    hybridUsage: t("admin_surveys_hybrid_usage"),
+    hybridUsageDesc: t("admin_surveys_hybrid_usage_desc"),
+    builtinQuestions: t("admin_surveys_builtin_questions"),
+    builtinQuestionsDesc: t("admin_surveys_builtin_questions_desc"),
+    noQuestionsYet: t("admin_surveys_no_questions_yet"),
+    addQuestion: t("admin_surveys_add_question"),
+    questionId: t("admin_surveys_question_id"),
+    questionType: t("admin_surveys_question_type"),
+    questionText: t("admin_surveys_question_text"),
+    questionTextPlaceholder: t("admin_surveys_question_text_placeholder"),
+    options: t("admin_surveys_options"),
+    optionPlaceholder: t("admin_surveys_option_placeholder"),
+    addOption: t("admin_surveys_add_option"),
+    noOptionsYet: t("admin_surveys_no_options_yet"),
+    makeRequired: t("admin_surveys_make_required"),
+    addQuestionBtn: t("admin_surveys_add_question_btn"),
+    externalProviderTitleDesc: t("admin_surveys_external_provider_title_desc"),
+    providerLabel: t("admin_surveys_provider_label"),
+    providerSelect: t("admin_surveys_provider_select"),
+    surveyUrl: t("admin_surveys_survey_url"),
+    webhookKey: t("admin_surveys_webhook_key"),
+    webhookKeyHint: t("admin_surveys_webhook_key_hint"),
+    webhookInfo: t("admin_surveys_webhook_info"),
+    attendeeLinks: t("admin_surveys_attendee_links"),
+    attendeeLinksDesc: t("admin_surveys_attendee_links_desc"),
+    surveyClosedLinks: t("admin_surveys_survey_closed_links"),
+    generalEntryAddress: t("admin_surveys_general_entry_address"),
+    copyLink: t("admin_surveys_copy_link"),
+    copyLinkSuccess: t("admin_surveys_copy_link_success"),
+    goToAttendees: t("admin_surveys_go_to_attendees"),
+    personalLinkHint: t("admin_surveys_personal_link_hint"),
+    liveSummary: t("admin_surveys_live_summary"),
+    flowReady: t("admin_surveys_flow_ready"),
+    modeLabel: t("admin_surveys_mode_label"),
+    webhookLabel: t("admin_surveys_webhook_label"),
+    webhookReady: t("admin_surveys_webhook_ready"),
+    webhookNotNeeded: t("admin_surveys_webhook_not_needed"),
+    webhookWillGenerate: t("admin_surveys_webhook_will_generate"),
+    builtinResponse: t("admin_surveys_builtin_response"),
+    externalResponse: t("admin_surveys_external_response"),
+    saveSettings: t("admin_surveys_save_settings"),
+    totalResponses: t("admin_surveys_total_responses"),
+    completionRateLabel: t("admin_surveys_completion_rate_label"),
+    filterResult: t("admin_surveys_filter_result"),
+    searchPlaceholder: t("admin_surveys_search_placeholder"),
+    allResponses: t("admin_surveys_all_responses"),
+    noResponses: t("admin_surveys_no_responses"),
+    noResponsesHint: t("admin_surveys_no_responses_hint"),
+    noEmail: t("admin_surveys_no_email"),
+    externalResponseId: t("admin_surveys_external_response_id"),
+    completedBadge: t("admin_surveys_completed_badge"),
+    noBuiltinAnswers: t("admin_surveys_no_builtin_answers"),
+    noAnswer: t("admin_surveys_no_answer"),
+    yes: t("admin_surveys_yes"),
+    no: t("admin_surveys_no"),
+    flowRequired: t("admin_surveys_flow_required"),
+    flowOptional: t("admin_surveys_flow_optional"),
+    modeBothFull: t("admin_surveys_mode_both_full"),
+    typeText: t("admin_surveys_type_text"),
+    typeTextarea: t("admin_surveys_type_textarea"),
+    typeMultipleChoice: t("admin_surveys_type_multiple_choice"),
+    typeRating: t("admin_surveys_type_rating"),
+    typeYesNo: t("admin_surveys_type_yes_no"),
+    webhookPlaceholder: t("admin_surveys_webhook_placeholder"),
+    backCertificates: t("admin_surveys_back_certificates"),
+    removeQuestion: t("admin_surveys_remove_question"),
+    removeOption: t("admin_surveys_remove_option"),
+    loading: t("admin_surveys_loading"),
+    externalProviderTitle: t("admin_surveys_external_provider"),
+    builtin: t("admin_surveys_mode_builtin"),
+    external: t("admin_surveys_mode_external"),
+    questionCountLabel: t("admin_surveys_question_count"),
+    completionRate: (rate: number) => t("admin_surveys_completion_rate", { rate: formatPercent(rate) }),
+    tabResponses: (count: number) => t("admin_surveys_tab_responses", { count }),
+    questionCountBadge: (count: number) => t("admin_surveys_question_count_badge", { count }),
+    optionsLabel: (options: string[]) => t("admin_surveys_options_label", { options: options.join(", ") }),
+    attendeeLabel: (id: number) => t("admin_surveys_attendee_label", { id }),
+    webhookDesc: (_endpoint: string) => t("admin_surveys_webhook_desc"),
+    flowDesc: (required: boolean) => t(required ? "admin_surveys_flow_required" : "admin_surveys_flow_optional"),
   };
 
-  const QUESTION_TYPES = isTr ? QUESTION_TYPES_TR : QUESTION_TYPES_EN;
+  const QUESTION_TYPES = [
+    { value: "text", label: copy.typeText },
+    { value: "textarea", label: copy.typeTextarea },
+    { value: "multiple_choice", label: copy.typeMultipleChoice },
+    { value: "rating", label: copy.typeRating },
+    { value: "yes_no", label: copy.typeYesNo },
+  ];
 
   function getQuestionTypeLabel(type: string) {
     return QUESTION_TYPES.find((item) => item.value === type)?.label || type;
@@ -263,8 +235,8 @@ export default function SurveysPage() {
   const [eventPublicId, setEventPublicId] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<{ key: TranslationKey } | { message: string } | null>(null);
+  const [success, setSuccess] = useState<TranslationKey | null>(null);
   const [activeTab, setActiveTab] = useState<"config" | "responses">("config");
   const [responseQuery, setResponseQuery] = useState("");
   const [responseTypeFilter, setResponseTypeFilter] = useState<"all" | "builtin" | "external">("all");
@@ -325,7 +297,7 @@ export default function SurveysPage() {
         pending: Number(responsesData?.response_rate?.pending || 0),
       });
     } catch (err: any) {
-      setError(err.message || copy.loadError);
+      setError(err?.message ? { message: String(err.message) } : { key: "admin_surveys_load_error" });
     } finally {
       setLoading(false);
     }
@@ -349,10 +321,10 @@ export default function SurveysPage() {
         }),
       });
 
-      setSuccess(copy.saveSuccess);
+      setSuccess("admin_surveys_save_success");
       await loadData();
     } catch (err: any) {
-      setError(err.message || copy.saveError);
+      setError(err?.message ? { message: String(err.message) } : { key: "admin_surveys_save_error" });
     } finally {
       setSaving(false);
     }
@@ -363,12 +335,12 @@ export default function SurveysPage() {
     const questionText = (newQuestion.question || "").trim();
 
     if (!questionId || !questionText) {
-      setError(copy.errorQuestionRequired);
+      setError({ key: "admin_surveys_error_question_required" });
       return;
     }
 
     if (builtinQuestions.some((question) => question.id === questionId)) {
-      setError(copy.errorDuplicateId);
+      setError({ key: "admin_surveys_error_duplicate_id" });
       return;
     }
 
@@ -376,7 +348,7 @@ export default function SurveysPage() {
       newQuestion.type === "multiple_choice" &&
       (!newQuestion.options || newQuestion.options.length === 0)
     ) {
-      setError(copy.errorNoOptions);
+      setError({ key: "admin_surveys_error_no_options" });
       return;
     }
 
@@ -399,7 +371,7 @@ export default function SurveysPage() {
     const option = newOption.trim();
     if (!option) return;
     if ((newQuestion.options || []).includes(option)) {
-      setError(copy.errorDuplicateOption);
+      setError({ key: "admin_surveys_error_duplicate_option" });
       return;
     }
     setNewQuestion({
@@ -454,12 +426,12 @@ export default function SurveysPage() {
   const surveyLandingUrl =
     typeof window !== "undefined" ? `${window.location.origin}/events/${eventPublicId || eventId}/survey` : `/events/${eventPublicId || eventId}/survey`;
 
-  async function copyText(value: string, message: string) {
+  async function copyText(value: string, message: TranslationKey) {
     try {
       await navigator.clipboard.writeText(value);
       setSuccess(message);
     } catch {
-      setError(copy.copyError);
+      setError({ key: "admin_surveys_copy_error" });
     }
   }
 
@@ -471,14 +443,14 @@ export default function SurveysPage() {
   };
 
   const getSurveyModeLabelFull = () => {
-    if (surveyType === "both") return isTr ? "Yerleşik + Harici" : "Built-in + External";
+    if (surveyType === "both") return copy.modeBothFull;
     if (surveyType === "builtin") return copy.modeBuiltin;
-    return copy.modeExternal;
+    return surveyType === "external" ? copy.modeExternal : copy.modeDisabled;
   };
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center">
+      <div role="status" aria-label={copy.loading} className="flex h-96 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-surface-600" />
       </div>
     );
@@ -496,6 +468,7 @@ export default function SurveysPage() {
           <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
             <Link
               href={`/admin/events/${eventId}/certificates`}
+              aria-label={copy.backCertificates}
               className="inline-flex rounded-xl border border-surface-200 bg-raised p-2.5 text-surface-700 shadow-card transition hover:border-surface-300 hover:text-surface-700"
             >
               <ChevronLeft className="h-5 w-5" />
@@ -581,7 +554,7 @@ export default function SurveysPage() {
           className="flex items-start gap-3 rounded-xl border border-status-danger-border bg-status-danger-bg p-4"
         >
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-status-danger-content" />
-          <p className="text-sm text-status-danger-content">{error}</p>
+          <p className="text-sm text-status-danger-content">{"key" in error ? t(error.key) : error.message}</p>
         </motion.div>
       )}
 
@@ -592,7 +565,7 @@ export default function SurveysPage() {
           className="flex items-start gap-3 rounded-xl border border-status-success-border bg-status-success-bg p-4"
         >
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-status-success-content" />
-          <p className="text-sm text-status-success-content">{success}</p>
+          <p className="text-sm text-status-success-content">{t(success)}</p>
         </motion.div>
       )}
 
@@ -644,7 +617,7 @@ export default function SurveysPage() {
                       }}
                       className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
                         surveyType === "disabled"
-                          ? "bg-surface-900 text-white"
+                          ? "bg-inverse-surface text-inverse-content"
                           : "border border-surface-200 bg-raised text-surface-700 hover:bg-surface-100"
                       }`}
                     >
@@ -723,6 +696,7 @@ export default function SurveysPage() {
                             <button
                               type="button"
                               onClick={() => removeQuestion(index)}
+                              aria-label={t("admin_surveys_remove_question", { question: question.question })}
                               className="rounded-xl p-2 text-status-danger-content transition hover:bg-status-danger-bg"
                             >
                               <X className="h-4 w-4" />
@@ -737,9 +711,10 @@ export default function SurveysPage() {
                     <h3 className="text-base font-semibold text-surface-900">{copy.addQuestion}</h3>
                     <div className="mt-4 grid gap-4 md:grid-cols-2">
                       <div>
-                        <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.questionId}</label>
+                        <label htmlFor="survey-question-id" className="mb-2 block text-sm font-semibold text-surface-700">{copy.questionId}</label>
                         <input
                           type="text"
+                          id="survey-question-id"
                           placeholder="q1"
                           value={newQuestion.id || ""}
                           onChange={(event) => setNewQuestion({ ...newQuestion, id: event.target.value })}
@@ -747,8 +722,9 @@ export default function SurveysPage() {
                         />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.questionType}</label>
+                        <label htmlFor="survey-question-type" className="mb-2 block text-sm font-semibold text-surface-700">{copy.questionType}</label>
                         <select
+                          id="survey-question-type"
                           value={newQuestion.type || "text"}
                           onChange={(event) => setNewQuestion({ ...newQuestion, type: event.target.value })}
                           className="input-field"
@@ -761,8 +737,9 @@ export default function SurveysPage() {
                     </div>
 
                     <div className="mt-4">
-                      <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.questionText}</label>
+                      <label htmlFor="survey-question-text" className="mb-2 block text-sm font-semibold text-surface-700">{copy.questionText}</label>
                       <textarea
+                        id="survey-question-text"
                         placeholder={copy.questionTextPlaceholder}
                         value={newQuestion.question || ""}
                         onChange={(event) => setNewQuestion({ ...newQuestion, question: event.target.value })}
@@ -772,11 +749,12 @@ export default function SurveysPage() {
 
                     {newQuestion.type === "multiple_choice" && (
                       <div className="mt-4">
-                        <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.options}</label>
+                        <label htmlFor="survey-question-option" className="mb-2 block text-sm font-semibold text-surface-700">{copy.options}</label>
                         <div className="rounded-xl border border-surface-200 bg-raised p-4">
                           <div className="flex gap-2">
                             <input
                               type="text"
+                              id="survey-question-option"
                               placeholder={copy.optionPlaceholder}
                               value={newOption}
                               onChange={(event) => setNewOption(event.target.value)}
@@ -791,7 +769,7 @@ export default function SurveysPage() {
                             <button
                               type="button"
                               onClick={addMultipleChoiceOption}
-                              className="inline-flex items-center gap-2 rounded-lg bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-inverse-surface"
+                              className="inline-flex items-center gap-2 rounded-lg bg-inverse-surface px-4 py-2.5 text-sm font-semibold text-inverse-content transition hover:bg-inverse-surface"
                             >
                               <Plus className="h-4 w-4" />
                               {copy.addOption}
@@ -813,6 +791,7 @@ export default function SurveysPage() {
                                   <button
                                     type="button"
                                     onClick={() => removeMultipleChoiceOption(option)}
+                                    aria-label={t("admin_surveys_remove_option", { option })}
                                     className="rounded-full p-0.5 text-surface-400 transition hover:bg-raised hover:text-status-danger-content"
                                   >
                                     <X className="h-3.5 w-3.5" />
@@ -838,7 +817,7 @@ export default function SurveysPage() {
                     <button
                       type="button"
                       onClick={addQuestion}
-                      className="mt-4 inline-flex items-center gap-2 rounded-lg bg-surface-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-surface-800"
+                      className="mt-4 inline-flex items-center gap-2 rounded-lg bg-inverse-surface px-4 py-2.5 text-sm font-semibold text-inverse-content transition hover:bg-inverse-surface/90"
                     >
                       <Plus className="h-4 w-4" />
                       {copy.addQuestionBtn}
@@ -863,8 +842,9 @@ export default function SurveysPage() {
 
                   <div className="mt-5 space-y-4">
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.providerLabel}</label>
+                      <label htmlFor="survey-provider" className="mb-2 block text-sm font-semibold text-surface-700">{copy.providerLabel}</label>
                       <select
+                        id="survey-provider"
                         value={externalProvider}
                         onChange={(event) => setExternalProvider(event.target.value)}
                         className="input-field"
@@ -877,9 +857,10 @@ export default function SurveysPage() {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.surveyUrl}</label>
+                      <label htmlFor="survey-url" className="mb-2 block text-sm font-semibold text-surface-700">{copy.surveyUrl}</label>
                       <input
                         type="url"
+                        id="survey-url"
                         placeholder="https://example.typeform.com/..."
                         value={externalUrl}
                         onChange={(event) => setExternalUrl(event.target.value)}
@@ -888,13 +869,14 @@ export default function SurveysPage() {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-surface-700">{copy.webhookKey}</label>
+                      <label htmlFor="survey-webhook-key" className="mb-2 block text-sm font-semibold text-surface-700">{copy.webhookKey}</label>
                       <input
                         type="text"
-                        placeholder="Webhook verification key"
+                        id="survey-webhook-key"
+                        placeholder={copy.webhookPlaceholder}
                         value={externalWebhookKey}
                         onChange={(event) => setExternalWebhookKey(event.target.value)}
-                        className="w-full rounded-xl border border-surface-300 px-3 py-2.5 font-mono text-sm"
+                        className="input-field font-mono"
                       />
                       <p className="mt-2 text-xs text-surface-500">{copy.webhookKeyHint}</p>
                     </div>
@@ -936,7 +918,7 @@ export default function SurveysPage() {
                   <div className="mt-3 flex flex-wrap gap-3">
                     <button
                       type="button"
-                      onClick={() => copyText(surveyLandingUrl, copy.copyLinkSuccess)}
+                      onClick={() => copyText(surveyLandingUrl, "admin_surveys_copy_link_success")}
                       className="inline-flex items-center gap-2 rounded-xl border border-surface-200 bg-raised px-4 py-2.5 text-sm font-semibold text-surface-700 transition hover:bg-surface-50"
                     >
                       <Copy className="h-4 w-4" />
@@ -944,7 +926,7 @@ export default function SurveysPage() {
                     </button>
                     <Link
                       href={`/admin/events/${eventId}/attendees`}
-                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                      className="inline-flex items-center gap-2 rounded-xl bg-inverse-surface px-4 py-2.5 text-sm font-semibold text-inverse-content transition hover:bg-inverse-surface/90"
                     >
                       {copy.goToAttendees}
                       <ExternalLink className="h-4 w-4" />
@@ -958,22 +940,22 @@ export default function SurveysPage() {
                   </>
                 )}
               </div>
-              <div className="rounded-xl border border-surface-200 bg-surface-900 p-6 text-white shadow-card">
+              <div className="rounded-xl border border-outline bg-inverse-surface p-6 text-inverse-content shadow-card">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-content-muted">{copy.liveSummary}</p>
+                    <p className="text-sm font-medium text-inverse-content/70">{copy.liveSummary}</p>
                     <h3 className="mt-2 text-xl font-semibold">{copy.flowReady}</h3>
-                    <p className="mt-2 text-sm text-content-muted">{copy.flowDesc(isRequired)}</p>
+                    <p className="mt-2 text-sm text-inverse-content/70">{copy.flowDesc(isRequired)}</p>
                   </div>
-                  <div className="rounded-xl bg-raised/10 p-3">
+                  <div className="rounded-xl bg-inverse-content/10 p-3">
                     <BarChart3 className="h-5 w-5" />
                   </div>
                 </div>
-                <div className="mt-5 grid gap-3 text-sm text-surface-200">
-                  <div className="rounded-xl border border-white/10 bg-raised/5 px-4 py-3">{copy.modeLabel}: <span className="font-semibold">{getSurveyModeLabelFull()}</span></div>
-                  <div className="rounded-xl border border-white/10 bg-raised/5 px-4 py-3">{copy.questionCountLabel}: <span className="font-semibold">{builtinQuestionCount}</span></div>
-                  <div className="rounded-xl border border-white/10 bg-raised/5 px-4 py-3">{copy.webhookLabel}: <span className="font-semibold">{externalWebhookKey ? copy.webhookReady : surveyType === "builtin" ? copy.webhookNotNeeded : copy.webhookWillGenerate}</span></div>
-                  <div className="rounded-xl border border-white/10 bg-raised/5 px-4 py-3">{copy.builtinResponse}: <span className="font-semibold">{builtinResponseCount}</span> • {copy.externalResponse}: <span className="font-semibold">{externalResponseCount}</span></div>
+                <div className="mt-5 grid gap-3 text-sm text-inverse-content/80">
+                  <div className="rounded-xl border border-inverse-content/10 bg-inverse-content/5 px-4 py-3">{copy.modeLabel}: <span className="font-semibold">{getSurveyModeLabelFull()}</span></div>
+                  <div className="rounded-xl border border-inverse-content/10 bg-inverse-content/5 px-4 py-3">{copy.questionCountLabel}: <span className="font-semibold">{builtinQuestionCount}</span></div>
+                  <div className="rounded-xl border border-inverse-content/10 bg-inverse-content/5 px-4 py-3">{copy.webhookLabel}: <span className="font-semibold">{externalWebhookKey ? copy.webhookReady : surveyType === "builtin" ? copy.webhookNotNeeded : copy.webhookWillGenerate}</span></div>
+                  <div className="rounded-xl border border-inverse-content/10 bg-inverse-content/5 px-4 py-3">{copy.builtinResponse}: <span className="font-semibold">{builtinResponseCount}</span> • {copy.externalResponse}: <span className="font-semibold">{externalResponseCount}</span></div>
                 </div>
               </div>
             </div>
@@ -983,7 +965,7 @@ export default function SurveysPage() {
             <button
               onClick={saveConfig}
               disabled={saving}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-surface-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-surface-800 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-inverse-surface px-5 py-3 text-sm font-semibold text-inverse-content transition hover:bg-inverse-surface/90 disabled:opacity-50"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {copy.saveSettings}
@@ -1001,7 +983,7 @@ export default function SurveysPage() {
             </div>
             <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card">
               <p className="text-sm font-medium text-surface-500">{copy.completionRateLabel}</p>
-              <p className="mt-3 text-3xl font-semibold text-surface-900">{isTr ? `%${completionRate}` : `${completionRate}%`}</p>
+              <p className="mt-3 text-3xl font-semibold text-surface-900">{formatPercent(completionRate)}</p>
             </div>
             <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card">
               <p className="text-sm font-medium text-surface-500">{copy.filterResult}</p>
@@ -1017,11 +999,13 @@ export default function SurveysPage() {
                   type="text"
                   value={responseQuery}
                   onChange={(event) => setResponseQuery(event.target.value)}
+                  aria-label={copy.searchPlaceholder}
                   placeholder={copy.searchPlaceholder}
-                  className="w-full rounded-xl border border-surface-300 py-2.5 pl-10 pr-3 text-sm"
+                  className="input-field pl-10"
                 />
               </label>
               <select
+                aria-label={copy.allResponses}
                 value={responseTypeFilter}
                 onChange={(event) => setResponseTypeFilter(event.target.value as "all" | "builtin" | "external")}
                 className="input-field"

@@ -17,7 +17,8 @@ Status: **draft package prepared, not submitted for review**.
 - Owner chose Samet Ünsal as the fallback publishing identity (Heptapus Group is not
   a registered company), Turkey plus all Europe, and no plugin purchase/payment flow.
   `commerce=false` is recorded. Identity verification still needs the portal.
-  The draft allowlist has 48 ISO codes, covering European countries including Turkey,
+  The owner subsequently added the United States. The draft allowlist has 49 ISO codes,
+  covering the US and European countries including Turkey,
   Cyprus and transcontinental Armenia/Azerbaijan/Georgia/Kazakhstan. Russia/Belarus
   are excluded from this draft because they are absent from OpenAI's API access list;
   that list is not proof of ChatGPT plugin targeting eligibility. Confirm the exact
@@ -56,7 +57,7 @@ the deployed entry point remains `backend/src/mcp_server.py`, next to its widget
 | --- | --- |
 | ChatGPT feedback | Supplied: v0.9.7 skills modularization, 16 proposed tools and missing MCP configuration. Tools are integrated and the private v0.9.8 connection configuration is now saved. No public portal rejection was supplied. |
 | Publisher identity | Owner authorized Samet Ünsal; verify that individual identity in the target portal. Heptapus Group is not assumed to be a verified business. |
-| Countries | Owner requested Turkey + all Europe; 48-code draft allowlist recorded. Confirm portal eligibility before publication. |
+| Countries | Owner requested Turkey + all Europe + US; 49-code draft allowlist recorded. Confirm portal eligibility before publication. |
 | Commerce | Owner confirmed no plugin purchase/payment flow; `commerce=false` and explanation recorded. |
 | Privacy and terms | Existing URLs are retained. The browser tool could not retrieve their content on 2026-10-01; plugin-specific data-practice coverage is unverified. Legal source and translation review remain on hold. |
 | Category | Existing `Productivity` remains a draft choice; verify against the target portal. |

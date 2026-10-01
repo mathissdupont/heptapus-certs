@@ -26,11 +26,11 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **92** direct legacy language comparisons, including admin.
+  1. Continue the remaining **91** direct legacy language comparisons, including admin.
      Event-registration operational copy now uses all nine catalogs; its legal
      acknowledgements remain on hold. Next migrate the remaining admin copy objects
-     controlled by aliases such as `isTr`. Accreditation and API keys are now migrated;
-     next prioritize event attendees/surveys and integrations. `npm run i18n:audit` now also
+     controlled by aliases such as `isTr`. Accreditation, API keys and event surveys are
+     now migrated; next prioritize event attendees and integrations. `npm run i18n:audit` now also
      reports alias-controlled branches; one comparison does not mean one string.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
@@ -42,7 +42,7 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **92 direct TR/EN comparisons**;
+  hiding the real gap. The current ratchet records **91 direct TR/EN comparisons**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
@@ -51,10 +51,10 @@
   still used `isTr`-controlled copy at that point, as integrations and other admin pages
   still do. The regex counts
   the alias declaration once, not every untranslated branch or label. The supplementary
-  syntax inventory currently finds **27 admin files / 908 branches / 1,929 raw string
-  candidates** after accreditation/API-key migration. These are candidates, not a certified
+  syntax inventory currently finds **26 admin files / 803 branches / 1,714 raw string
+  candidates** after accreditation/API-key/survey migration. These are candidates, not a certified
   label count: technical values require triage; unconditional literals and imported or
-  mutated aliases still require manual review. Catalogs contain **2,938 keys × 9**.
+  mutated aliases still require manual review. Catalogs contain **3,050 keys × 9**.
 
 ## Phase status
 
@@ -140,6 +140,29 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-01 — admin surveys localized; US added to publication draft
+
+- Migrated survey configuration, question-type labels, responses, filters, clipboard
+  feedback, empty/error/success states and accessibility labels to **112 catalog keys
+  in all nine languages**. Organizer-authored questions/options and API enum values
+  remain unchanged; response booleans and percentages follow the selected locale.
+- Local feedback stores keys, so early loading and live language switches don't leave
+  stale Turkish/German messages. Form labels now target inputs; icon-only controls
+  have localized names. A disabled survey's summary no longer calls its mode external.
+- Replaced mismatched primary-color/white-text pairs with semantic inverse roles,
+  including the live-summary card; fields use the shared themed input class.
+  Theme tests verify role wiring, not a manual browser screenshot review.
+- Ratchet **92 → 91**, catalogs **3,050 × 9**; survey path locked in `cleanPaths`.
+  Source inventory: **26 admin files / 803 branches / 1,714 raw candidates**. New
+  survey tests cover all nine settings/response views, all nine early load failures,
+  DE→FR validation/type labels, both theme role classes and unchanged POST payloads.
+- Verification: UI contracts and TypeScript pass; full frontend tests **150/150**;
+  production build succeeds with **132/132** static pages. Legal routes/acknowledgements,
+  transaction URLs and backend plan gates are untouched. Next: attendees, then integrations.
+- Owner added US targeting: public draft now records Turkey + Europe + US (49 ISO
+  codes), subject to portal eligibility checks. The actual private v0.9.8 update remains
+  separate from this public draft; OAuth, demo, reviewer access and public review are open.
 
 ### 2026-10-01 — owned plugin updated; publication remains separate
 
