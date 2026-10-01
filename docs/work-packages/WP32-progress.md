@@ -26,10 +26,9 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **97** legacy language branches on public/secondary routes.
-     Checkout and its activation/error states now use the nine-language catalog; complete
-     the remaining survey, verification and registration copy before global coverage is
-     called complete.
+  1. Continue the remaining **95** legacy language branches on public/secondary routes.
+     Checkout, participant survey and certificate verification now use the nine-language
+     catalog; continue participant registration before global coverage is called complete.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
      available. Draft the remaining routes under `docs/drafts/legal/` if useful, but
@@ -40,13 +39,13 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **97 legacy TR/EN binary branches**;
+  hiding the real gap. The current ratchet records **95 legacy TR/EN binary branches**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. The authenticated admin scopes have
   reached zero; the remaining queue is in public/secondary routes. Catalogs contain
-  **2,698 keys × 9**.
+  **2,766 keys × 9**.
 
 ## Phase status
 
@@ -132,6 +131,21 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-01 — participant survey and verification fully localized
+
+- Replaced the remaining full-page TR/EN copy blocks in the participant survey and
+  certificate verification entry point with catalog-backed copy in all nine languages.
+  Survey access, questions, submission, participation status, badges and raffles now
+  follow the selected language.
+- Localized the verification navigation, UUID and image-upload paths, analysis progress,
+  result labels, security checks, tips, preview alternative text and previously inline
+  analysis status. Verification and registration URLs remain unprefixed.
+- Ratchet: legacy TR/EN branches **97 → 95**. Catalogs contain **2,766 keys × 9**;
+  UI contracts and TypeScript pass, **93/93** frontend tests pass, and the production
+  build generates **132/132** static pages.
+- Next: migrate participant event registration, then pricing and developer-facing public
+  pages. Unreviewed legal body copy remains on hold.
 
 ### 2026-10-01 — checkout and participant-state language wave
 

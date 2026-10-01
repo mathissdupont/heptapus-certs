@@ -26,71 +26,41 @@ export default function VerifyIndexPage() {
   const [result, setResult] = useState<WatermarkResult | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const copy = useMemo(() => lang === "tr" ? {
-    navHome: "Ana Sayfa",
-    navLogin: "Sistem Girişi",
-    title: "Sertifika Doğrulama",
-    body: "Belgenin orijinalliğini kanıtlamak için UUID numarasını girin veya sertifika görselini yükleyerek dijital damgayı analiz edin.",
-    badge: "Güvenli Doğrulama Akışı",
-    uuidTab: "UUID / QR Kodu",
-    imageTab: "Görsel Yükle",
-    uuidLabel: "Sertifika Kimliği (UUID)",
-    uuidPlaceholder: "Örn: 123e4567-e89b-12d3-a456-426614174000",
-    uuidHint: "UUID kodunu sertifikanın sol alt köşesinde veya QR kodun hemen altında bulabilirsiniz.",
-    submit: "Sorgula",
-    uploadTitle: "Sertifika görselini buraya sürükleyin",
-    uploadBody: "PNG veya JPEG formatında, belgenin orijinal halini yükleyin.",
-    uploadCta: "Bilgisayardan Seç",
-    loading: "Dijital damga ve kriptografik imza analiz ediliyor...",
-    validTitle: "Geçerli ve Orijinal Sertifika",
-    invalidTitle: "Doğrulama Başarısız",
-    owner: "Katılımcı",
-    event: "Etkinlik",
-    code: "Sertifika Kodu",
-    issuedAt: "Düzenlenme Tarihi",
-    openFull: "Tam Doğrulama Sayfasını Aç",
-    uploadAnother: "Yeni Bir Görsel Yükle",
-    trustTitle: "Güvenlik Kontrolleri",
+  const copy = useMemo(() => ({
+    navHome: t("verification_nav_home"),
+    navLogin: t("verification_nav_login"),
+    title: t("verification_title"),
+    body: t("verification_body"),
+    badge: t("verification_badge"),
+    uuidTab: t("verification_uuid_tab"),
+    imageTab: t("verification_image_tab"),
+    uuidLabel: t("verification_uuid_label"),
+    uuidPlaceholder: t("verification_uuid_placeholder"),
+    uuidHint: t("verification_uuid_hint"),
+    submit: t("verification_submit"),
+    uploadTitle: t("verification_upload_title"),
+    uploadBody: t("verification_upload_body"),
+    uploadCta: t("verification_upload_cta"),
+    loading: t("verification_loading"),
+    analyzing: t("verification_analyzing"),
+    previewAlt: t("verification_preview_alt"),
+    validTitle: t("verification_valid_title"),
+    invalidTitle: t("verification_invalid_title"),
+    owner: t("verification_owner"),
+    event: t("verification_event"),
+    code: t("verification_code"),
+    issuedAt: t("verification_issued_at"),
+    openFull: t("verification_open_full"),
+    uploadAnother: t("verification_upload_another"),
+    trustTitle: t("verification_trust_title"),
     trustPoints: [
- "Kriptografik UUID eşleşmesi",
- "Görsel içi görünmez dijital damga okuma",
- "İptal (Revoked) ve süre (Expired) kontrolü"
+      t("verification_trust_uuid"),
+      t("verification_trust_watermark"),
+      t("verification_trust_status"),
     ],
-    quickTipTitle: "Doğrulama İpucu",
-    quickTipBody: "Ekran görüntüleri veya WhatsApp üzerinden sıkıştırılarak iletilmiş dosyalar dijital damganın okunmasını zorlaştırabilir. Mümkünse orijinal PDF'ten dışa aktarılmış görseli kullanın."
-  } : {
-    navHome: "Home",
-    navLogin: "System Login",
-    title: "Certificate Verification",
-    body: "Enter the UUID or upload a certificate image to analyze its digital watermark and prove its authenticity.",
-    badge: "Secure Verification Flow",
-    uuidTab: "UUID / QR Code",
-    imageTab: "Upload Image",
-    uuidLabel: "Certificate Identifier (UUID)",
-    uuidPlaceholder: "e.g. 123e4567-e89b-12d3-a456-426614174000",
-    uuidHint: "You can find the UUID code in the bottom corner of the certificate or just below the QR code.",
-    submit: "Verify",
-    uploadTitle: "Drag and drop the certificate image here",
-    uploadBody: "Upload the original document in PNG or JPEG format.",
-    uploadCta: "Browse Files",
-    loading: "Analyzing digital watermark and cryptographic signature...",
-    validTitle: "Valid & Authentic Certificate",
-    invalidTitle: "Verification Failed",
-    owner: "Attendee",
-    event: "Event",
-    code: "Certificate Code",
-    issuedAt: "Date Issued",
-    openFull: "Open Full Verification Page",
-    uploadAnother: "Upload Another Image",
-    trustTitle: "Security Checks",
-    trustPoints: [
- "Cryptographic UUID matching",
- "Invisible digital watermark detection",
- "Revocation and expiration status check"
-    ],
-    quickTipTitle: "Verification Tip",
-    quickTipBody: "Screenshots or compressed files sent via messaging apps might degrade the digital watermark. Use the original exported image if possible."
-  }, [lang]);
+    quickTipTitle: t("verification_tip_title"),
+    quickTipBody: t("verification_tip_body"),
+  }), [t]);
 
   useEffect(() => {
     fetch(apiUrl("/branding"), { credentials: "include", cache: "no-store" })
@@ -266,9 +236,9 @@ export default function VerifyIndexPage() {
                             </div>
                           ) : previewUrl ? (
                             <div className="flex flex-col items-center gap-4">
-                              <img src={previewUrl} alt="Preview" className="max-h-48 rounded-xl object-contain shadow-sm ring-1 ring-outline-subtle" />
+                              <img src={previewUrl} alt={copy.previewAlt} className="max-h-48 rounded-xl object-contain shadow-sm ring-1 ring-outline-subtle" />
                               <div className="flex items-center gap-2 text-sm font-bold text-content-muted">
-                                <Loader2 className="h-4 w-4 animate-spin" /> Analiz ediliyor...
+                                <Loader2 className="h-4 w-4 animate-spin" /> {copy.analyzing}
                               </div>
                             </div>
                           ) : (
