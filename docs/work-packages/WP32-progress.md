@@ -26,7 +26,7 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **114** legacy language branches on public/secondary routes.
+  1. Continue the remaining **106** legacy language branches on public/secondary routes.
      Admin plan gates now use the nine-language catalog and central feature keys, but
      remaining user-facing literals still need review before global coverage is complete.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
@@ -39,13 +39,13 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **114 legacy TR/EN binary branches**;
+  hiding the real gap. The current ratchet records **106 legacy TR/EN binary branches**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. The authenticated admin scopes have
   reached zero; the remaining queue is in public/secondary routes. Catalogs contain
-  **2,669 keys × 9**.
+  **2,672 keys × 9**.
 
 ## Phase status
 
@@ -131,6 +131,20 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-01 — landing badge removed and shared language debt reduced
+
+- Removed the pill-shaped “Uçtan Uca Etkinlik Operasyonu” label from the landing hero
+  at the product owner's request; the heading now starts the hero without the generic
+  marketing badge. Removed the unused key from all nine catalogs.
+- Replaced the remaining binary back-link copy on public CFP, live engagement and
+  networking pages with the shared event-detail catalog key. Localized default confirm,
+  processing, search and clear labels in shared admin controls across all nine languages.
+- Ratchet: legacy TR/EN branches **114 → 106**. Catalogs contain **2,672 keys × 9**;
+  UI contracts, TypeScript and **93/93** frontend tests pass. Light-only colors remain
+  **0**; the production build generates **132/132** static pages.
+- Next: continue profile and participant-facing registration/verification surfaces;
+  unreviewed legal body copy remains on hold.
 
 ### 2026-09-30 — public community language wave
 

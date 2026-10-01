@@ -389,7 +389,6 @@ export const es: Record<TranslationKey, string> = {
 
   // ── Home Page ───────────────────────────────────────────────────────────────
   home_badge_whitelabel: "Infraestructura de certificados para empresas",
-  home_badge_default: "Operación integral de eventos",
   home_title_whitelabel_template: "Inscripción y verificación para {name}",
   home_title_default: "Gestiona todo tu evento desde un único panel",
   home_body_whitelabel_template: "Simplifica la inscripción, la verificación por correo, el check-in, la generación y la validación de certificados para {name}.",
@@ -2727,4 +2726,8 @@ export const es: Record<TranslationKey, string> = {
   org_detail_sign_in: "Iniciar sesión",
   org_detail_reply: "Responder",
   org_detail_session_count: "{count} sesiones",
+  common_confirm: "Confirmar",
+  common_processing: "Procesando...",
+  common_search: "Buscar...",
+  common_clear: "Limpiar",
 };

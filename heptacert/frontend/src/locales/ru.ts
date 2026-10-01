@@ -389,7 +389,6 @@ export const ru: Record<TranslationKey, string> = {
 
   // ── Home Page ───────────────────────────────────────────────────────────────
   home_badge_whitelabel: "Корпоративная инфраструктура сертификатов",
-  home_badge_default: "Полный цикл управления мероприятием",
   home_title_whitelabel_template: "Регистрация и проверка для {name}",
   home_title_default: "Управляйте всем мероприятием из единой панели",
   home_body_whitelabel_template: "Упростите регистрацию, проверку эл. почты, регистрацию на входе, генерацию и валидацию сертификатов для {name}.",
@@ -2727,4 +2726,8 @@ export const ru: Record<TranslationKey, string> = {
   org_detail_sign_in: "Войти",
   org_detail_reply: "Ответить",
   org_detail_session_count: "Сессий: {count}",
+  common_confirm: "Подтвердить",
+  common_processing: "Обработка...",
+  common_search: "Поиск...",
+  common_clear: "Очистить",
 };

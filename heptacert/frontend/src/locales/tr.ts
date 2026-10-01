@@ -386,7 +386,6 @@ export const tr = {
   
   // ── Home Page ───────────────────────────────────────────────────────────────
   home_badge_whitelabel: "Kurumsal Sertifika Altyapısı",
-  home_badge_default: "Uçtan Uca Etkinlik Operasyonu",
   home_title_whitelabel_template: "{name} İçin Kayıt ve Sertifika Deneyimi",
   home_title_default: "Etkinliğinizi Baştan Sona Tek Panelde Yönetin",
   home_body_whitelabel_template: "{name} operasyonları için katılımcı kaydı, e-posta doğrulama, check-in ve sertifika sürecini sadeleştirin.",
@@ -2724,6 +2723,10 @@ export const tr = {
   org_detail_sign_in: "Üye Girişi",
   org_detail_reply: "Yanıtla",
   org_detail_session_count: "{count} oturum",
+  common_confirm: "Onayla",
+  common_processing: "İşleniyor...",
+  common_search: "Ara...",
+  common_clear: "Temizle",
 } as const;
 
 export type TranslationKey = keyof typeof tr;

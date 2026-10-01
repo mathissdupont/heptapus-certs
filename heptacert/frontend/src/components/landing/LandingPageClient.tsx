@@ -144,14 +144,6 @@ export default function LandingPageClient() {
         />
         <div className="mx-auto grid min-w-0 w-full max-w-7xl items-center gap-10 px-4 pb-12 pt-10 sm:px-8 sm:pb-16 sm:pt-14 lg:min-h-[calc(100svh-4rem)] lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:px-10 lg:py-20">
           <div className="min-w-0 max-w-3xl text-center lg:text-left">
-            <motion.p
-              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4 inline-flex items-center gap-2 rounded-full border border-accent-border bg-accent-soft px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-accent-strong sm:mb-7 sm:px-3.5 sm:text-11 sm:tracking-[0.16em]"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {t("home_badge_default")}
-            </motion.p>
             <motion.h1
               initial={reduceMotion ? false : { opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}

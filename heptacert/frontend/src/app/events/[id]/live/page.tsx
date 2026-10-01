@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useI18n, useT } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 import {
   getPublicMemberToken,
   getPublicEventDetail,
@@ -23,7 +23,6 @@ export default function LiveEngagementPage() {
   const params = useParams();
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
   const eventId = rawId ? String(rawId) : "";
-  const { lang } = useI18n();
   const t = useT();
 
   const [loading, setLoading] = useState(true);
@@ -107,7 +106,7 @@ export default function LiveEngagementPage() {
         <Radio className="mx-auto mb-3 h-10 w-10 opacity-40" />
         <p>{t("live_disabled")}</p>
         <Link href={`/events/${eventId}`} className="mt-4 inline-flex items-center gap-1 text-sm text-content-secondary hover:text-content-primary">
-          <ArrowLeft className="h-4 w-4" /> {lang === "tr" ? "Etkinliğe dön" : "Back to event"}
+          <ArrowLeft className="h-4 w-4" /> {t("event_detail_back")}
         </Link>
       </div>
     );
@@ -116,7 +115,7 @@ export default function LiveEngagementPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
       <Link href={`/events/${eventId}`} className="inline-flex items-center gap-1 text-sm text-content-muted hover:text-content-primary">
-        <ArrowLeft className="h-4 w-4" /> {lang === "tr" ? "Etkinliğe dön" : "Back to event"}
+        <ArrowLeft className="h-4 w-4" /> {t("event_detail_back")}
       </Link>
       <h1 className="flex items-center gap-2 text-2xl font-bold text-content-primary">
         <Radio className="h-6 w-6 text-status-danger-content" /> {t("live_title")}

@@ -27,10 +27,9 @@ export default function FilterActionBar({
   hasActiveFilters,
   className = "",
 }: FilterActionBarProps) {
-  const { lang } = useI18n();
-  const isTr = lang === "tr";
-  const placeholder = searchPlaceholder ?? (isTr ? "Ara..." : "Search...");
-  const clearText    = clearLabel        ?? (isTr ? "Temizle" : "Clear");
+  const { t } = useI18n();
+  const placeholder = searchPlaceholder ?? t("common_search");
+  const clearText = clearLabel ?? t("common_clear");
 
   return (
     <div className={`flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:justify-between ${className}`}>

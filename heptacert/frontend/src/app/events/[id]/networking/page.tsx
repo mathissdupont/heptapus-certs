@@ -117,7 +117,7 @@ export default function NetworkingPage() {
         <Handshake className="mx-auto mb-3 h-10 w-10 opacity-40" />
         <p>{t("net_disabled")}</p>
         <Link href={`/events/${eventId}`} className="mt-4 inline-flex items-center gap-1 text-sm text-content-secondary hover:text-content-primary">
-          <ArrowLeft className="h-4 w-4" /> {lang === "tr" ? "Etkinliğe dön" : "Back to event"}
+          <ArrowLeft className="h-4 w-4" /> {t("event_detail_back")}
         </Link>
       </div>
     );
@@ -126,7 +126,7 @@ export default function NetworkingPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
       <Link href={`/events/${eventId}`} className="inline-flex items-center gap-1 text-sm text-content-muted hover:text-content-primary">
-        <ArrowLeft className="h-4 w-4" /> {lang === "tr" ? "Etkinliğe dön" : "Back to event"}
+        <ArrowLeft className="h-4 w-4" /> {t("event_detail_back")}
       </Link>
       <h1 className="flex items-center gap-2 text-2xl font-bold text-content-primary">
         <Handshake className="h-6 w-6 text-content-muted" /> {t("net_title")}

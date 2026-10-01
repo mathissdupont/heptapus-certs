@@ -389,7 +389,6 @@ export const nl: Record<TranslationKey, string> = {
 
   // ── Home Page ───────────────────────────────────────────────────────────────
   home_badge_whitelabel: "Certificaatinfrastructuur voor ondernemingen",
-  home_badge_default: "Complete eventoperatie",
   home_title_whitelabel_template: "Inschrijving en verificatie voor {name}",
   home_title_default: "Beheer uw volledige evenement vanuit één paneel",
   home_body_whitelabel_template: "Vereenvoudig inschrijving, e-mailverificatie, check-in, certificaatgeneratie en validatie voor {name}.",
@@ -2727,4 +2726,8 @@ export const nl: Record<TranslationKey, string> = {
   org_detail_sign_in: "Aanmelden",
   org_detail_reply: "Beantwoorden",
   org_detail_session_count: "{count} sessies",
+  common_confirm: "Bevestigen",
+  common_processing: "Bezig met verwerken...",
+  common_search: "Zoeken...",
+  common_clear: "Wissen",
 };

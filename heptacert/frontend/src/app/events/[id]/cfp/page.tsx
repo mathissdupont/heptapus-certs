@@ -115,7 +115,7 @@ export default function CfpSpeakerPage() {
         <Megaphone className="mx-auto mb-3 h-10 w-10 opacity-40" />
         <p>{t("cfp_closed")}</p>
         <Link href={`/events/${eventId}`} className="mt-4 inline-flex items-center gap-1 text-sm text-content-secondary hover:text-content-primary">
-          <ArrowLeft className="h-4 w-4" /> {lang === "tr" ? "Etkinliğe dön" : "Back to event"}
+          <ArrowLeft className="h-4 w-4" /> {t("event_detail_back")}
         </Link>
       </div>
     );
@@ -127,7 +127,7 @@ export default function CfpSpeakerPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
       <Link href={`/events/${eventId}`} className="inline-flex items-center gap-1 text-sm text-content-muted hover:text-content-primary">
-        <ArrowLeft className="h-4 w-4" /> {lang === "tr" ? "Etkinliğe dön" : "Back to event"}
+        <ArrowLeft className="h-4 w-4" /> {t("event_detail_back")}
       </Link>
 
       <header className="space-y-2">

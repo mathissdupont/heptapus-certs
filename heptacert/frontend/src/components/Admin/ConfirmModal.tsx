@@ -32,12 +32,10 @@ export function ConfirmModal({
   onCancel,
   children,
 }: ConfirmModalProps) {
-  const { lang } = useI18n();
-  const isTr = lang === "tr";
-
-  const resolvedConfirm  = confirmLabel   ?? (isTr ? "Onayla"       : "Confirm");
-  const resolvedCancel   = cancelLabel    ?? (isTr ? "İptal"         : "Cancel");
-  const resolvedProcess  = processingLabel ?? (isTr ? "İşleniyor..."  : "Processing...");
+  const { t } = useI18n();
+  const resolvedConfirm = confirmLabel ?? t("common_confirm");
+  const resolvedCancel = cancelLabel ?? t("cfp_cancel");
+  const resolvedProcess = processingLabel ?? t("common_processing");
 
   return (
     <AnimatePresence>
