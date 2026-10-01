@@ -24,88 +24,63 @@ type ApiKey = {
 };
 
 export default function ApiKeysPage() {
-  const { lang } = useI18n();
-  const isTr = lang === "tr";
+  const { lang, t } = useI18n();
 
   const copy = {
-    pageTitle: isTr ? "API Anahtarları" : "API Keys",
-    pageSubtitle: isTr
-      ? "Harici entegrasyonlar ve güvenli API erişimi için kimlik doğrulama anahtarlarını yönetin"
-      : "Manage authentication keys for external integrations and secure API access",
-    breadcrumbSettings: isTr ? "Ayarlar" : "Settings",
-    breadcrumbApiKeys: isTr ? "API Anahtarları" : "API Keys",
-    btnNewKey: isTr ? "Yeni Anahtar" : "New Key",
-    infoTitle: isTr ? "API Anahtarları Nasıl Kullanılır?" : "How to Use API Keys?",
-    infoBody: isTr
-      ? "API anahtarları; harici uygulamalarınızdan veya üçüncü parti servislerden sistemimize güvenli bir şekilde erişebilmeniz için üretilir. Her istekte başlık (Header) alanına anahtar eklenerek kimlik doğrulaması otomatik olarak tamamlanır."
-      : "API keys are generated to allow secure access to our system from your external applications or third-party services. Authentication is completed automatically by adding the key to the Authorization header of each request.",
-    infoWarning: isTr
-      ? "⚠️ Güvenlik Uyarısı: API anahtarlarınızı asla GitHub reposu gibi halka açık veya sızdırılabilecek alanlarda paylaşmayın!"
-      : "⚠️ Security Warning: Never share your API keys in publicly accessible or potentially leakable places such as GitHub repositories!",
-    colName: isTr ? "Ad" : "Name",
-    colKey: isTr ? "Anahtar" : "Key",
-    colScopes: isTr ? "Yetkiler" : "Scopes",
-    colScopesAll: isTr ? "Tüm yetkiler" : "All permissions",
-    colScopesCount: (n: number) => isTr ? `${n} yetki` : `${n} scopes`,
-    colLastUsed: isTr ? "Son Kullanım" : "Last Used",
-    colExpires: isTr ? "Son Kullanma" : "Expires",
-    colExpiresNever: isTr ? "Süresiz" : "Never",
-    colCreated: isTr ? "Oluşturuldu" : "Created",
-    btnDisable: isTr ? "Devre dışı bırak" : "Disable",
-    emptyTitle: isTr ? "Henüz üretilmiş bir API anahtarı yok" : "No API keys generated yet",
-    emptySubtitle: isTr
-      ? "Harici servislerin HeptaCert verilerine erişmesi için güvenli bir anahtar kurgulayın."
-      : "Set up a secure key for external services to access HeptaCert data.",
-    btnCreateFirst: isTr ? "İlk Anahtarı Oluştur" : "Create First Key",
-    searchPlaceholder: isTr ? "İsme veya anahtara göre ara..." : "Search by name or key...",
-    securityTitle: isTr ? "API Anahtarı Güvenlik Protokolü" : "API Key Security Protocol",
-    securityTip1: isTr
-      ? "API anahtarları en üst düzey hassasiyete sahiptir; asla sürüm kontrol (Git) geçmişine eklemeyin."
-      : "API keys are highly sensitive; never add them to version control (Git) history.",
-    securityTip2: isTr
-      ? "Maskelenmiş olarak listelenen anahtarlar güvenlik politikası gereği sistemde kriptolu tutulur ve tekrar çözülemez."
-      : "Keys listed in masked form are stored encrypted in the system per security policy and cannot be decrypted again.",
-    securityTip3: isTr
-      ? "Oluşturulan anahtarın ham halini (Full Key) **yalnızca üretim anında tek bir kez** görüntüleyebilirsiniz."
-      : "You can view the raw form (Full Key) of the generated key **only once at the time of creation**.",
-    securityTip4: isTr
-      ? "Anahtarın üçüncü şahısların eline geçtiğinden şüphelendiğiniz an listeden derhal devre dışı (silme) bırakın."
-      : "The moment you suspect a key has fallen into third-party hands, immediately disable (delete) it from the list.",
-    securityTip5: isTr
-      ? "Test/Staging ortamı ile canlı üretim (Production) altyapısı için her zaman ayrı anahtarlar kurgulayın."
-      : "Always configure separate keys for Test/Staging environments and live Production infrastructure.",
-    modalKeyReadyTitle: isTr ? "API Anahtarınız Hazır" : "Your API Key is Ready",
-    modalKeyReadyWarning: isTr
-      ? "Bu gizli anahtarı şimdi güvenli bir yere kopyalayın. Güvenlik altyapısı gereği pencereyi kapattıktan sonra anahtarı bir daha asla göremeyeceksiniz."
-      : "Copy this secret key to a secure location now. Due to security infrastructure, you will never be able to see this key again after closing the window.",
-    modalKeyReadyImportant: isTr ? "Önemli Protokol:" : "Important Protocol:",
-    btnCopiedClose: isTr ? "Kopyaladım, Kapat" : "Copied, Close",
-    modalCreateTitle: isTr ? "Yeni API Anahtarı Üret" : "Generate New API Key",
-    modalCreateSubtitle: isTr
-      ? "Bu anahtar harici sistemlerdeki arka plan botları veya özel panelleriniz için yetkilendirme sağlayacaktır."
-      : "This key will provide authorization for background bots in external systems or your custom panels.",
-    labelKeyName: isTr ? "Anahtar Tanımlama Adı" : "Key Identification Name",
-    placeholderKeyName: isTr ? "Örn: Mobil Entegrasyon, Test Ortamı" : "E.g.: Mobile Integration, Test Environment",
-    labelExpiry: isTr ? "Geçerlilik Süresi (Gün)" : "Validity Period (Days)",
-    placeholderExpiry: isTr ? "Süresiz kalması için boş bırakın" : "Leave blank for no expiry",
-    expiryHint: isTr
-      ? "Sistem güvenliği için 30 veya 90 günlük periyotlar belirlemeniz tavsiye edilir."
-      : "For system security, it is recommended to set 30 or 90-day periods.",
-    btnCancel: isTr ? "İptal" : "Cancel",
-    btnGenerating: isTr ? "Üretiliyor..." : "Generating...",
-    btnGenerate: isTr ? "Anahtarı Üret" : "Generate Key",
-    toastKeyNameRequired: isTr ? "Lütfen bir anahtar ismi girin" : "Please enter a key name",
-    toastKeyCreated: isTr ? "API anahtarı oluşturuldu" : "API key created",
-    toastKeyCreateFailed: isTr ? "API anahtarı oluşturulamadı" : "Failed to create API key",
-    toastKeyDisabled: isTr ? "Anahtar devre dışı bırakıldı" : "Key disabled",
-    toastKeyDeleteFailed: isTr ? "Anahtar silme başarısız" : "Failed to delete key",
-    toastKeyCopied: isTr ? "Anahtar panoya kopyalandı" : "Key copied to clipboard",
-    loadError: isTr ? "API anahtarları yüklenemedi" : "Could not load API keys",
+    pageTitle: t("admin_api_keys_page_title"),
+    pageSubtitle: t("admin_api_keys_page_subtitle"),
+    breadcrumbSettings: t("admin_api_keys_breadcrumb_settings"),
+    breadcrumbApiKeys: t("admin_api_keys_page_title"),
+    btnNewKey: t("admin_api_keys_btn_new_key"),
+    infoTitle: t("admin_api_keys_info_title"),
+    infoBody: t("admin_api_keys_info_body"),
+    infoWarning: t("admin_api_keys_info_warning"),
+    colName: t("admin_api_keys_col_name"),
+    colKey: t("admin_api_keys_col_key"),
+    colScopes: t("admin_api_keys_col_scopes"),
+    colScopesAll: t("admin_api_keys_col_scopes_all"),
+    colScopesCount: (n: number) => t("admin_api_keys_col_scopes_count", { count: n }),
+    colLastUsed: t("admin_api_keys_col_last_used"),
+    colExpires: t("admin_api_keys_col_expires"),
+    colExpiresNever: t("admin_api_keys_col_expires_never"),
+    colCreated: t("admin_api_keys_col_created"),
+    btnDisable: t("admin_api_keys_btn_disable"),
+    emptyTitle: t("admin_api_keys_empty_title"),
+    emptySubtitle: t("admin_api_keys_empty_subtitle"),
+    btnCreateFirst: t("admin_api_keys_btn_create_first"),
+    searchPlaceholder: t("admin_api_keys_search_placeholder"),
+    securityTitle: t("admin_api_keys_security_title"),
+    securityTip1: t("admin_api_keys_security_tip1"),
+    securityTip2: t("admin_api_keys_security_tip2"),
+    securityTip3: t("admin_api_keys_security_tip3"),
+    securityTip4: t("admin_api_keys_security_tip4"),
+    securityTip5: t("admin_api_keys_security_tip5"),
+    modalKeyReadyTitle: t("admin_api_keys_modal_key_ready_title"),
+    modalKeyReadyWarning: t("admin_api_keys_modal_key_ready_warning"),
+    modalKeyReadyImportant: t("admin_api_keys_modal_key_ready_important"),
+    btnCopiedClose: t("admin_api_keys_btn_copied_close"),
+    modalCreateTitle: t("admin_api_keys_modal_create_title"),
+    modalCreateSubtitle: t("admin_api_keys_modal_create_subtitle"),
+    labelKeyName: t("admin_api_keys_label_key_name"),
+    placeholderKeyName: t("admin_api_keys_placeholder_key_name"),
+    labelExpiry: t("admin_api_keys_label_expiry"),
+    placeholderExpiry: t("admin_api_keys_placeholder_expiry"),
+    expiryHint: t("admin_api_keys_expiry_hint"),
+    btnCancel: t("admin_api_keys_btn_cancel"),
+    btnGenerating: t("admin_api_keys_btn_generating"),
+    btnGenerate: t("admin_api_keys_btn_generate"),
+    toastKeyNameRequired: t("admin_api_keys_toast_key_name_required"),
+    toastKeyCreated: t("admin_api_keys_toast_key_created"),
+    toastKeyCreateFailed: t("admin_api_keys_toast_key_create_failed"),
+    toastKeyDisabled: t("admin_api_keys_toast_key_disabled"),
+    toastKeyDeleteFailed: t("admin_api_keys_toast_key_delete_failed"),
+    toastKeyCopied: t("admin_api_keys_toast_key_copied"),
+    loadError: t("admin_api_keys_load_error"),
   };
 
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string } | { key: "admin_api_keys_load_error" } | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [keyName, setKeyName] = useState("");
@@ -127,10 +102,10 @@ export default function ApiKeysPage() {
         const data = await res.json();
         setKeys(Array.isArray(data) ? data : data.items || []);
       } else {
-        setError(copy.loadError);
+        setError({ key: "admin_api_keys_load_error" });
       }
     } catch (e: any) {
-      setError(e?.message || copy.loadError);
+      setError(e?.message ? { message: e.message } : { key: "admin_api_keys_load_error" });
     } finally {
       setLoading(false);
     }
@@ -288,7 +263,7 @@ export default function ApiKeysPage() {
         },
       },
     ],
-    [deletingId, isTr]
+    [deletingId, lang, t]
   );
 
   if (loading) {
@@ -346,7 +321,7 @@ export default function ApiKeysPage() {
       {error && (
         <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-4 text-xs font-semibold text-status-danger-content flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{error}</span>
+          <span>{"key" in error ? t(error.key) : error.message}</span>
         </div>
       )}
 
@@ -461,10 +436,11 @@ export default function ApiKeysPage() {
 
               {/* İsim Alanı */}
               <div className="space-y-1.5">
-                <label className="block text-11 font-bold text-surface-500">
+                <label htmlFor="api-key-name" className="block text-11 font-bold text-surface-500">
                   {copy.labelKeyName}
                 </label>
                 <input
+                  id="api-key-name"
                   type="text"
                   placeholder={copy.placeholderKeyName}
                   value={keyName}
@@ -476,10 +452,11 @@ export default function ApiKeysPage() {
 
               {/* Geçerlilik Süresi */}
               <div className="space-y-1.5">
-                <label className="block text-11 font-bold text-surface-500">
+                <label htmlFor="api-key-expiry" className="block text-11 font-bold text-surface-500">
                   {copy.labelExpiry}
                 </label>
                 <input
+                  id="api-key-expiry"
                   type="number"
                   placeholder={copy.placeholderExpiry}
                   value={expiresDays}

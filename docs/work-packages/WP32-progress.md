@@ -26,11 +26,11 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **93** direct legacy language comparisons, including admin.
+  1. Continue the remaining **92** direct legacy language comparisons, including admin.
      Event-registration operational copy now uses all nine catalogs; its legal
      acknowledgements remain on hold. Next migrate the remaining admin copy objects
-     controlled by aliases such as `isTr`. Accreditation is now migrated; next prioritize
-     event attendees/surveys, API keys and integrations. `npm run i18n:audit` now also
+     controlled by aliases such as `isTr`. Accreditation and API keys are now migrated;
+     next prioritize event attendees/surveys and integrations. `npm run i18n:audit` now also
      reports alias-controlled branches; one comparison does not mean one string.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
@@ -42,18 +42,19 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **93 direct TR/EN comparisons**;
+  hiding the real gap. The current ratchet records **92 direct TR/EN comparisons**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. **Correction (2026-10-01): admin is not
-  complete.** The earlier zero-admin claim was incorrect: accreditation, API keys,
-  integrations and other admin pages still use `isTr`-controlled copy. The regex counts
+  complete.** The earlier zero-admin claim was incorrect: accreditation and API keys
+  still used `isTr`-controlled copy at that point, as integrations and other admin pages
+  still do. The regex counts
   the alias declaration once, not every untranslated branch or label. The supplementary
-  syntax inventory currently finds **28 admin files / 957 branches / 2,027 raw string
-  candidates** after accreditation migration. These are candidates, not a certified
+  syntax inventory currently finds **27 admin files / 908 branches / 1,929 raw string
+  candidates** after accreditation/API-key migration. These are candidates, not a certified
   label count: technical values require triage; unconditional literals and imported or
-  mutated aliases still require manual review. Catalogs contain **2,867 keys × 9**.
+  mutated aliases still require manual review. Catalogs contain **2,938 keys × 9**.
 
 ## Phase status
 
@@ -139,6 +140,30 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-01 — API keys and shared table localized
+
+- Migrated 49 API-key copy properties to 48 keys across all nine catalogs. Fixed
+  memoized table headers staying in the old language when switching between two
+  non-TR locales. Load failures now store a translation key instead of caching the
+  first render's Turkish message before the persisted locale is restored.
+- Verified the backend stores key hashes and corrected the old encryption claim.
+  Creation/deletion endpoints, posted values, scopes and the `api` layout gate are
+  unchanged. Associated the creation form labels with their inputs.
+- Found another audit blind spot: the shared `DataTable` had unconditional Turkish
+  literals. Added 23 keys for search, export feedback, column visibility, empty states,
+  pagination and accessibility labels. Export labeling now accurately says current-page
+  rows (or selected rows); export behavior is unchanged. Row-range text uses the active
+  page size, fixing the count after a size change. Search fields now have unique IDs.
+- Locked both paths into `cleanPaths`. Ratchet **93 → 92**; catalogs **2,938 × 9**.
+  UI contracts pass; **128/128** frontend tests pass, including all nine actual-page
+  locale cases, all nine early-load failure cases, live DE→FR switching, create payload
+  preservation, one-time-key dismissal and shared-table pagination/filtering.
+  TypeScript passes and the production build generates **132/132** pages successfully.
+- Source inventory: **27 admin files / 908 branches / 1,929 raw string candidates**.
+  Next: attendees/surveys and integrations; then public/secondary operational copy.
+  Legal copy remains on hold. The supplied expanded MCP reference is already integrated;
+  the repeated request did not include ChatGPT's feedback or the missing publication facts.
 
 ### 2026-10-01 — admin coverage correction and accreditation localization
 

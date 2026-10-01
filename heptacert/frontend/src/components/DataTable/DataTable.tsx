@@ -12,7 +12,8 @@ import {
   ColumnFiltersState,
   VisibilityState,
 } from "@tanstack/react-table";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
+import { useI18n } from "@/lib/i18n";
 import {
   ChevronLeft,
   ChevronRight,
@@ -45,10 +46,12 @@ export function DataTable<TData extends Record<string, any>>({
   enableColumnVisibility = true,
   pageSize = 10,
   searchable = true,
-  searchPlaceholder = "Ara...",
+  searchPlaceholder,
   enableExport = true,
   exportFileName = "export.csv",
 }: DataTableProps<TData>) {
+  const { t } = useI18n();
+  const searchId = useId();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -113,9 +116,9 @@ export function DataTable<TData extends Record<string, any>>({
       link.setAttribute("download", exportFileName);
       link.click();
 
-      toast.success(`${rows.length} satır başarıyla dışa aktarıldı`);
+      toast.success(t("data_table_export_success", { count: rows.length }));
     } catch (err) {
-      toast.error("Dışa aktarma başarısız");
+      toast.error(t("data_table_export_failed"));
     }
   };
 
@@ -126,15 +129,15 @@ export function DataTable<TData extends Record<string, any>>({
       <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
         {searchable && (
           <div className="relative min-w-0 flex-1 sm:max-w-xs md:max-w-sm">
-            <label htmlFor="table-search" className="sr-only">Tabloda Ara</label>
+            <label htmlFor={searchId} className="sr-only">{t("data_table_search")}</label>
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-content-muted stroke-[2]" aria-hidden="true" />
             <input
-              id="table-search"
-              placeholder={searchPlaceholder}
+              id={searchId}
+              placeholder={searchPlaceholder ?? t("data_table_search_placeholder")}
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
               className="w-full min-h-[38px] rounded-xl border border-outline-subtle bg-raised pl-9 pr-4 text-xs font-medium text-content-primary transition-all outline-none hover:border-outline-strong focus:border-outline-strong focus:ring-1 focus:ring-outline-strong placeholder:text-content-muted"
-              aria-label="Tablo içeriğini ara"
+              aria-label={t("data_table_search")}
             />
           </div>
         )}
@@ -147,7 +150,7 @@ export function DataTable<TData extends Record<string, any>>({
               role="status"
               aria-live="polite"
             >
-              {selectedRows.length} Seçili
+              {t("data_table_selected", { count: selectedRows.length })}
             </div>
           )}
 
@@ -155,10 +158,10 @@ export function DataTable<TData extends Record<string, any>>({
             <button
               onClick={handleExportCSV}
               className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-outline-subtle bg-raised px-3.5 py-2 text-xs font-semibold text-content-secondary shadow-sm transition hover:bg-canvas hover:text-content-primary active:scale-95"
-              aria-label={selectedRows.length > 0 ? "Seçili satırları CSV olarak dışa aktar" : "Tüm satırları CSV olarak dışa aktar"}
+              aria-label={selectedRows.length > 0 ? t("data_table_export_selected") : t("data_table_export_page")}
             >
               <Download className="h-3.5 w-3.5 text-content-muted stroke-[2]" aria-hidden="true" />
-              <span>Dışa Aktar</span>
+              <span>{t("data_table_export")}</span>
             </button>
           )}
 
@@ -166,10 +169,10 @@ export function DataTable<TData extends Record<string, any>>({
             <details className="relative group select-none">
               <summary
                 className="inline-flex min-h-[38px] list-none items-center justify-center gap-1.5 rounded-xl border border-outline-subtle bg-raised px-3.5 py-2 text-xs font-semibold text-content-secondary shadow-sm transition hover:bg-canvas hover:text-content-primary active:scale-95 cursor-pointer [&::-webkit-details-marker]:hidden"
-                aria-label="Kolon görünürlük menüsünü aç"
+                aria-label={t("data_table_columns_menu")}
               >
                 <Eye className="h-3.5 w-3.5 text-content-muted stroke-[2]" aria-hidden="true" />
-                <span>Kolonlar</span>
+                <span>{t("data_table_columns")}</span>
                 <ChevronDown className="h-3 w-3 text-content-muted transition-transform duration-200 group-open:rotate-180" />
               </summary>
 
@@ -241,7 +244,7 @@ export function DataTable<TData extends Record<string, any>>({
         {/* Sonuç Bulunamadı Alanı */}
         {table.getRowModel().rows.length === 0 && (
           <div className="w-full py-14 text-center text-xs font-semibold text-content-muted tracking-tight" role="status">
-            Sonuç bulunamadı
+            {t("data_table_no_results")}
           </div>
         )}
       </div>
@@ -250,25 +253,27 @@ export function DataTable<TData extends Record<string, any>>({
       <div
         className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-outline-subtle bg-raised px-4 py-3 text-xs text-content-muted shadow-sm sm:flex-row"
         role="region"
-        aria-label="Tablo sayfalama alanı"
+        aria-label={t("data_table_pagination")}
       >
         <div className="font-semibold tracking-tight text-content-muted">
           {table.getFilteredRowModel().rows.length === 0
-            ? "Kayıt yok"
-            : `${table.getState().pagination.pageIndex * pageSize + 1} - ${Math.min(
-                (table.getState().pagination.pageIndex + 1) * pageSize,
-                table.getFilteredRowModel().rows.length
-              )} / ${table.getFilteredRowModel().rows.length} kayıt`}
+            ? t("data_table_no_records")
+            : t("data_table_rows_range", {
+                start: table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1,
+                end: Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
+                  table.getFilteredRowModel().rows.length),
+                total: table.getFilteredRowModel().rows.length,
+              })}
         </div>
 
         {/* Sayfa Navigasyon Buton Grubu */}
-        <div className="flex flex-wrap items-center gap-3" role="group" aria-label="Sayfalama kontrolleri">
+        <div className="flex flex-wrap items-center gap-3" role="group" aria-label={t("data_table_pagination_controls")}>
           <div className="flex items-center gap-1">
             <button
               onClick={() => table.setPageIndex(0)}
               disabled={!table.getCanPreviousPage()}
               className="flex h-7 w-7 items-center justify-center rounded-lg border border-outline-subtle bg-raised text-content-muted transition-all hover:text-content-primary disabled:opacity-30 shadow-sm"
-              aria-label="İlk sayfaya git"
+              aria-label={t("data_table_first_page")}
             >
               <ChevronsLeft className="h-3.5 w-3.5 stroke-[2]" aria-hidden="true" />
             </button>
@@ -277,7 +282,7 @@ export function DataTable<TData extends Record<string, any>>({
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
               className="flex h-7 w-7 items-center justify-center rounded-lg border border-outline-subtle bg-raised text-content-muted transition-all hover:text-content-primary disabled:opacity-30 shadow-sm"
-              aria-label="Önceki sayfaya git"
+              aria-label={t("data_table_previous_page")}
             >
               <ChevronLeft className="h-3.5 w-3.5 stroke-[2]" aria-hidden="true" />
             </button>
@@ -285,7 +290,7 @@ export function DataTable<TData extends Record<string, any>>({
 
           {/* Sayfa İndeksi Manuel Giriş */}
           <div className="flex items-center gap-1.5 font-semibold text-content-muted">
-            <span>Sayfa</span>
+            <span>{t("data_table_page")}</span>
             <input
               type="number"
               value={table.getState().pagination.pageIndex + 1}
@@ -296,7 +301,7 @@ export function DataTable<TData extends Record<string, any>>({
               min={1}
               max={table.getPageCount()}
               className="w-10 min-h-[26px] rounded-lg border border-outline-subtle px-1.5 py-0.5 text-center text-xs font-bold text-content-primary outline-none focus:border-outline-strong"
-              aria-label="Mevcut sayfa"
+              aria-label={t("data_table_current_page")}
             />
             <span>/ {table.getPageCount()}</span>
           </div>
@@ -309,11 +314,11 @@ export function DataTable<TData extends Record<string, any>>({
                 table.setPageSize(Number(e.target.value));
               }}
               className="appearance-none rounded-lg border border-outline-subtle bg-raised pl-2.5 pr-6 py-0.5 min-h-[26px] text-xs font-bold text-content-secondary outline-none hover:border-outline-strong transition-all cursor-pointer"
-              aria-label="Sayfa başına kayıt limiti seçimi"
+              aria-label={t("data_table_page_size")}
             >
               {[5, 10, 20, 50, 100].map((size) => (
                 <option key={size} value={size}>
-                  {size} / sayfa
+                  {t("data_table_per_page", { count: size })}
                 </option>
               ))}
             </select>
@@ -325,7 +330,7 @@ export function DataTable<TData extends Record<string, any>>({
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
               className="flex h-7 w-7 items-center justify-center rounded-lg border border-outline-subtle bg-raised text-content-muted transition-all hover:text-content-primary disabled:opacity-30 shadow-sm"
-              aria-label="Sonraki sayfaya git"
+              aria-label={t("data_table_next_page")}
             >
               <ChevronRight className="h-3.5 w-3.5 stroke-[2]" aria-hidden="true" />
             </button>
@@ -334,7 +339,7 @@ export function DataTable<TData extends Record<string, any>>({
               onClick={() => table.setPageIndex(table.getPageCount() - 1)}
               disabled={!table.getCanNextPage()}
               className="flex h-7 w-7 items-center justify-center rounded-lg border border-outline-subtle bg-raised text-content-muted transition-all hover:text-content-primary disabled:opacity-30 shadow-sm"
-              aria-label="Son sayfaya git"
+              aria-label={t("data_table_last_page")}
             >
               <ChevronsRight className="h-3.5 w-3.5 stroke-[2]" aria-hidden="true" />
             </button>
