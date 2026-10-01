@@ -276,6 +276,10 @@ async function main(argv) {
       .sort(([, a], [, b]) => b[ruleId] - a[ruleId])
       .forEach(([file, counts]) => console.log(`${String(counts[ruleId]).padStart(5)}  ${file}`));
     console.log(`${String(totals[ruleId]).padStart(5)}  total`);
+    if (ruleId === "lang-binary-check") {
+      const { reportLanguageBranches } = await import("./audit-language-branches.mjs");
+      await reportLanguageBranches(await walk(srcRoot), frontendRoot);
+    }
     return 0;
   }
 

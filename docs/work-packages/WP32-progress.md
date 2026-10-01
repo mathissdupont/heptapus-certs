@@ -26,11 +26,12 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **94** direct legacy language comparisons, including admin.
+  1. Continue the remaining **93** direct legacy language comparisons, including admin.
      Event-registration operational copy now uses all nine catalogs; its legal
      acknowledgements remain on hold. Next migrate the remaining admin copy objects
-     controlled by aliases such as `isTr`, starting with accreditation, and expand the
-     audit to report those branches rather than assuming one comparison means one string.
+     controlled by aliases such as `isTr`. Accreditation is now migrated; next prioritize
+     event attendees/surveys, API keys and integrations. `npm run i18n:audit` now also
+     reports alias-controlled branches; one comparison does not mean one string.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
      available. Draft the remaining routes under `docs/drafts/legal/` if useful, but
@@ -41,15 +42,18 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **94 legacy TR/EN binary branches**;
+  hiding the real gap. The current ratchet records **93 direct TR/EN comparisons**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. **Correction (2026-10-01): admin is not
   complete.** The earlier zero-admin claim was incorrect: accreditation, API keys,
   integrations and other admin pages still use `isTr`-controlled copy. The regex counts
-  the alias declaration once, not every untranslated branch or label. Catalogs contain
-  **2,826 keys × 9**.
+  the alias declaration once, not every untranslated branch or label. The supplementary
+  syntax inventory currently finds **28 admin files / 957 branches / 2,027 raw string
+  candidates** after accreditation migration. These are candidates, not a certified
+  label count: technical values require triage; unconditional literals and imported or
+  mutated aliases still require manual review. Catalogs contain **2,867 keys × 9**.
 
 ## Phase status
 
@@ -135,6 +139,25 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-01 — admin coverage correction and accreditation localization
+
+- Corrected the earlier zero-admin claim against actual source, rather than treating
+  catalog parity or the regex ratchet as coverage evidence. Added a TypeScript syntax
+  inventory to `i18n:audit`: resolves scoped/chained/negated aliases and reports raw
+  copy candidates inside ternary/if branches, excluding catalog calls. It is deliberately
+  advisory and does not change or raise the existing debt baseline.
+- Moved the accreditation/CPD page's 42 copy properties to 41 new catalog keys in all
+  nine languages (the repeated CPD title shares one key). Forms, deletion confirmation,
+  failure/empty states and CPD tables now follow the active locale; existing translated
+  validity badges, API values, date contracts and layout plan gate remain unchanged.
+- Locked accreditation into `cleanPaths`. Ratchet **94 → 93**; catalogs **2,867 × 9**.
+  UI contracts and TypeScript pass; **107/107** frontend tests pass, including nine
+  actual-page locale cases and five alias-inventory regression cases.
+  The production build also passes with **132/132** generated pages.
+- Source inventory after migration: **28 admin files, 957 branch candidates and 2,027
+  unique raw string positions**. Prioritize attendees/surveys, API keys and integrations;
+  legal UI/body remains on the existing review hold. Full admin coverage is still open.
 
 ### 2026-10-01 — companion plugin submission preparation
 
