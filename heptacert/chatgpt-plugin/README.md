@@ -8,6 +8,7 @@ inline UI components it serves; there is no separate runtime in this folder.
 | --- | --- |
 | `plugin.json` | Listing metadata, legal links and starter prompts |
 | `mcp.json` | Points the plugin at the hosted streamable-HTTP MCP endpoint |
+| `skills/` | All eight workflows and support files preserved from the owned v0.9.8 plugin |
 | `assets/icon.png` | 512px PNG generated from the existing brand SVG; referenced as icon and logo |
 | `assets/logo.png` | Original oversized source logo; retained, but excluded from the upload ZIP |
 | `SUBMISSION-PREP.md` | Current gaps, review-case status and the recording walkthrough |
@@ -22,8 +23,8 @@ These values are taken from what the repository already publishes. A human
 should confirm each one against the account actually submitting, because
 reviewers check that they match the verified publisher identity:
 
-- `author.email` — `destek@heptacert.com`, the address on the public developers
-  page. Confirm it is monitored for plugin support.
+- `author.name` / `developerName` — Samet Ünsal, authorized by the owner as the
+  publishing identity. Portal verification has not yet been established.
 - `privacyPolicyURL` / `termsOfServiceURL` — the live `/gizlilik` and
   `/kullanim-kosullari` pages. **These are Turkish-language pages and were
   written for the web product, not for a ChatGPT plugin.** They have not been

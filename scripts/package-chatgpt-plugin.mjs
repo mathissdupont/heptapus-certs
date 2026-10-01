@@ -1,5 +1,5 @@
 // Build a separate public-upload copy without changing the original plugin source.
-import { readFile, copyFile, mkdir, mkdtemp } from "node:fs/promises";
+import { readFile, copyFile, mkdir, mkdtemp, cp, readdir } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
@@ -58,6 +58,12 @@ await mkdir(join(upload, "assets"), { recursive: true });
 for (const file of ["plugin.json", "mcp.json", "assets/icon.png"]) {
   await copyFile(join(source, file), join(upload, file));
 }
+const skills = await readdir(join(source, "skills"));
+assert.equal(skills.length, 8, "Preserve all eight skills from the owned plugin");
+await cp(join(source, "skills"), join(upload, "skills"), { recursive: true });
+for (const skill of skills) {
+  assert((await readFile(join(upload, "skills", skill, "SKILL.md"), "utf8")).startsWith("---"));
+}
 const archive = join(staging, `${manifest.name}-${manifest.version}-draft.zip`);
 const quotePowerShell = value => "'" + value.replaceAll("'", "''") + "'";
 const zipOutput = execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
@@ -75,12 +81,15 @@ const zipOutput = execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive
   } finally { $draftZip.Dispose() }`
 ], { encoding: "utf8" });
 const inspected = JSON.parse(zipOutput.trim());
+inspected.entries = inspected.entries.map(name => name.replaceAll("\\", "/"));
 assert.equal(inspected.version, manifest.version);
 assert.equal(inspected.positive, 5);
 assert.equal(inspected.negative, 3);
-assert.equal(inspected.entries.length, 3);
+assert.equal(inspected.entries.filter(name => /[/\\]SKILL\.md$/.test(name)).length, 8);
+assert(inspected.entries.some(name => name.endsWith("agents/openai.yaml")));
+assert(inspected.entries.some(name => name.endsWith("lookup/knowledge-index.json")));
 assert(inspected.entries.every(name => !name.includes(".app.json")));
-console.log(JSON.stringify({ archive, inspected, readiness: "draft",
-  missing: ["verified publisher identity", "country targeting", "commerce declaration",
+console.log(JSON.stringify({ archive, inspected, skills, readiness: "draft",
+  missing: ["verified publisher identity", "portal verification of country targeting",
             "verified demo recording URL", "host review-case execution",
             "reviewer access and policy review"] }, null, 2));

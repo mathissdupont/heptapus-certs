@@ -141,6 +141,23 @@ unauthenticated `/mcp` request → 401.
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
 
+### 2026-10-01 — owned plugin updated; publication remains separate
+
+- Updated the owner's exact private plugin to **0.9.8** through the account editor;
+  read back release `pluginrel_6abeacd815ec81919d9d8a3420c82a8b`. Added the production
+  MCP connection while preserving eight skills, support files, prompts and private scope.
+- Corrected the local public-upload draft to include those skills and preserve the
+  actual identity; the old 1.0.1 three-file ZIP must not be used. ZIP rebuild verifies
+  eight skills, support files, five positive/three negative cases and a 512px PNG.
+- Owner chose Samet Ünsal as fallback publisher, Turkey + Europe and no commerce.
+  Facts are recorded separately from unverified identity/targeting portal checks.
+- Owner reported deployment. Public MCP returns the expected **401** auth challenge,
+  OAuth metadata **200**, domain challenge **404**. Authenticated tool discovery,
+  demo recording, reviewer access and public review are still open; no scan or
+  publication success is claimed. Details: `heptacert/chatgpt-plugin/SUBMISSION-PREP.md`.
+- Translation coverage remains **92** direct comparisons and **2,938 × 9** keys.
+  Resume the survey/attendee admin queue next; legal copy remains on hold.
+
 ### 2026-10-01 — API keys and shared table localized
 
 - Migrated 49 API-key copy properties to 48 keys across all nine catalogs. Fixed

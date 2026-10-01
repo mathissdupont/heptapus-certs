@@ -1,39 +1,38 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "heptacert",
-  "version": "1.0.1",
-  "description": "Manage events, attendees, check-ins and verifiable certificates in HeptaCert.",
+  "name": "gpt-04d93178cfb7a0ccd9581a5151099c97",
+  "version": "0.9.8",
+  "description": "Manage HeptaCert events, participants, check-ins, registrations, certificates, email workflows, surveys, automations, CRM workflows, integrations, and analytics directly from ChatGPT.",
   "author": {
-    "name": "HeptaCert",
-    "email": "destek@heptacert.com",
-    "url": "https://heptacert.com"
+    "name": "Samet Ünsal"
   },
-  "homepage": "https://heptacert.com",
-  "license": "UNLICENSED",
-  "keywords": ["events", "certificates", "attendance", "check-in", "credentials"],
   "extensions": {
     "com.openai": {
       "interface": {
-        "displayName": "HeptaCert",
-        "shortDescription": "Events and certificates",
-        "longDescription": "Connect your HeptaCert account to manage events, attendees, sessions and check-in; prepare certificate batches and verify public certificate codes; manage email templates, preview confirmed bulk-email jobs and inspect delivery reports; and configure participant surveys. Event, attendee and certificate results can be displayed inline. Organization data is accessed under the permissions granted when you connect. Sending bulk email, deleting resources, replacing a certificate design or changing survey eligibility requires confirmation.",
-        "developerName": "HeptaCert",
+        "capabilities": [
+          "skills"
+        ],
         "category": "Productivity",
-        "capabilities": ["Read", "Write"],
+        "composerIcon": "./assets/icon.png",
+        "defaultPrompt": [
+          "Bu haftaki etkinliklerimi göster",
+          "\"Yapay Zeka Zirvesi\" adında yeni bir etkinlik oluştur",
+          "Son etkinliğimin katılımcı listesini getir"
+        ],
+        "developerName": "Samet Ünsal",
+        "displayName": "HeptaCert",
+        "logo": "./assets/icon.png",
+        "longDescription": "Manage HeptaCert workflows from ChatGPT, including events, attendees, sessions, check-ins, digital certificates, email templates and bulk communication, surveys, automations, webhooks, CRM lookup, analytics, and organization operations. HeptaCert follows the language used in the conversation and uses connected tools only when those operations are actually available.",
+        "shortDescription": "Manage HeptaCert workflows",
         "websiteURL": "https://heptacert.com",
         "supportURL": "https://heptacert.com/iletisim",
         "privacyPolicyURL": "https://heptacert.com/gizlilik",
         "termsOfServiceURL": "https://heptacert.com/kullanim-kosullari",
-        "defaultPrompt": [
-          "Show me my upcoming HeptaCert events and how many people have registered.",
-          "List the attendees for my next event and tell me who has not checked in yet.",
-          "Check whether HeptaCert certificate code ABC-123 is still valid."
-        ],
-        "brandColor": "#1F4ED8",
-        "composerIcon": "./assets/icon.png",
-        "logo": "./assets/icon.png"
+        "brandColor": "#1F4ED8"
       },
       "review": {
+        "commerce": false,
+        "commerce_description": "The plugin does not offer purchases or process payments.",
         "test_cases": {
           "positive": [
             {
@@ -84,6 +83,7 @@
         }
       },
       "publication": {
+        "countries": ["TR", "AD", "AL", "AM", "AT", "AZ", "BA", "BE", "BG", "CH", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GB", "GE", "GR", "HR", "HU", "IE", "IS", "IT", "KZ", "LI", "LT", "LU", "LV", "MC", "MD", "ME", "MK", "MT", "NL", "NO", "PL", "PT", "RO", "RS", "SE", "SI", "SK", "SM", "UA", "VA"],
         "release_notes": "Adds event email templates, confirmed bulk-email jobs, delivery reporting, certificate template previews and survey configuration. Aligns REST and MCP scope checks, limits delivery-log output, redacts survey webhook keys, and corrects listing metadata."
       }
     }

@@ -1,0 +1,4 @@
+interface:
+  default_prompt: Bu haftaki etkinliklerimi göster
+  display_name: HeptaCert
+  short_description: Manage HeptaCert workflows
