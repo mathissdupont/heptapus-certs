@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "heptacert",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Manage events, attendees, check-ins and verifiable certificates in HeptaCert.",
   "author": {
     "name": "HeptaCert",
@@ -15,23 +15,76 @@
     "com.openai": {
       "interface": {
         "displayName": "HeptaCert",
-        "shortDescription": "Run events and issue verifiable certificates",
-        "longDescription": "HeptaCert is an event management and certificate issuance platform. Connect your HeptaCert account to create and update events, manage attendees and sessions, run check-in, queue certificate batches, and verify a certificate from its public code — with attendee lists, certificates and issuance confirmations rendered inline. Every action runs against your own organization's data under the permissions you grant when you connect, and destructive actions ask for confirmation first.",
+        "shortDescription": "Events and certificates",
+        "longDescription": "Connect your HeptaCert account to manage events, attendees, sessions and check-in; prepare certificate batches and verify public certificate codes; manage email templates, preview confirmed bulk-email jobs and inspect delivery reports; and configure participant surveys. Event, attendee and certificate results can be displayed inline. Organization data is accessed under the permissions granted when you connect. Sending bulk email, deleting resources, replacing a certificate design or changing survey eligibility requires confirmation.",
         "developerName": "HeptaCert",
         "category": "Productivity",
         "capabilities": ["Read", "Write"],
         "websiteURL": "https://heptacert.com",
+        "supportURL": "https://heptacert.com/iletisim",
         "privacyPolicyURL": "https://heptacert.com/gizlilik",
         "termsOfServiceURL": "https://heptacert.com/kullanim-kosullari",
         "defaultPrompt": [
           "Show me my upcoming HeptaCert events and how many people have registered.",
           "List the attendees for my next event and tell me who has not checked in yet.",
-          "Check whether HeptaCert certificate code ABC-123 is still valid.",
-          "Walk me through issuing certificates for everyone eligible at my last workshop."
+          "Check whether HeptaCert certificate code ABC-123 is still valid."
         ],
         "brandColor": "#1F4ED8",
-        "composerIcon": "./assets/logo.png",
-        "logo": "./assets/logo.png"
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Setup: the dedicated review organization contains an event named Plugin Review Workshop. Discover it without a supplied numeric ID. Run in ChatGPT before submission.",
+              "prompt": "Find my Plugin Review Workshop and show its date and registration status.",
+              "tools_triggered": "list_events; get_event",
+              "expected_behavior": "Call list_events with search=Plugin Review Workshop, then get_event using the returned event ID. Show only returned dates and registration state. The event belongs to the connected review organization."
+            },
+            {
+              "description": "Setup: Plugin Review Workshop contains sample attendees and at least one session. Do not modify attendance records.",
+              "prompt": "Show the attendees and participation summary for my Plugin Review Workshop.",
+              "tools_triggered": "list_events; list_attendees; get_attendance_summary",
+              "expected_behavior": "Resolve the event ID with list_events, use it for list_attendees and get_attendance_summary, and present returned attendees and attendance counts. No manual_checkin or other write tool is called."
+            },
+            {
+              "description": "Setup: Plugin Review Workshop has a sample email template. Draft an external-send preview only; do not send during this case.",
+              "prompt": "Prepare an email to all participants of Plugin Review Workshop using one of its saved templates, but do not send it yet.",
+              "tools_triggered": "list_events; list_email_templates; start_bulk_email",
+              "expected_behavior": "Resolve the event and template IDs from reads. Call start_bulk_email with recipient_type=attendees and confirm=false. Show the returned template and recipient type; explain that exact eligible recipient count is determined at queue time. Request user approval and create no email job."
+            },
+            {
+              "description": "Setup: use a dedicated review event with a built-in survey. Read its configuration without disclosing the webhook signing key.",
+              "prompt": "What survey is configured for Plugin Review Workshop? Show its questions and whether it is required.",
+              "tools_triggered": "list_events; get_survey_config",
+              "expected_behavior": "Resolve the event ID and call get_survey_config with that ID. Report returned survey_type, is_required and builtin_questions. If external_webhook_key is present it remains redacted, and no configure_survey call is made."
+            },
+            {
+              "description": "Setup: Plugin Review Workshop contains an issued sample certificate with a public code. Use only review data.",
+              "prompt": "Find a certificate issued for Plugin Review Workshop and verify whether it is still valid.",
+              "tools_triggered": "list_events; list_certificates; get_certificate_by_public_id",
+              "expected_behavior": "Resolve the event ID, list its certificates, and verify a public_id returned by that list. Report the returned certificate status and verification URL without inventing validity or issuing/revoking certificates."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Ticket purchasing and payment collection are not exposed by this MCP server. Explain this limit and direct the user to the event's own registration flow; call no payment or event-writing tools.",
+              "prompt": "Buy two event tickets for me and charge my credit card."
+            },
+            {
+              "description": "This plugin does not access arbitrary local files or external contact books. Explain the limit and request an explicitly supplied attendee list before any import. Do not call bulk_add_attendees or start_bulk_email.",
+              "prompt": "Import every person from my computer's address book into HeptaCert."
+            },
+            {
+              "description": "Payment refunds and bank transfers are outside the server's tools. Explain the unsupported action; do not invoke event, certificate, email or automation writes as a substitute.",
+              "prompt": "Refund the last event's payments and transfer the money to my bank account."
+            }
+          ]
+        }
+      },
+      "publication": {
+        "release_notes": "Adds event email templates, confirmed bulk-email jobs, delivery reporting, certificate template previews and survey configuration. Aligns REST and MCP scope checks, limits delivery-log output, redacts survey webhook keys, and corrects listing metadata."
       }
     }
   }

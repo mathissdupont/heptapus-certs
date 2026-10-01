@@ -95,7 +95,7 @@ async def test_read_only_scope_cannot_write(monkeypatch):
 @pytest.mark.asyncio
 async def test_tool_annotations_are_truthful():
     tools = {tool.name: tool for tool in await mcp_server.mcp.list_tools()}
-    assert len(tools) == 38
+    assert len(tools) == 54
     assert all(tool.title and tool.annotations for tool in tools.values())
     assert all(tool.annotations.readOnlyHint is not None and
                tool.annotations.destructiveHint is not None and
@@ -114,7 +114,7 @@ async def test_tool_annotations_are_truthful():
 async def test_every_tool_declares_the_scope_it_checks():
     tools = {tool.name: tool for tool in await mcp_server.mcp.list_tools()}
     assert tools.keys() == mcp_server.TOOL_SCOPES.keys()
-    assert len(tools) == 38
+    assert len(tools) == 54
     for name, tool in tools.items():
         assert tool.model_dump(by_alias=True)["securitySchemes"] == [
             {"type": "oauth2", "scopes": [mcp_server.TOOL_SCOPES[name]]}

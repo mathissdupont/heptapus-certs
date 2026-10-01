@@ -522,6 +522,14 @@ def _required_scope_for_request(method: str, path: str) -> Optional[str]:
     """
     action = "read" if method.upper() in ("GET", "HEAD", "OPTIONS") else "write"
     p = path.lower()
+    # Email tools share automation grants. Rendering a template is a read despite
+    # the POST transport; certificate template aliases need their own classification.
+    if "/email-templates" in p and p.endswith("/preview") and method.upper() == "POST":
+        return "automations:read"
+    if "/email-templates" in p or "/bulk-email" in p:
+        return f"automations:{action}"
+    if p == "/api/system/cert-templates" or p.endswith("/apply-cert-template"):
+        return f"certificates:{action}"
     # Read-only resources first (no :write variant defined).
     if "/analytics" in p or "/dashboard/stats" in p or p.endswith("/stats"):
         return "analytics:read"

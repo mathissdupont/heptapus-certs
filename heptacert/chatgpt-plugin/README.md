@@ -8,7 +8,9 @@ inline UI components it serves; there is no separate runtime in this folder.
 | --- | --- |
 | `plugin.json` | Listing metadata, legal links and starter prompts |
 | `mcp.json` | Points the plugin at the hosted streamable-HTTP MCP endpoint |
-| `assets/logo.png` | Copy of `frontend/public/logo.png`, referenced as icon and logo |
+| `assets/icon.png` | 512px PNG generated from the existing brand SVG; referenced as icon and logo |
+| `assets/logo.png` | Original oversized source logo; retained, but excluded from the upload ZIP |
+| `SUBMISSION-PREP.md` | Current gaps, review-case status and the recording walkthrough |
 
 Related code: `backend/src/mcp_server.py` (tools, schemas, component wiring),
 `backend/src/mcp_widgets/` (the components), `backend/src/oauth_api.py` and
@@ -29,8 +31,14 @@ reviewers check that they match the verified publisher identity:
   approved them for this purpose.
 - `category` — `Productivity` is a guess; pick from the portal's list.
 - `version` — bump on every resubmission.
-- `assets/logo.png` is 738 KB. Check the portal's size and aspect requirements
-  and re-export if it rejects the file.
+- `assets/icon.png` is square at 512px. The 6250px original logo is excluded
+  from the draft upload copy.
+
+Run `node scripts/package-chatgpt-plugin.mjs` from the repository root to rebuild
+and inspect a separate draft ZIP. This is not a completed public submission:
+verified publisher identity, countries, commerce declaration, recording,
+reviewer access, host test results and legal coverage remain in
+[`SUBMISSION-PREP.md`](SUBMISSION-PREP.md).
 
 ## Environment the deployment needs
 

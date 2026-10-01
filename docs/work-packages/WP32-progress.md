@@ -26,9 +26,11 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **94** legacy language branches on public/secondary routes.
+  1. Continue the remaining **94** direct legacy language comparisons, including admin.
      Event-registration operational copy now uses all nine catalogs; its legal
-     acknowledgements remain on hold. Next migrate pricing and developer-facing copy.
+     acknowledgements remain on hold. Next migrate the remaining admin copy objects
+     controlled by aliases such as `isTr`, starting with accreditation, and expand the
+     audit to report those branches rather than assuming one comparison means one string.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
      available. Draft the remaining routes under `docs/drafts/legal/` if useful, but
@@ -43,8 +45,10 @@
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
-  nine-language coverage can be called complete. The authenticated admin scopes have
-  reached zero; the remaining queue is in public/secondary routes. Catalogs contain
+  nine-language coverage can be called complete. **Correction (2026-10-01): admin is not
+  complete.** The earlier zero-admin claim was incorrect: accreditation, API keys,
+  integrations and other admin pages still use `isTr`-controlled copy. The regex counts
+  the alias declaration once, not every untranslated branch or label. Catalogs contain
   **2,826 keys × 9**.
 
 ## Phase status
@@ -131,6 +135,22 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-01 — companion plugin submission preparation
+
+- At the owner's request, audited the supplied expanded MCP source and integrated
+  16 communication/template/survey tools into the existing authenticated server.
+  Fixed scope mismatches, cross-event email-job/template access and new secret output.
+- Prepared listing corrections, eight draft review cases, a compatible brand icon,
+  a reproducible ZIP builder and an actual-recording walkthrough. These are draft
+  materials, not host acceptance or a public submission.
+- Evidence: backend **621/621** tests; final MCP/OAuth checks **84/84**. WP32 remains
+  at **94** direct comparisons and **2,826 × 9** keys. A source inspection found remaining
+  admin alias-controlled copy; the current next-step queue and coverage claim are
+  corrected above. No admin-complete claim should be inferred from the older log below.
+- Handoff and publication gaps:
+  [WP37 audit](WP37-openai-chatgpt-mcp-audit.md) and
+  [submission preparation](../../heptacert/chatgpt-plugin/SUBMISSION-PREP.md).
 
 ### 2026-10-01 — participant registration operational copy localized
 
@@ -231,6 +251,10 @@ Newest first. Each entry: what changed, why, evidence, gotchas, next step.
 - Next: resume the public/secondary language queue.
 
 ### 2026-09-30 — authenticated admin language debt removed
+
+> **Correction recorded 2026-10-01:** the completion/zero-admin claims in this historical
+> entry were not accurate. Large `isTr` copy objects remain in the actual sources;
+> the work and test results below do not establish full admin language coverage.
 
 - Replaced every direct TR/EN branch and every `pickLang()` use under `src/app/admin`,
   `src/components/Admin` and `src/lib/assistant` with the shared catalog translator.

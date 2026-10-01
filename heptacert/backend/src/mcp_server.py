@@ -71,7 +71,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any, Literal, Optional
 from urllib.parse import urlsplit
 
 import httpx
@@ -111,6 +111,23 @@ TOOL_SCOPES: dict[str, str] = {
     "create_webhook": "events:write", "delete_webhook": "events:write",
     "search_attendees_across_events": "crm:read", "export_event_attendees": "attendees:read",
     "get_event_analytics": "analytics:read", "get_certificate_by_public_id": "certificates:read",
+    # Communication/template/survey tools backed by existing HeptaCert REST routes.
+    "list_email_templates": "automations:read",
+    "create_email_template": "automations:write",
+    "update_email_template": "automations:write",
+    "delete_email_template": "automations:write",
+    "preview_email_template": "automations:read",
+    "list_system_email_templates": "automations:read",
+    "start_bulk_email": "automations:write",
+    "get_bulk_email_job": "automations:read",
+    "list_bulk_email_jobs": "automations:read",
+    "cancel_bulk_email_job": "automations:write",
+    "get_bulk_email_delivery_stats": "automations:read",
+    "get_bulk_email_delivery_logs": "automations:read",
+    "list_certificate_templates": "certificates:read",
+    "apply_certificate_template": "certificates:write",
+    "get_survey_config": "events:read",
+    "configure_survey": "events:write",
 }
 
 
@@ -217,7 +234,7 @@ class HeptaCertMCP(FastMCP):
             # MCP Python 1.28 permits protocol extension fields on Tool but does
             # not yet expose securitySchemes in FastMCP's decorator signature.
             tool.securitySchemes = [{"type": "oauth2", "scopes": [TOOL_SCOPES[tool.name]]}]
-            # Declared here rather than on 38 decorators so the widget wiring
+            # Declared here rather than on each decorator so the widget wiring
             # stays in one table next to the scope table it must agree with.
             meta = _tool_meta(tool.name)
             if meta:
@@ -341,7 +358,7 @@ def _fmt(data: object) -> str:
     # other credentials) in model-visible MCP tool results, including nested data.
     sensitive = {
         "secret", "client_secret", "clientsecret", "signing_secret", "session_secret",
-        "webhook_secret", "access_token", "refresh_token", "password", "api_key",
+        "webhook_secret", "external_webhook_key", "access_token", "refresh_token", "password", "api_key",
         "apikey", "token", "authorization", "private_key", "set-cookie",
     }
 
@@ -2064,6 +2081,334 @@ async def get_certificate_by_public_id(ctx: Context, public_id: str) -> Annotate
         certificate["event_name"] = data.get("event_name")
         certificate["event_date"] = data.get("event_date")
     return _result({"certificate": certificate})
+
+
+# ── Tools: Email Templates & Bulk Communication ───────────────────────────────
+
+
+@mcp.tool(title="List Email Templates", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
+async def list_email_templates(ctx: Context, event_id: int) -> Annotated[CallToolResult, OperationOutput]:
+    """List event-scoped email templates available to HeptaCert automations and bulk email."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:read")
+    data = await _get(f"/api/admin/events/{event_id}/email-templates", api_key)
+    templates = _as_list(data, "items", "templates", "email_templates")
+    return _result({"event_id": event_id, "total": len(templates), "templates": templates})
+
+
+@mcp.tool(title="Create Email Template", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
+async def create_email_template(
+    ctx: Context,
+    event_id: int,
+    name: str,
+    subject_tr: str,
+    subject_en: str,
+    body_html: str,
+) -> Annotated[CallToolResult, OperationOutput]:
+    """Create an event email template. Subject values are stored separately for TR/EN."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:write")
+    body = {"name": name, "subject_tr": subject_tr, "subject_en": subject_en, "body_html": body_html}
+    data = await _post(f"/api/admin/events/{event_id}/email-templates", api_key, body)
+    _fire_and_forget_log(api_key, "create_email_template", event_id=event_id,
+                         payload={"name": name}, result_summary=f"Created email template '{name}'")
+    return _result({"status": "created", "event_id": event_id, "template": data})
+
+
+@mcp.tool(title="Update Email Template", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
+async def update_email_template(
+    ctx: Context,
+    event_id: int,
+    template_id: int,
+    name: str,
+    subject_tr: str,
+    subject_en: str,
+    body_html: str,
+) -> Annotated[CallToolResult, OperationOutput]:
+    """Replace the editable fields of an existing event email template."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:write")
+    body = {"name": name, "subject_tr": subject_tr, "subject_en": subject_en, "body_html": body_html}
+    data = await _patch(f"/api/admin/events/{event_id}/email-templates/{template_id}", api_key, body)
+    _fire_and_forget_log(api_key, "update_email_template", event_id=event_id,
+                         payload={"template_id": template_id, "name": name},
+                         result_summary=f"Updated email template {template_id}")
+    return _result({"status": "updated", "event_id": event_id, "template": data})
+
+
+@mcp.tool(title="Delete Email Template", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
+async def delete_email_template(
+    ctx: Context,
+    event_id: int,
+    template_id: int,
+    confirm: bool = False,
+) -> Annotated[CallToolResult, OperationOutput]:
+    """Delete an event email template. Preview first; require explicit confirmation."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:write")
+    if not confirm:
+        data = await _get(f"/api/admin/events/{event_id}/email-templates", api_key)
+        templates = _as_list(data, "items", "templates", "email_templates")
+        target = next((t for t in templates if t.get("id") == template_id), None)
+        if target is None:
+            raise ValueError("Email template not found in this event.")
+        return _result({
+            "status": "preview", "requires_confirm": True, "event_id": event_id,
+            "template": target or {"id": template_id},
+            "warning": "This will permanently delete the email template.",
+            "instruction": "Call delete_email_template again with confirm=True after explicit user approval.",
+        })
+    data = await _delete(f"/api/admin/events/{event_id}/email-templates/{template_id}", api_key)
+    _fire_and_forget_log(api_key, "delete_email_template", event_id=event_id,
+                         payload={"template_id": template_id},
+                         result_summary=f"Deleted email template {template_id}")
+    return _result({"status": "deleted", "event_id": event_id, "template_id": template_id, "result": data})
+
+
+@mcp.tool(title="Preview Email Template", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
+async def preview_email_template(
+    ctx: Context,
+    event_id: int,
+    template_id: int,
+    language: Literal["tr", "en"] = "tr",
+    sample_attendee: Optional[dict[str, str]] = None,
+) -> Annotated[CallToolResult, OperationOutput]:
+    """Render an email template with sample attendee/event variables without sending it."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:read")
+    body = {"language": language, "sample_attendee": sample_attendee or {"name": "Sample Attendee", "email": "sample@example.com"}}
+    data = await _post(f"/api/admin/events/{event_id}/email-templates/{template_id}/preview", api_key, body)
+    return _result({"event_id": event_id, "template_id": template_id, "preview": data})
+
+
+@mcp.tool(title="List System Email Templates", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
+async def list_system_email_templates(ctx: Context) -> Annotated[CallToolResult, OperationOutput]:
+    """List HeptaCert's built-in/default email templates."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:read")
+    data = await _get("/api/system/email-templates", api_key)
+    templates = _as_list(data, "items", "templates", "email_templates")
+    return _result({"total": len(templates), "templates": templates})
+
+
+@mcp.tool(title="Start Bulk Email", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=True, idempotentHint=False))
+async def start_bulk_email(
+    ctx: Context,
+    event_id: int,
+    email_template_id: int,
+    recipient_type: Literal["attendees", "certified"] = "attendees",
+    confirm: bool = False,
+) -> Annotated[CallToolResult, OperationOutput]:
+    """Queue a bulk email job. Always preview first and require explicit user approval before sending."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:write")
+    if not confirm:
+        # Read the event/template under the same scope as the write. Attendee and
+        # certificate reads require separate grants and do not count deliverable,
+        # subscribed recipients, so never present those totals as a send count.
+        templates = _as_list(await _get(f"/api/admin/events/{event_id}/email-templates", api_key))
+        templates += _as_list(await _get("/api/system/email-templates", api_key))
+        template = next((item for item in templates if item.get("id") == email_template_id), None)
+        if template is None:
+            raise ValueError("Choose an email template belonging to this event.")
+        return _result({
+            "status": "preview", "requires_confirm": True, "event_id": event_id,
+            "email_template_id": email_template_id, "recipient_type": recipient_type,
+            "recipient_count": None,
+            "template": template,
+            "count_note": "The backend determines eligible subscribed recipients when the job is queued.",
+            "warning": "This queues external email to multiple recipients.",
+            "instruction": "Call start_bulk_email again with confirm=True only after explicit user approval.",
+        })
+    body = {"email_template_id": email_template_id, "recipient_type": recipient_type}
+    data = await _post(f"/api/admin/events/{event_id}/bulk-email", api_key, body)
+    _fire_and_forget_log(api_key, "start_bulk_email", event_id=event_id,
+                         payload={"email_template_id": email_template_id, "recipient_type": recipient_type},
+                         result_summary=f"Queued bulk email for event {event_id}")
+    return _result({"status": "queued", "event_id": event_id, "job": data})
+
+
+@mcp.tool(title="Get Bulk Email Job", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
+async def get_bulk_email_job(ctx: Context, event_id: int, job_id: int) -> Annotated[CallToolResult, OperationOutput]:
+    """Get status and counters for a bulk email job."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:read")
+    data = await _get(f"/api/admin/events/{event_id}/bulk-email/{job_id}", api_key)
+    return _result({"event_id": event_id, "job": data})
+
+
+@mcp.tool(title="List Bulk Email Jobs", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
+async def list_bulk_email_jobs(ctx: Context, event_id: int) -> Annotated[CallToolResult, OperationOutput]:
+    """List bulk email jobs for an event."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:read")
+    data = await _get(f"/api/admin/events/{event_id}/bulk-emails", api_key)
+    jobs = _as_list(data, "items", "jobs", "bulk_emails")
+    return _result({"event_id": event_id, "total": len(jobs), "jobs": jobs})
+
+
+@mcp.tool(title="Cancel Bulk Email Job", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
+async def cancel_bulk_email_job(
+    ctx: Context,
+    event_id: int,
+    job_id: int,
+    confirm: bool = False,
+) -> Annotated[CallToolResult, OperationOutput]:
+    """Cancel a pending or scheduled bulk email job; already-running jobs cannot be cancelled."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:write")
+    if not confirm:
+        job = await _get(f"/api/admin/events/{event_id}/bulk-email/{job_id}", api_key)
+        return _result({
+            "status": "preview", "requires_confirm": True, "event_id": event_id,
+            "job": job,
+            "warning": "This will request cancellation of the bulk email job.",
+            "instruction": "Call cancel_bulk_email_job again with confirm=True after explicit user approval.",
+        })
+    data = await _post(f"/api/admin/events/{event_id}/bulk-emails-cancel/{job_id}", api_key, {})
+    _fire_and_forget_log(api_key, "cancel_bulk_email_job", event_id=event_id,
+                         payload={"job_id": job_id}, result_summary=f"Cancelled bulk email job {job_id}")
+    return _result({"status": "cancel_requested", "event_id": event_id, "job_id": job_id, "result": data})
+
+
+@mcp.tool(title="Get Bulk Email Delivery Stats", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
+async def get_bulk_email_delivery_stats(ctx: Context, event_id: int, job_id: int) -> Annotated[CallToolResult, OperationOutput]:
+    """Get aggregate delivered/failed/open-related counters exposed by the bulk-email delivery stats endpoint."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:read")
+    data = await _get(f"/api/admin/events/{event_id}/bulk-email-jobs/{job_id}/delivery-stats", api_key)
+    return _result({"event_id": event_id, "job_id": job_id, "delivery_stats": data})
+
+
+@mcp.tool(title="Get Bulk Email Delivery Logs", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
+async def get_bulk_email_delivery_logs(
+    ctx: Context,
+    event_id: int,
+    job_id: int,
+    page: Annotated[int, Field(ge=1)] = 1,
+    limit: Annotated[int, Field(ge=1, le=100)] = 50,
+    status: Optional[Literal["sent", "failed", "bounced", "opened"]] = None,
+) -> Annotated[CallToolResult, OperationOutput]:
+    """Get backend-provided delivery logs for one bulk email job."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "automations:read")
+    params = {"page": page, "limit": limit}
+    if status is not None:
+        params["status"] = status
+    data = await _get(f"/api/admin/events/{event_id}/bulk-email-jobs/{job_id}/delivery-logs", api_key, params=params)
+    # SMTP reasons may contain provider internals. The model needs delivery state,
+    # attendee identity and timestamps, not the raw transport failure body.
+    data = {**data, "logs": [
+        {key: value for key, value in entry.items() if key != "reason"}
+        for entry in _as_list(data, "logs")
+    ]}
+    return _result({"event_id": event_id, "job_id": job_id, "delivery_logs": data})
+
+
+# ── Tools: Certificate Templates ──────────────────────────────────────────────
+
+
+@mcp.tool(title="List Certificate Templates", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
+async def list_certificate_templates(ctx: Context) -> Annotated[CallToolResult, OperationOutput]:
+    """List system certificate templates that can be applied to an event."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "certificates:read")
+    data = await _get("/api/system/cert-templates", api_key)
+    templates = _as_list(data, "items", "templates", "certificate_templates")
+    return _result({"total": len(templates), "templates": templates})
+
+
+@mcp.tool(title="Apply Certificate Template", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
+async def apply_certificate_template(
+    ctx: Context,
+    event_id: int,
+    cert_template_id: int,
+    confirm: bool = False,
+) -> Annotated[CallToolResult, OperationOutput]:
+    """Replace the event certificate design with a system template after explicit approval."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "certificates:write")
+    if not confirm:
+        await _get(f"/api/admin/events/{event_id}/certificates/tier-summary", api_key)
+        templates = _as_list(await _get("/api/system/cert-templates", api_key))
+        template = next((item for item in templates if item.get("id") == cert_template_id), None)
+        if template is None:
+            raise ValueError("Certificate template not found.")
+        return _result({
+            "status": "preview", "requires_confirm": True, "event_id": event_id,
+            "template": template,
+            "warning": "This replaces the event's current certificate design.",
+            "instruction": "Call apply_certificate_template with confirm=True after explicit user approval.",
+        })
+    data = await _post(f"/api/admin/events/{event_id}/apply-cert-template", api_key,
+                       {"cert_template_id": cert_template_id})
+    _fire_and_forget_log(api_key, "apply_certificate_template", event_id=event_id,
+                         payload={"cert_template_id": cert_template_id},
+                         result_summary=f"Applied certificate template {cert_template_id} to event {event_id}")
+    return _result({"status": "applied", "event_id": event_id, "cert_template_id": cert_template_id})
+
+
+# ── Tools: Survey Configuration ───────────────────────────────────────────────
+
+
+@mcp.tool(title="Get Survey Config", annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False, idempotentHint=True))
+async def get_survey_config(ctx: Context, event_id: int) -> Annotated[CallToolResult, OperationOutput]:
+    """Get an event's survey requirement, built-in questions, and external survey configuration."""
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "events:read")
+    data = await _get(f"/api/admin/events/{event_id}/survey-config", api_key)
+    return _result({"event_id": event_id, "survey": data})
+
+
+@mcp.tool(title="Configure Survey", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
+async def configure_survey(
+    ctx: Context,
+    event_id: int,
+    is_required: bool = True,
+    survey_type: Literal["disabled", "builtin", "external", "both"] = "builtin",
+    builtin_questions: Optional[list[dict]] = None,
+    external_provider: Optional[str] = None,
+    external_url: Optional[str] = None,
+    external_webhook_key: Optional[str] = None,
+    confirm: bool = False,
+) -> Annotated[CallToolResult, OperationOutput]:
+    """Preview and replace the survey configuration after explicit approval.
+
+    This can change existing attendees' certificate eligibility. Use disabled
+    to turn the survey off; builtin/both require questions and external/both
+    require an HTTPS URL. No change is made unless confirm=True.
+    """
+    api_key = _get_api_key(ctx)
+    await _require_scope(api_key, "events:write")
+    if survey_type not in {"disabled", "builtin", "external", "both"}:
+        raise ValueError("survey_type must be one of: disabled, builtin, external, both")
+    if survey_type in {"builtin", "both"} and not builtin_questions:
+        raise ValueError("A built-in survey requires at least one question.")
+    if survey_type in {"external", "both"} and not external_url:
+        raise ValueError("An external survey requires an HTTPS URL.")
+    if external_url and urlsplit(external_url).scheme != "https":
+        raise ValueError("External survey URL must use HTTPS.")
+    body = {
+        "is_required": is_required,
+        "survey_type": survey_type,
+        "builtin_questions": builtin_questions or [],
+        "external_provider": external_provider,
+        "external_url": external_url,
+        "external_webhook_key": external_webhook_key,
+    }
+    if not confirm:
+        current = await _get(f"/api/admin/events/{event_id}/survey-config", api_key)
+        return _result({
+            "status": "preview", "requires_confirm": True, "event_id": event_id,
+            "current_survey": current, "proposed_survey": body,
+            "warning": "This replaces the survey and updates attendees' certificate eligibility.",
+            "instruction": "Call configure_survey with confirm=True after explicit user approval.",
+        })
+    data = await _post(f"/api/admin/events/{event_id}/survey-config", api_key, body)
+    _fire_and_forget_log(api_key, "configure_survey", event_id=event_id,
+                         payload={"survey_type": survey_type, "question_count": len(builtin_questions or [])},
+                         result_summary=f"Configured survey for event {event_id}")
+    return _result({"status": "configured", "event_id": event_id, "survey": data})
 
 
 # ── Entry point ────────────────────────────────────────────────────────────────

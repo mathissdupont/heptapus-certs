@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRouter
 from apscheduler.triggers.cron import CronTrigger
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import Integer, cast, distinct, func, literal, or_, select, union_all
+from sqlalchemy import Integer, and_, cast, distinct, func, literal, or_, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .email_rendering import build_email_template_vars, render_template_string
@@ -568,7 +568,12 @@ async def start_bulk_email(
     
     # Verify template exists
     t_res = await db.execute(
-        select(EmailTemplate).where(EmailTemplate.id == payload.email_template_id)
+        select(EmailTemplate).where(
+            EmailTemplate.id == payload.email_template_id,
+            or_(EmailTemplate.event_id == event_id,
+                and_(EmailTemplate.event_id.is_(None), EmailTemplate.template_type == "system",
+                     EmailTemplate.is_default.is_(True))),
+        )
     )
     if not t_res.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Template bulunamadı")
@@ -978,11 +983,17 @@ async def get_delivery_logs(
 ):
     """Get detailed delivery logs for a bulk email job."""
     await _get_event_for_admin(event_id, me, db, "email:write")
+
+    job = (await db.execute(select(BulkEmailJob).where(
+        BulkEmailJob.id == job_id, BulkEmailJob.event_id == event_id,
+    ))).scalar_one_or_none()
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job bulunamadı")
     
     # Get logs
     q = select(EmailDeliveryLog, Attendee).join(
         Attendee, EmailDeliveryLog.attendee_id == Attendee.id
-    ).where(EmailDeliveryLog.bulk_job_id == job_id)
+    ).where(EmailDeliveryLog.bulk_job_id == job_id, Attendee.event_id == event_id)
     
     if status:
         q = q.where(EmailDeliveryLog.status == status)

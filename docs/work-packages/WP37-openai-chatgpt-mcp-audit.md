@@ -1,6 +1,53 @@
 # WP37 — HeptaCert ChatGPT MCP / Plugin denetimi (2026-09-22)
 
-Durum: OAuth resource binding, audience/issuer doğrulaması, per-tool `securitySchemes` ve `mcp/www_authenticate` kodlandı. **Canlı ChatGPT Developer Mode bağlantısı, OAuth ve bir gerçek tool çağrısı kullanıcı tarafından doğrulandı.** Sonraki adımda 38 aracın tamamına `structuredContent` + `outputSchema`, altı Apps SDK UI bileşeni, domain doğrulama ucu ve submission manifesti eklendi (branch `feat/wp37-structured-content-apps-ui`). **Genişletilmiş kabul matrisi, UI'ın ChatGPT'de gözle doğrulanması ve public submission hâlâ yapılmadı.** Canlı ortamı kullanıcı yayımlıyor. Bu belge hem denetim hem sonraki asistan için devir notudur. OpenAI'nin güncel terimi “Plugin”; MCP-only UI'sız bir plugin mümkündür ama kullanıcı ilk sürümde UI istedi (2026-09-22). Custom GPT Actions ayrı OpenAPI hattı olarak korunur.
+Durum (2026-10-01): Mevcut OAuth, scope, structured-content ve altı UI bileşeni korunarak
+sunucu **38 → 54 araca** genişletildi. Kullanıcının eklediği
+`mcp_server_expanded.py` referansı incelendi ve 16 yeni araç, düzeltilmiş sözleşme ve
+güvenlik kontrolleriyle gerçek giriş noktası `backend/src/mcp_server.py` içine alındı.
+**Backend 621/621 test geçti.** Canlı deployment, yeni 54 aracın ChatGPT'de testi,
+demo kaydı ve public submission yapılmadı. Önceki Developer Mode/OAuth/tek çağrı
+doğrulaması kullanıcı beyanı olarak geçerlidir; yeni araçların kabul testi değildir.
+Bu belgenin aşağıdaki 2026-09-22 bölümleri ilk 38 araç için tarihsel kayıttır.
+Canlı ortamı kullanıcı yayımlıyor; Custom GPT Actions ayrı hattır.
+
+## 2026-10-01 — genişletme ve yayın taslağı
+
+- **Yeni 16 araç:** etkinlik e-posta şablonları için listele/oluştur/güncelle/sil/önizle,
+  sistem e-posta şablonlarını listele; toplu e-posta başlat, işi getir/listele/iptal et,
+  teslimat istatistikleri ve loglarını getir; sertifika şablonlarını listele/uygula;
+  anket yapılandırmasını getir/değiştir.
+- MCP ve REST scope sınıflandırması artık aynı: e-posta araçları
+  `automations:read/write`, sertifika şablonları `certificates:read/write`, anketler
+  `events:read/write`. Şablon önizlemesi POST olsa da okuma yetkisiyle çalışır.
+  Eskiden e-posta yolları genel `events` dalına düşüyordu; kısıtlı anahtar/OAuth
+  kullanıcıları yeniden bağlanırken uygun `automations` grant'ini vermelidir.
+- Toplu gönderim önizlemesi alıcı sayısı uydurmaz: abonelikten çıkanlar ve geçersiz
+  e-postalar nedeniyle attendee/certificate toplamları gerçek gönderim sayısı değildir.
+  Önizleme şablonu ve alıcı türünü gösterir; kesin sayıyı kuyruk backend'i hesaplar.
+- Sertifika tasarımı ve anket yapılandırması değişimleri önizleme + açık
+  `confirm=True` ister. Anketin devre dışı bırakılması desteklenir; boş dahili soru
+  listesi ve HTTPS olmayan harici URL, yazma yapılmadan reddedilir.
+- Anket `external_webhook_key` alanı hem text hem structuredContent içinde maskelenir.
+  Teslimat logları sayfalı/sınırlıdır ve ham SMTP hata nedenleri modele aktarılmaz.
+- REST teslimat logu, job'un verilen etkinliğe ait olduğunu PII okumadan doğrular.
+  Toplu gönderim başka etkinliğin şablonunu kullanamaz; ortak sistem varsayılanları
+  kullanılmaya devam eder. Bunlar yeni regresyon testleriyle doğrulandı.
+- Manifest **1.0.1**: 23 karakter alt başlık, üç başlangıç istemi, doğrulanabilen destek
+  sayfası, beş pozitif/üç gerçek kapsam-dışı negatif senaryo ve release notes eklendi.
+  Orijinal 6250px PNG yerine aynı marka SVG'sinden 512px PNG üretildi.
+- `scripts/package-chatgpt-plugin.mjs` ayrı bir upload kopyası/ZIP üretir; ZIP'in
+  gerçek manifestini, üç dosyasını, sürümünü ve vaka sayılarını tekrar okur.
+  Yerel yapısal doğrulama portal taraması veya yayın onayı değildir.
+- Ayrıntılı eksikler ve gerçek demo çekim akışı:
+  [SUBMISSION-PREP.md](../../heptacert/chatgpt-plugin/SUBMISSION-PREP.md).
+  Doğrulanmış yayıncı, ülkeler, ticaret beyanı, video URL'si, inceleyici hesabı,
+  ChatGPT vaka sonuçları ve plugin özelinde politika kapsamı hâlâ eksik/doğrulanmamış.
+  Gizlilik/koşul sayfaları web aracıyla okunamadı; erişimi veya kapsamı geçti sayılmadı.
+- Kanıt: backend tam paket **621/621**, son MCP/OAuth odaklı paket **84/84**;
+  frontend TypeScript ve UI sözleşmeleri temiz, **93/93** test, build **132/132**.
+  Sekiz manifest senaryosu ChatGPT'de **Not run** olarak kaydedildi.
+
+Resmî yayın referansı: [Submit plugins](https://developers.openai.com/plugins/deploy/submission).
 
 ## A. Mevcut mimari
 
