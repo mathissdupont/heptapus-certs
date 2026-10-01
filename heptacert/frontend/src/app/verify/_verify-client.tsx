@@ -14,7 +14,7 @@ type Branding = { org_name?: string; brand_logo?: string | null; brand_color?: s
 type WatermarkResult = { valid: boolean; message: string; public_id?: string; cert_uuid?: string; student_name?: string; event_name?: string; issued_at?: string; status?: string };
 
 export default function VerifyIndexPage() {
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -132,7 +132,7 @@ export default function VerifyIndexPage() {
 
   async function analyseFile(file: File) {
     if (!file.type.startsWith("image/")) {
-      setResult({ valid: false, message: lang === "tr" ? "Lütfen geçerli bir görsel (PNG/JPG) yükleyin." : "Please upload a valid image file (PNG/JPG)." });
+      setResult({ valid: false, message: t("verify_invalid_image") });
       return;
     }
     setResult(null);
@@ -147,7 +147,7 @@ export default function VerifyIndexPage() {
       setResult(await res.json());
     } catch (err) {
       if (err instanceof ApiError) setResult({ valid: false, message: err.message });
-      else setResult({ valid: false, message: lang === "tr" ? "Sunucuyla iletişim kurulurken bir hata oluştu." : "An error occurred while communicating with the server." });
+      else setResult({ valid: false, message: t("verify_server_error") });
     } finally {
       setLoading(false);
     }

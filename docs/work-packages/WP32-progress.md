@@ -26,9 +26,10 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **106** legacy language branches on public/secondary routes.
-     Admin plan gates now use the nine-language catalog and central feature keys, but
-     remaining user-facing literals still need review before global coverage is complete.
+  1. Continue the remaining **97** legacy language branches on public/secondary routes.
+     Checkout and its activation/error states now use the nine-language catalog; complete
+     the remaining survey, verification and registration copy before global coverage is
+     called complete.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
      available. Draft the remaining routes under `docs/drafts/legal/` if useful, but
@@ -39,13 +40,13 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **106 legacy TR/EN binary branches**;
+  hiding the real gap. The current ratchet records **97 legacy TR/EN binary branches**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. The authenticated admin scopes have
   reached zero; the remaining queue is in public/secondary routes. Catalogs contain
-  **2,672 keys × 9**.
+  **2,698 keys × 9**.
 
 ## Phase status
 
@@ -131,6 +132,20 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-01 — checkout and participant-state language wave
+
+- Replaced the checkout page's complete TR/EN copy block with catalog-backed text in all
+  nine languages, including plan summary, billing period, payment preparation, activation,
+  cancellation and provider/error states.
+- Catalogized the survey selector and refresh/unavailable states plus verification image
+  validation and server-error feedback. The larger survey and verification copy blocks
+  remain in the next queue; transactional URLs remain unprefixed.
+- Ratchet: legacy TR/EN branches **106 → 97**. Catalogs contain **2,698 keys × 9**;
+  UI contracts and TypeScript pass, **93/93** frontend tests pass, and the production
+  build generates **132/132** static pages.
+- Next: finish the survey and verification copy blocks, then continue participant
+  registration. Unreviewed legal body copy remains on hold.
 
 ### 2026-10-01 — landing badge removed and shared language debt reduced
 

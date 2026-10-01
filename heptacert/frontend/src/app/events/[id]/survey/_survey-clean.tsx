@@ -60,7 +60,7 @@ export default function EventSurveyPage() {
   const params = useParams();
   const rawEventId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const eventId = rawEventId ? String(rawEventId) : "";
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const [eventInfo, setEventInfo] = useState<EventInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -405,7 +405,7 @@ export default function EventSurveyPage() {
                             onChange={(eventArg) => setAnswers((current) => ({ ...current, [question.id]: eventArg.target.value }))}
                             className="mt-3 w-full rounded-2xl border border-outline-subtle px-4 py-3 text-sm text-content-secondary outline-none transition focus:border-status-info-border focus:ring-2 focus:ring-status-info-border"
                           >
-                            <option value="">{lang === "tr" ? "Se?in" : "Select"}</option>
+                            <option value="">{t("survey_select_placeholder")}</option>
                             {(question.options || []).map((option) => (
                               <option key={option} value={option}>{option}</option>
                             ))}
@@ -467,7 +467,7 @@ export default function EventSurveyPage() {
                 {statusLoading ? (
                   <div className="mt-4 flex items-center gap-2 text-sm text-content-muted">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {lang === "tr" ? "Durum g?ncelleniyor..." : "Refreshing status..."}
+                    {t("survey_status_refreshing")}
                   </div>
                 ) : participantStatus ? (
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -486,7 +486,7 @@ export default function EventSurveyPage() {
                   </div>
                 ) : (
                   <div className="mt-4 text-sm text-content-muted">
-                    {lang === "tr" ? "Durum bilgisi henüz yüklenemedi." : "Status is not available yet."}
+                    {t("survey_status_unavailable")}
                   </div>
                 )}
 

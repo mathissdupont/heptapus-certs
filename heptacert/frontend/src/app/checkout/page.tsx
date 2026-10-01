@@ -10,7 +10,7 @@ import { apiFetch, API_BASE } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 
 function CheckoutContent() {
-  const { lang } = useI18n();
+  const { t } = useI18n();
   const params = useSearchParams();
   const planId = params.get("plan") || "";
   const period = (params.get("period") as "monthly" | "annual") || "monthly";
@@ -20,47 +20,33 @@ function CheckoutContent() {
   const [err, setErr] = useState<string | null>(null);
   const [checkoutHtml, setCheckoutHtml] = useState<string | null>(null);
 
-  const copy = useMemo(() => lang === "tr" ? {
-    title: "Ödeme ve aktivasyon",
-    body: "Planınızı güvenli şekilde etkinleştirmek için ödeme sağlayıcısına yönlendirileceksiniz.",
-    secure: "Güvenli ödeme",
-    launchTitle: "Yakında burada",
-    launchBody: "Ücretli plan ve ödeme altyapısı tam yayına açıldığında bu akış doğrudan kullanılabilir olacak. Şimdilik ücretsiz planla devam edebilirsiniz.",
-    startFree: "Ücretsiz başla",
-    backPricing: "Planlara dön",
-    provider: "Sağlayıcı",
-    prepare: "İşlem hazırlanıyor...",
-    payNow: "Ödemeye geç",
-    summaryTitle: "Bu akışta ne olur?",
-    summaryPoints: ["Plan seçiminiz hazırlanır", "Güvenli ödeme sağlayıcısına geçilir", "Başarılı ödeme sonrası paneliniz aktive edilir"],
-    embeddedTitle: "Ödeme adımı",
-    embeddedBody: "Aşağıdaki güvenli ödeme alanını tamamladıktan sonra akışınız otomatik olarak ilerler.",
-    cancel: "İptal et, planlara dön",
-    periodLabel: period === "annual" ? "Yıllık" : "Aylık",
-    selectedPlan: "Seçilen plan",
-  } : {
-    title: "Checkout and activation",
-    body: "You will be redirected to the payment provider to activate your selected plan securely.",
-    secure: "Secure payment",
-    launchTitle: "Coming soon",
-    launchBody: "When paid plans and the payment stack are fully enabled, this flow will go live here. For now, you can continue with the free plan.",
-    startFree: "Start free",
-    backPricing: "Back to pricing",
-    provider: "Provider",
-    prepare: "Preparing checkout...",
-    payNow: "Continue to payment",
-    summaryTitle: "What happens next?",
-    summaryPoints: ["Your plan selection is prepared", "You are transferred to the secure payment provider", "Your workspace is activated after successful payment"],
-    embeddedTitle: "Payment step",
-    embeddedBody: "Complete the secure payment area below and the flow will continue automatically.",
-    cancel: "Cancel and go back to pricing",
-    periodLabel: period === "annual" ? "Annual" : "Monthly",
-    selectedPlan: "Selected plan",
-  }, [lang, period]);
+  const copy = useMemo(() => ({
+    title: t("checkout_title"),
+    body: t("checkout_body"),
+    secure: t("checkout_secure"),
+    launchTitle: t("checkout_coming_soon_title"),
+    launchBody: t("checkout_coming_soon_body"),
+    startFree: t("checkout_start_free"),
+    backPricing: t("checkout_back_pricing"),
+    provider: t("checkout_provider"),
+    prepare: t("checkout_preparing"),
+    payNow: t("checkout_pay_now"),
+    summaryTitle: t("checkout_summary_title"),
+    summaryPoints: [
+      t("checkout_summary_plan"),
+      t("checkout_summary_provider"),
+      t("checkout_summary_activation"),
+    ],
+    embeddedTitle: t("checkout_embedded_title"),
+    embeddedBody: t("checkout_embedded_body"),
+    cancel: t("checkout_cancel"),
+    periodLabel: t(period === "annual" ? "pricing_billing_annual" : "pricing_billing_monthly"),
+    selectedPlan: t("checkout_selected_plan"),
+  }), [period, t]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/billing/status`).then((r) => r.json()).then(setStatus).catch(() => setErr(lang === "tr" ? "Ödeme sistemi durumu alınamadı." : "Unable to load payment system status."));
-  }, [lang]);
+    fetch(`${API_BASE}/billing/status`).then((r) => r.json()).then(setStatus).catch(() => setErr(t("checkout_status_error")));
+  }, [t]);
 
   async function startPayment() {
     setLoading(true);
@@ -73,9 +59,9 @@ function CheckoutContent() {
       const data = await res.json();
       if (data.checkout_url) window.location.href = data.checkout_url;
       else if (data.checkout_html) setCheckoutHtml(data.checkout_html);
-      else setErr(data.detail || (lang === "tr" ? "Ödeme başlatılamadı." : "Unable to start checkout."));
+      else setErr(data.detail || t("checkout_start_error"));
     } catch (e: any) {
-      setErr(e?.message || (lang === "tr" ? "Bağlantı hatası." : "Connection error."));
+      setErr(e?.message || t("checkout_connection_error"));
     } finally {
       setLoading(false);
     }
