@@ -113,60 +113,13 @@ export default function EventRegisterPage() {
   const params = useParams();
   const rawEventId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const eventId = rawEventId ? String(rawEventId) : "";
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const toast = useToast();
-  const copy = useMemo(
+  // Legal acknowledgements remain unchanged pending source and translation review.
+  const legalCopy = useMemo(
     () =>
       lang === "tr"
         ? {
-            eventNotFound: "Etkinlik bulunamadı",
-            registerFailed: "Kayıt başarısız",
-            loading: "Etkinlik yükleniyor...",
-            securePowered: "HeptaCert altyapısıyla güvence altındadır.",
-            certifiedEvent: "Sertifikalı Etkinlik",
-            standardEvent: "Etkinlik Kaydı",
-            ticketedEvent: "Biletli Etkinlik",
-            sessionsTitle: "Etkinlik Oturumları",
-            minSessionsText: "Sertifika almak için en az",
-            attendanceText: "Katılım için en az",
-            sessionsRequired: "oturuma katılmanız gerekiyor.",
-            alreadyRegisteredTitle: "Zaten Kayıtlısınız",
-            successTitle: "Kayıt Tamamlandı",
-            alreadyRegisteredBody: "bu etkinlik için zaten kayıtlı görünüyorsunuz. Aşağıda dijital katılım kartınızı görebilir ve kendi akışınıza devam edebilirsiniz.",
-            successBody: "etkinliğe başarıyla kaydoldunuz. Etkinlik günü QR kodu okutarak check-in yapabilirsiniz.",
-            digitalCard: "Dijital Katılım Kartı",
-            existingRegistration: "Mevcut Kayıt",
-            registered: "Kayıtlı",
-            cardOwner: "Kart Sahibi",
-            participationRule: "Katılım Kuralı",
-            status: "Durum",
-            newRegistrationCreated: "Yeni kayıt oluşturuldu",
-            registrationExists: "Kayıt zaten mevcut",
-            verifyEmailTitle: "E-posta doğrulaması gerekiyor",
-            verifyEmailBody: "Doğrulama e-postası gönderildi. Gelen kutunuzu ve spam klasörünü kontrol edin. E-postayı onayladıktan sonra katılım kartınız aktif olacak.",
-            resendVerification: "Doğrulama mailini tekrar gönder",
-            resendVerificationSent: "Doğrulama maili tekrar gönderildi. Gelen kutunuzu ve spam klasörünü kontrol edin.",
-            resendVerificationFailed: "Doğrulama maili tekrar gönderilemedi.",
-            resendVerificationWait: "Tekrar göndermek için {seconds} sn bekleyin",
-            openCard: "Katılım Kartını Aç",
-            surveyLink: "Anket Bağlantısı",
-            surveyRequired: "Anket zorunlu",
-            surveyRequiredBody: "Sertifikanızı indirebilmek için anketi check-in sonrasında, sertifika adımına geçmeden önce doldurmanız gerekiyor.",
-            surveyRequiredBodyGeneric: "Etkinlik akışını tamamlamak için check-in sonrasında anketi doldurmanız gerekiyor.",
-            ticketReady: "Dijital biletiniz hazır",
-            ticketQr: "Bilet QR",
-            surveyFlow: "Anketli Akış",
-            directAccess: "Doğrudan Erişim",
-            statusPage: "Durum Sayfası",
-            openSurvey: "Anketi Aç",
-            fillSurvey: "Anketi Doldur",
-            registerForEvent: "Etkinliğe Kayıt Ol",
-            registrationClosed: "Bu etkinlik için kayıtlar kapatıldı.",
-            fullName: "Ad Soyad",
-            fullNamePlaceholder: "Adınız Soyadınız",
-            email: "E-posta Adresi",
-            emailPlaceholder: "ornek@mail.com",
-            customInfo: "Ek bilgiler",
             kvkkTitle: "KVKK Onayı",
             kvkkRead: "Aydınlatma metinlerini oku",
             kvkkAccept: "KVKK aydinlatma metnini okudum ve kabul ediyorum.",
@@ -179,66 +132,8 @@ export default function EventRegisterPage() {
             dataController: "Veri sorumlusu",
             retentionNote: "Saklama notu",
             kvkkRequired: "Devam etmek için KVKK onayı gereklidir.",
-            documentTitle: "Belge Yükleme (Opsiyonel)",
-            documentHint: "PDF/JPG/PNG/WEBP formatında belge yükleyebilirsiniz (maks. 2 MB / dosya).",
-            documentPick: "Belge Seç",
-            documentRequired: "Lütfen zorunlu belge alanları için en az bir dosya yükleyin.",
-            documentTooLarge: "{name} dosyası 2 MB sınırını aşıyor.",
-            documentUploading: "Belgeler yükleniyor...",
-            submit: "Kayıt Ol",
-            cardRuleLabel: "Min. {count} oturum",
-            entryPass: "Giriş Kartı",
-            poweredFooter: "Bu etkinlik sayfası kurumsal olarak özelleştirilmiş olsa da kayıt, doğrulama ve etkinlik altyapısı HeptaCert tarafından sağlanır.",
           }
         : {
-            eventNotFound: "Event not found",
-            registerFailed: "Registration failed",
-            loading: "Loading event...",
-            securePowered: "Secured by HeptaCert infrastructure.",
-            certifiedEvent: "Certified Event",
-            standardEvent: "Event Registration",
-            ticketedEvent: "Ticketed Event",
-            sessionsTitle: "Event Sessions",
-            minSessionsText: "To receive a certificate, you must attend at least",
-            attendanceText: "To participate, you must attend at least",
-            sessionsRequired: "sessions.",
-            alreadyRegisteredTitle: "You Are Already Registered",
-            successTitle: "Registration Complete",
-            alreadyRegisteredBody: "you already appear to be registered for this event. You can view your digital attendance card below and continue from there.",
-            successBody: "you have been successfully registered for the event. On event day, you can check in by scanning the QR code.",
-            digitalCard: "Digital Attendance Card",
-            existingRegistration: "Existing Registration",
-            registered: "Registered",
-            cardOwner: "Card Holder",
-            participationRule: "Participation Rule",
-            status: "Status",
-            newRegistrationCreated: "New registration created",
-            registrationExists: "Registration already exists",
-            verifyEmailTitle: "Email verification required",
-            verifyEmailBody: "A verification email has been sent. Please check your inbox and spam folder. Your attendance card will become active after you confirm your email.",
-            resendVerification: "Resend verification email",
-            resendVerificationSent: "Verification email has been sent again. Check your inbox and spam folder.",
-            resendVerificationFailed: "Could not resend the verification email.",
-            resendVerificationWait: "Wait {seconds}s to resend",
-            openCard: "Open Attendance Card",
-            surveyLink: "Survey Link",
-            surveyRequired: "Survey required",
-            surveyRequiredBody: "To download your certificate, you must complete the survey after check-in and before moving to the certificate step.",
-            surveyRequiredBodyGeneric: "To complete the event flow, you must complete the survey after check-in.",
-            ticketReady: "Your digital ticket is ready",
-            ticketQr: "Ticket QR",
-            surveyFlow: "Survey Flow",
-            directAccess: "Direct Access",
-            statusPage: "Status Page",
-            openSurvey: "Open Survey",
-            fillSurvey: "Fill Survey",
-            registerForEvent: "Register for Event",
-            registrationClosed: "Registration is closed for this event.",
-            fullName: "Full Name",
-            fullNamePlaceholder: "Your full name",
-            email: "Email Address",
-            emailPlaceholder: "name@email.com",
-            customInfo: "Additional details",
             kvkkTitle: "KVKK Consent",
             kvkkRead: "Read privacy notices",
             kvkkAccept: "I have read and accept the KVKK disclosure text.",
@@ -251,19 +146,71 @@ export default function EventRegisterPage() {
             dataController: "Data controller",
             retentionNote: "Retention note",
             kvkkRequired: "KVKK consent is required to continue.",
-            documentTitle: "Document Upload (Optional)",
-            documentHint: "You can upload documents as PDF/JPG/PNG/WEBP (max. 2 MB per file).",
-            documentPick: "Choose Document",
-            documentRequired: "Please upload at least one file for required document fields.",
-            documentTooLarge: "{name} exceeds the 2 MB file size limit.",
-            documentUploading: "Uploading documents...",
-            submit: "Register",
-            cardRuleLabel: "Min. {count} sessions",
-            entryPass: "Entry Pass",
-            poweredFooter: "Even if this event page is customized for the organization, registration, verification, and event infrastructure are provided by HeptaCert.",
           },
     [lang]
   );
+
+  const copy = useMemo(() => ({
+    ...legalCopy,
+    eventNotFound: t("event_registration_event_not_found"),
+    registerFailed: t("event_registration_register_failed"),
+    loading: t("event_registration_loading"),
+    securePowered: t("event_registration_secure_powered"),
+    certifiedEvent: t("event_registration_certified_event"),
+    standardEvent: t("event_registration_standard_event"),
+    ticketedEvent: t("event_registration_ticketed_event"),
+    sessionsTitle: t("event_registration_sessions_title"),
+    minSessionsText: t("event_registration_min_sessions_text"),
+    attendanceText: t("event_registration_attendance_text"),
+    sessionsRequired: t("event_registration_sessions_required"),
+    alreadyRegisteredTitle: t("event_registration_already_registered_title"),
+    successTitle: t("event_registration_success_title"),
+    alreadyRegisteredBody: t("event_registration_already_registered_body"),
+    successBody: t("event_registration_success_body"),
+    digitalCard: t("event_registration_digital_card"),
+    existingRegistration: t("event_registration_existing_registration"),
+    registered: t("event_registration_registered"),
+    cardOwner: t("event_registration_card_owner"),
+    participationRule: t("event_registration_participation_rule"),
+    status: t("event_registration_status"),
+    newRegistrationCreated: t("event_registration_new_registration_created"),
+    registrationExists: t("event_registration_registration_exists"),
+    verifyEmailTitle: t("event_registration_verify_email_title"),
+    verifyEmailBody: t("event_registration_verify_email_body"),
+    resendVerification: t("event_registration_resend_verification"),
+    resendVerificationSent: t("event_registration_resend_verification_sent"),
+    resendVerificationFailed: t("event_registration_resend_verification_failed"),
+    resendVerificationWait: t("event_registration_resend_verification_wait"),
+    openCard: t("event_registration_open_card"),
+    surveyLink: t("event_registration_survey_link"),
+    surveyRequired: t("event_registration_survey_required"),
+    surveyRequiredBody: t("event_registration_survey_required_body"),
+    surveyRequiredBodyGeneric: t("event_registration_survey_required_body_generic"),
+    ticketReady: t("event_registration_ticket_ready"),
+    ticketQr: t("event_registration_ticket_qr"),
+    surveyFlow: t("event_registration_survey_flow"),
+    directAccess: t("event_registration_direct_access"),
+    statusPage: t("event_registration_status_page"),
+    openSurvey: t("event_registration_open_survey"),
+    fillSurvey: t("event_registration_fill_survey"),
+    registerForEvent: t("event_registration_register_for_event"),
+    registrationClosed: t("event_registration_registration_closed"),
+    fullName: t("event_registration_full_name"),
+    fullNamePlaceholder: t("event_registration_full_name_placeholder"),
+    email: t("event_registration_email"),
+    emailPlaceholder: t("event_registration_email_placeholder"),
+    customInfo: t("event_registration_custom_info"),
+    documentTitle: t("event_registration_document_title"),
+    documentHint: t("event_registration_document_hint"),
+    documentPick: t("event_registration_document_pick"),
+    documentRequired: t("event_registration_document_required"),
+    documentTooLarge: t("event_registration_document_too_large"),
+    documentUploading: t("event_registration_document_uploading"),
+    submit: t("event_registration_submit"),
+    cardRuleLabel: t("event_registration_card_rule_label"),
+    entryPass: t("event_registration_entry_pass"),
+    poweredFooter: t("event_registration_powered_footer"),
+  }), [legalCopy, t]);
 
   const [event, setEvent] = useState<EventInfo | null>(null);
   const [branding, setBranding] = useState<BrandingData | null>(null);
@@ -865,9 +812,7 @@ export default function EventRegisterPage() {
                       />
                       {memberLocked && (
                         <p className="mt-2 text-xs text-content-muted">
-                          {lang === "tr"
-                            ? "Giriş yaptığın üye hesabının e-postası kullanılacak."
-                            : "Your signed-in member email will be used for this registration."}
+                          {t("event_registration_member_email_hint")}
                         </p>
                       )}
                     </div>
@@ -916,7 +861,7 @@ export default function EventRegisterPage() {
                                         <span>
                                           {label}
                                           {typeof option === "object" && option.capacity != null ? ` · ${option.capacity}` : null}
-                                          {typeof remaining === "number" ? ` · kalan ${remaining}` : null}
+                                          {typeof remaining === "number" ? ` · ${t("event_registration_remaining", {count: remaining})}` : null}
                                         </span>
                                       </label>
                                     );
@@ -937,7 +882,7 @@ export default function EventRegisterPage() {
                                     const disabled = typeof remaining === "number" && remaining <= 0;
                                     return (
                                       <option key={label} value={label} disabled={disabled}>
-                                        {label}{typeof option === "object" && option.capacity != null ? ` · ${option.capacity}` : null}{typeof remaining === "number" ? ` · kalan ${remaining}` : null}
+                                        {label}{typeof option === "object" && option.capacity != null ? ` · ${option.capacity}` : null}{typeof remaining === "number" ? ` · ${t("event_registration_remaining", {count: remaining})}` : null}
                                       </option>
                                     );
                                   })}

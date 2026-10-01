@@ -26,9 +26,9 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **95** legacy language branches on public/secondary routes.
-     Checkout, participant survey and certificate verification now use the nine-language
-     catalog; continue participant registration before global coverage is called complete.
+  1. Continue the remaining **94** legacy language branches on public/secondary routes.
+     Event-registration operational copy now uses all nine catalogs; its legal
+     acknowledgements remain on hold. Next migrate pricing and developer-facing copy.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
      available. Draft the remaining routes under `docs/drafts/legal/` if useful, but
@@ -39,13 +39,13 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **95 legacy TR/EN binary branches**;
+  hiding the real gap. The current ratchet records **94 legacy TR/EN binary branches**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
   nine-language coverage can be called complete. The authenticated admin scopes have
   reached zero; the remaining queue is in public/secondary routes. Catalogs contain
-  **2,766 keys × 9**.
+  **2,826 keys × 9**.
 
 ## Phase status
 
@@ -131,6 +131,21 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-01 — participant registration operational copy localized
+
+- Moved 58 operational labels/messages from the full-page TR/EN copy object into
+  all nine catalogs. Registration, existing/success states, e-mail verification and
+  resending, participation cards, tickets, surveys and document uploads follow the
+  selected language.
+- Added the signed-in member e-mail hint and remaining-capacity text to the catalogs.
+  The inline Turkish capacity suffix had escaped the binary-branch scanner.
+- Kept legal acknowledgements and cross-border notice body unchanged under the existing
+  source/translation review hold. The page is not claimed fully localized while these
+  remain. Registration and verification URLs are unchanged.
+- Ratchet **95 → 94**; catalogs **2,826 keys × 9**. UI contracts and TypeScript pass;
+  frontend tests **93/93** and production build **132/132** pass.
+- Next: pricing and developer-facing public copy, with legal review still outstanding.
 
 ### 2026-10-01 — participant survey and verification fully localized
 
