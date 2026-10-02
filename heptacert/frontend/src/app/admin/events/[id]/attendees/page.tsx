@@ -26,7 +26,11 @@ import PageHeader from "@/components/Admin/PageHeader";
 import AddAttendeeModal from "@/components/Admin/AddAttendeeModal";
 import ImportAttendeeModal from "@/components/Admin/ImportAttendeeModal";
 import { AnimatePresence, motion } from "framer-motion";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type TranslationKey } from "@/lib/i18n";
+
+type Feedback = { key: TranslationKey; vars?: Record<string, string | number> } | { message: string };
+const failure = (error: any, key: TranslationKey): Feedback =>
+  error?.message ? { message: error.message } : { key };
 
 type Tab = "list" | "matrix" | "answers";
 
@@ -56,165 +60,124 @@ type EventMicrosoftExcelStatus = {
 };
 
 export default function AdminAttendeesPage() {
-  const { lang } = useI18n();
-  const isTr = lang === "tr";
+  const { lang, t } = useI18n();
+  const renderFeedback = (value: Feedback) => "key" in value ? t(value.key, value.vars) : value.message;
   const copy = {
-    // Page header
-    pageTitle: isTr ? "Katılımcılar" : "Attendees",
-    minSessions: isTr ? "Minimum" : "Minimum",
-    sessions: isTr ? "oturum" : "sessions",
-
-    // Action buttons
-    addAttendee: isTr ? "Katılımcı Ekle" : "Add Attendee",
-    importAttendees: isTr ? "İçe Aktar" : "Import",
-    downloadExcel: isTr ? "Excel İndir" : "Download Excel",
-    downloadDocuments: isTr ? "Belgeler (ZIP)" : "Documents (ZIP)",
-    generateCertificate: isTr ? "Sertifika Üret" : "Generate Certificate",
-
-    // Tabs
-    tabList: isTr ? "Katılımcı Listesi" : "Attendee List",
-    tabMatrix: isTr ? "Yoklama Matrisi" : "Attendance Matrix",
-    tabAnswers: isTr ? "Soru Bazlı Cevaplar" : "Question-Based Answers",
-
-    // Search
-    searchPlaceholder: isTr ? "Ad, soyad veya e-posta sorgula..." : "Search by name or email...",
-    searchButton: isTr ? "Sorgula" : "Search",
-
-    // Table headers
-    thName: isTr ? "Ad Soyad" : "Full Name",
-    thEmail: isTr ? "E-posta" : "Email",
-    thSession: isTr ? "Oturum" : "Session",
-    thCertificate: isTr ? "Sertifika" : "Certificate",
-    thSurvey: isTr ? "Anket" : "Survey",
-
-    // Table cells / badges
-    sourceOwn: isTr ? "Kendi" : "Own",
-    sourceImport: isTr ? "İmport" : "Import",
-    surveyLinkCopied: isTr ? "Kopyalandı" : "Copied",
-    surveyLink: isTr ? "Anket Linki" : "Survey Link",
-    surveyLinkShort: isTr ? "Anket" : "Survey",
-
-    // Pagination
-    prevPage: isTr ? "← Önceki" : "← Previous",
-    nextPage: isTr ? "Sonraki →" : "Next →",
-
-    // Attendee count label
-    totalAttendees: (n: number) => isTr ? `${n} Toplam Katılımcı Kaydı` : `${n} Total Attendees`,
-
-    // Empty states
-    emptyTitle: isTr ? "Kayıtlı katılımcı bulunamadı" : "No attendees found",
-    emptyDescSearch: isTr ? "Arama kriterlerinize uygun katılımcı eşleşmesi sağlanamadı." : "No attendees match your search criteria.",
-    emptyDescDefault: isTr ? "Etkinliğe henüz bir kayıt gelmedi. Manuel ekleme veya Excel yükleme ile başlayabilirsiniz." : "No registrations yet. You can start by adding manually or uploading an Excel file.",
-
-    // Error messages in catch blocks
-    errRequiredFields: isTr ? "E-posta, ad ve soyad alanları zorunlu." : "Email, first name, and last name are required.",
-    successManualAdded: isTr ? "Katılımcı başarıyla eklendi." : "Attendee added successfully.",
-    errManualAdd: isTr ? "Manuel katılımcı eklenemedi." : "Failed to add attendee manually.",
-    errCopySurveyLink: isTr ? "Anket linki kopyalanamadı." : "Failed to copy survey link.",
-    errExport: isTr ? "Katılımcılar dışa aktarılamadı." : "Failed to export attendees.",
-    errExportDocuments: isTr ? "Belgeler toplu indirilemedi." : "Failed to download documents.",
-    errDownloadDocument: isTr ? "Belge indirilemedi." : "Failed to download document.",
-
-    // Google Sheets messages
-    errGoogleSheetsAuth: isTr ? "Google Sheets bağlantısı başlatılamadı." : "Failed to initiate Google Sheets connection.",
-    errGoogleSheetCreate: isTr ? "Google Sheet oluşturulamadı." : "Failed to create Google Sheet.",
-    errGoogleSheetSync: isTr ? "Google Sheet güncellenemedi." : "Failed to sync Google Sheet.",
-    errGoogleSheetDisconnect: isTr ? "Google Sheets bağlantısı kapatılamadı." : "Failed to disconnect Google Sheets.",
-
-    // Microsoft Excel messages
-    errMicrosoftExcelAuth: isTr ? "Microsoft Excel bağlantısı başlatılamadı." : "Failed to initiate Microsoft Excel connection.",
-    errMicrosoftExcelCreate: isTr ? "Microsoft Excel dosyası oluşturulamadı." : "Failed to create Microsoft Excel file.",
-    errMicrosoftExcelSync: isTr ? "Microsoft Excel dosyası güncellenemedi." : "Failed to sync Microsoft Excel file.",
-    errMicrosoftExcelDisconnect: isTr ? "Microsoft Excel bağlantısı kapatılamadı." : "Failed to disconnect Microsoft Excel.",
-
-    // Certificate
-    errBulkCertificate: isTr ? "Toplu sertifika üretimi başarısız." : "Bulk certificate generation failed.",
-
-    // Helper function values
-    noAnswer: isTr ? "Yanıt yok" : "No answer",
-    yes: isTr ? "Evet" : "Yes",
-    no: isTr ? "Hayır" : "No",
-
-    // Google Sheets integration card
-    googleSheetsTitle: isTr ? "Google Sheets Canlı Otomasyonu" : "Google Sheets Live Automation",
-    googleSheetsDesc: isTr ? "Kayıtlar anlık olarak Google E-Tablo dosyanıza satır bazında senkronize edilir." : "Registrations are synchronised row-by-row to your Google Spreadsheet in real time.",
-    googleChecking: isTr ? "Denetleniyor" : "Checking",
-    googleInactive: isTr ? "Google bağlantısı pasif" : "Google connection inactive",
-    googleLastSync: isTr ? "Son eşitleme:" : "Last synced:",
-    googleOAuthMissing: isTr ? "OAuth parametreleri eksik." : "OAuth parameters are missing.",
-    googleConnectBtn: isTr ? "Google Bağlantısı Kur" : "Connect Google",
-    googleOpenSheet: isTr ? "Tabloyu Aç" : "Open Sheet",
-    googleSync: isTr ? "Senkronla" : "Sync",
-    googleDisconnect: isTr ? "Bağlantıyı Kes" : "Disconnect",
-    googleCreateSheet: isTr ? "E-Tablo Oluştur" : "Create Spreadsheet",
-
-    // Microsoft Excel integration card
-    microsoftExcelTitle: isTr ? "Microsoft 365 Excel Otomasyonu" : "Microsoft 365 Excel Automation",
-    microsoftExcelDesc: isTr ? "OneDrive üzerindeki kurumsal çalışma kitabına katılımcı verilerini senkronize eder." : "Synchronises attendee data to the corporate workbook on OneDrive.",
-    microsoftChecking: isTr ? "Denetleniyor" : "Checking",
-    microsoftInactive: isTr ? "Microsoft bağlantısı pasif" : "Microsoft connection inactive",
-    microsoftLastSync: isTr ? "Son eşitleme:" : "Last synced:",
-    microsoftOAuthMissing: isTr ? "OAuth parametreleri eksik." : "OAuth parameters are missing.",
-    microsoftConnectBtn: isTr ? "Microsoft Bağlantısı Kur" : "Connect Microsoft",
-    microsoftOpenWorkbook: isTr ? "Tabloyu Aç" : "Open Workbook",
-    microsoftSync: isTr ? "Senkronla" : "Sync",
-    microsoftDisconnect: isTr ? "Bağlantıyı Kes" : "Disconnect",
-    microsoftCreateFile: isTr ? "Excel Dosyası Oluştur" : "Create Excel File",
-
-    // Answers tab
-    formQuestionsTitle: isTr ? "Form Soruları" : "Form Questions",
-    formQuestionsDesc: isTr ? "Sorgulamak istediğiniz kayıt form sorusunu işaretleyerek cevap matrisine odaklanın." : "Select the registration form question you want to query to focus on the answer matrix.",
-    sheetsHint: isTr ? "E-Tablo canlı senkronizasyonu sayfa başındaki araç kutularından tetiklenir." : "Live spreadsheet sync is triggered from the tool panels at the top of the page.",
-    noQuestionsEmpty: isTr ? "Bu etkinlik formunda özel soru tanımlı değil." : "No custom questions defined for this event form.",
-    fieldTypeTextarea: isTr ? "Uzun metin" : "Long text",
-    fieldTypeSelect: isTr ? "Çoktan seçmeli" : "Multiple choice",
-    fieldTypeFile: isTr ? "Dosya yükleme" : "File upload",
-    fieldTypeShort: isTr ? "Kısa cevap" : "Short answer",
-    selectedQuestionLabel: isTr ? "Seçili Form Sorusu" : "Selected Form Question",
-    selectQuestion: isTr ? "Soru seçin" : "Select a question",
-    answersDistribution: (n: number) => isTr ? `${n} katılımcı içindeki dağılım matrisi.` : `Distribution matrix among ${n} attendees.`,
-    noQuestionFound: isTr ? "İncelenecek form sorusu bulunamadı." : "No form question found to review.",
-    noAnswersFound: isTr ? "Katılımcılardan gelen ham cevap bulunmuyor." : "No raw answers from attendees.",
-    fileAnswerDrawer: isTr ? "📁 Dosya eki katılımcı profil kartından görüntülenebilir." : "📁 File attachment can be viewed from the attendee profile card.",
-
-    // Matrix tab
-    matrixDesc: isTr ? "Tüm oturumlar bazında anlık check-in durum dökümü." : "Real-time check-in status breakdown across all sessions.",
-    matrixRefresh: isTr ? "Yenile" : "Refresh",
-    matrixTotalPool: isTr ? "Toplam Havuz" : "Total Pool",
-    matrixPassedThreshold: isTr ? "Eşiği Başarıyla Geçen" : "Passed Threshold",
-    matrixCertified: isTr ? "Sertifikalandırılan" : "Certified",
-    matrixEligibleNotice: (n: number) => isTr ? `⚡ ${n} katılımcı baraj eşiğini geçti ama henüz sertifikası basılmadı.` : `⚡ ${n} attendees passed the threshold but have not been certified yet.`,
-    matrixProcessQueue: isTr ? "Kuyruğu İşle ve Üret" : "Process Queue and Generate",
-    matrixEmptyTitle: isTr ? "Matris için katılımcı bulunamadı" : "No attendees found for matrix",
-    matrixThName: isTr ? "Ad Soyad" : "Full Name",
-    matrixThTotal: isTr ? "Toplam Skal" : "Total Scale",
-    matrixThStatus: isTr ? "Durum" : "Status",
-    matrixStatusCertified: isTr ? "Sertifikalı" : "Certified",
-    matrixStatusEligible: isTr ? "✓ Hak Kazandı" : "✓ Eligible",
-
-    // Drawer (profile card)
-    drawerProfileLabel: isTr ? "Katılımcı Profil Kartı" : "Attendee Profile Card",
-    drawerRegistrationModel: isTr ? "Kayıt Modeli" : "Registration Model",
-    drawerRegistrationModelOwn: isTr ? "Kendi formu" : "Own form",
-    drawerRegistrationModelImport: isTr ? "Excel aktarım" : "Excel import",
-    drawerSessionsAttended: isTr ? "Katıldığı Oturum" : "Sessions Attended",
-    drawerCertStatus: isTr ? "Sertifika Durumu" : "Certificate Status",
-    drawerCertGenerated: isTr ? "Üretildi" : "Generated",
-    drawerCertNotGenerated: isTr ? "Üretilmedi" : "Not Generated",
-    drawerRegisteredAt: isTr ? "Kayıt Zamanı" : "Registration Time",
-    drawerMemberConnection: isTr ? "Entegre Kurum Üye Bağlantısı" : "Integrated Member Connection",
-    drawerFormAnswers: isTr ? "Kayıt Formu Soru Yanıtları" : "Registration Form Answers",
-    drawerSurveyLink: isTr ? "Kişisel Anket Linki" : "Personal Survey Link",
-    drawerDeleteAttendee: isTr ? "Katılımcı Kaydını Sil" : "Delete Attendee Record",
-
-    // Confirm modals
-    confirmDeleteTitle: isTr ? "Katılımcıyı sil" : "Delete Attendee",
-    confirmDeleteDesc: isTr ? "Bu katılımcı kaydını HeptaCert veritabanından kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz." : "Are you sure you want to permanently delete this attendee from the HeptaCert database? This action cannot be undone.",
-    confirmCertifyTitle: isTr ? "Toplu Sertifika Basım Onayı" : "Bulk Certificate Generation Confirmation",
-    confirmCertifyDesc: isTr ? "Yoklama baraj barajını başarıyla aşan tüm katılımcılar için sertifika basım iş kuyruğu (Bulk Queue) tetiklenecektir. Heptacoin harcamasını onaylıyor musunuz?" : "The bulk certificate generation job queue will be triggered for all attendees who have successfully passed the attendance threshold. Do you confirm the Heptacoin spend?",
-
-    // Plan gate
-    planGateFeature: isTr ? "Katılımcı yönetimi, yoklama matrisi ve toplu sertifika üretimi" : "Attendee management, attendance matrix, and bulk certificate generation",
+    pageTitle: t("migrated_app_admin_events_id_attendees_038ec960"),
+    minSessions: t("admin_attendees_min_sessions"),
+    sessions: t("admin_attendees_sessions"),
+    addAttendee: t("migrated_components_admin_addattendeemodal_add_attendee_9eb0c8fb"),
+    importAttendees: t("admin_attendees_import_attendees"),
+    downloadExcel: t("admin_attendees_download_excel"),
+    downloadDocuments: t("admin_attendees_download_documents"),
+    generateCertificate: t("admin_attendees_generate_certificate"),
+    tabList: t("admin_attendees_tab_list"),
+    tabMatrix: t("admin_attendees_tab_matrix"),
+    tabAnswers: t("admin_attendees_tab_answers"),
+    searchPlaceholder: t("admin_attendees_search_placeholder"),
+    searchButton: t("admin_attendees_search_button"),
+    thName: t("migrated_app_admin_lead_forms_id_full_name_3f1945f3"),
+    thEmail: t("profile_email"),
+    thSession: t("event_sessions_label"),
+    thCertificate: t("admin_mobile_certificate"),
+    thSurvey: t("participant_survey_label"),
+    sourceOwn: t("admin_attendees_source_own"),
+    sourceImport: t("admin_attendees_source_import"),
+    surveyLinkCopied: t("report_export_copied"),
+    surveyLink: t("admin_attendees_survey_link"),
+    surveyLinkShort: t("participant_survey_label"),
+    prevPage: t("admin_attendees_prev_page"),
+    nextPage: t("admin_attendees_next_page"),
+    totalAttendees: (count: number) => t("admin_attendees_total_attendees", { count }),
+    emptyTitle: t("admin_attendees_empty_title"),
+    emptyDescSearch: t("admin_attendees_empty_desc_search"),
+    emptyDescDefault: t("admin_attendees_empty_desc_default"),
+    errRequiredFields: t("admin_attendees_err_required_fields"),
+    successManualAdded: t("migrated_components_admin_addattendeemodal_attendee_added_successfully_b7ac7f8e"),
+    errManualAdd: t("admin_attendees_err_manual_add"),
+    errCopySurveyLink: t("admin_attendees_err_copy_survey_link"),
+    errExport: t("admin_attendees_err_export"),
+    errExportDocuments: t("admin_attendees_err_export_documents"),
+    errDownloadDocument: t("admin_attendees_err_download_document"),
+    errGoogleSheetsAuth: t("admin_attendees_err_google_sheets_auth"),
+    errGoogleSheetCreate: t("admin_attendees_err_google_sheet_create"),
+    errGoogleSheetSync: t("admin_attendees_err_google_sheet_sync"),
+    errGoogleSheetDisconnect: t("admin_attendees_err_google_sheet_disconnect"),
+    errMicrosoftExcelAuth: t("admin_attendees_err_microsoft_excel_auth"),
+    errMicrosoftExcelCreate: t("admin_attendees_err_microsoft_excel_create"),
+    errMicrosoftExcelSync: t("admin_attendees_err_microsoft_excel_sync"),
+    errMicrosoftExcelDisconnect: t("admin_attendees_err_microsoft_excel_disconnect"),
+    errBulkCertificate: t("admin_attendees_err_bulk_certificate"),
+    noAnswer: t("admin_surveys_no_answer"),
+    yes: t("admin_common_yes"),
+    no: t("admin_common_no"),
+    googleSheetsTitle: t("admin_attendees_google_sheets_title"),
+    googleSheetsDesc: t("admin_attendees_google_sheets_desc"),
+    googleChecking: t("admin_attendees_google_checking"),
+    googleInactive: t("admin_attendees_google_inactive"),
+    googleLastSync: t("admin_attendees_google_last_sync"),
+    googleOAuthMissing: t("admin_attendees_google_o_auth_missing"),
+    googleConnectBtn: t("admin_attendees_google_connect_btn"),
+    googleOpenSheet: t("admin_attendees_google_open_sheet"),
+    googleSync: t("admin_attendees_google_sync"),
+    googleDisconnect: t("admin_attendees_google_disconnect"),
+    googleCreateSheet: t("admin_attendees_google_create_sheet"),
+    microsoftExcelTitle: t("admin_attendees_microsoft_excel_title"),
+    microsoftExcelDesc: t("admin_attendees_microsoft_excel_desc"),
+    microsoftChecking: t("admin_attendees_microsoft_checking"),
+    microsoftInactive: t("admin_attendees_microsoft_inactive"),
+    microsoftLastSync: t("admin_attendees_microsoft_last_sync"),
+    microsoftOAuthMissing: t("admin_attendees_microsoft_o_auth_missing"),
+    microsoftConnectBtn: t("admin_attendees_microsoft_connect_btn"),
+    microsoftOpenWorkbook: t("admin_attendees_microsoft_open_workbook"),
+    microsoftSync: t("admin_attendees_microsoft_sync"),
+    microsoftDisconnect: t("admin_attendees_microsoft_disconnect"),
+    microsoftCreateFile: t("admin_attendees_microsoft_create_file"),
+    formQuestionsTitle: t("admin_attendees_form_questions_title"),
+    formQuestionsDesc: t("admin_attendees_form_questions_desc"),
+    sheetsHint: t("admin_attendees_sheets_hint"),
+    noQuestionsEmpty: t("admin_attendees_no_questions_empty"),
+    fieldTypeTextarea: t("admin_attendees_field_type_textarea"),
+    fieldTypeSelect: t("admin_attendees_field_type_select"),
+    fieldTypeFile: t("admin_attendees_field_type_file"),
+    fieldTypeShort: t("admin_attendees_field_type_short"),
+    selectedQuestionLabel: t("admin_attendees_selected_question_label"),
+    selectQuestion: t("admin_attendees_select_question"),
+    answersDistribution: (count: number) => t("admin_attendees_answers_distribution", { count }),
+    noQuestionFound: t("admin_attendees_no_question_found"),
+    noAnswersFound: t("admin_attendees_no_answers_found"),
+    fileAnswerDrawer: t("admin_attendees_file_answer_drawer"),
+    matrixDesc: t("admin_attendees_matrix_desc"),
+    matrixRefresh: t("superadmin_refresh"),
+    matrixTotalPool: t("admin_attendees_matrix_total_pool"),
+    matrixPassedThreshold: t("admin_attendees_matrix_passed_threshold"),
+    matrixCertified: t("admin_attendees_matrix_certified"),
+    matrixEligibleNotice: (count: number) => t("admin_attendees_matrix_eligible_notice", { count }),
+    matrixProcessQueue: t("admin_attendees_matrix_process_queue"),
+    matrixEmptyTitle: t("admin_attendees_matrix_empty_title"),
+    matrixThName: t("migrated_app_admin_lead_forms_id_full_name_3f1945f3"),
+    matrixThTotal: t("admin_attendees_matrix_th_total"),
+    matrixThStatus: t("migrated_app_admin_crm_accounts_id_status_c2e60cf8"),
+    matrixStatusCertified: t("admin_attendees_matrix_status_certified"),
+    matrixStatusEligible: t("admin_attendees_matrix_status_eligible"),
+    drawerProfileLabel: t("admin_attendees_drawer_profile_label"),
+    drawerRegistrationModel: t("admin_attendees_drawer_registration_model"),
+    drawerRegistrationModelOwn: t("admin_attendees_drawer_registration_model_own"),
+    drawerRegistrationModelImport: t("admin_attendees_drawer_registration_model_import"),
+    drawerSessionsAttended: t("admin_attendees_drawer_sessions_attended"),
+    drawerCertStatus: t("admin_attendees_drawer_cert_status"),
+    drawerCertGenerated: t("admin_attendees_drawer_cert_generated"),
+    drawerCertNotGenerated: t("admin_attendees_drawer_cert_not_generated"),
+    drawerRegisteredAt: t("admin_attendees_drawer_registered_at"),
+    drawerMemberConnection: t("admin_attendees_drawer_member_connection"),
+    drawerFormAnswers: t("admin_attendees_drawer_form_answers"),
+    drawerSurveyLink: t("admin_attendees_drawer_survey_link"),
+    drawerDeleteAttendee: t("admin_attendees_drawer_delete_attendee"),
+    confirmDeleteTitle: t("admin_attendees_confirm_delete_title"),
+    confirmDeleteDesc: t("admin_attendees_confirm_delete_desc"),
+    confirmCertifyTitle: t("admin_attendees_confirm_certify_title"),
+    confirmCertifyDesc: t("admin_attendees_confirm_certify_desc"),
+    planGateFeature: t("admin_attendees_plan_gate_feature"),
   };
 
   const params = useParams();
@@ -231,7 +194,7 @@ export default function AdminAttendeesPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [loadingList, setLoadingList] = useState(true);
-  const [listError, setListError] = useState<string | null>(null);
+  const [listError, setListError] = useState<Feedback | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
@@ -250,17 +213,17 @@ export default function AdminAttendeesPage() {
   // Matrix tab
   const [matrix, setMatrix] = useState<AttendanceMatrix | null>(null);
   const [loadingMatrix, setLoadingMatrix] = useState(false);
-  const [matrixError, setMatrixError] = useState<string | null>(null);
+  const [matrixError, setMatrixError] = useState<Feedback | null>(null);
 
   // Question answers tab
   const [answerAttendees, setAnswerAttendees] = useState<AttendeeOut[]>([]);
   const [loadingAnswers, setLoadingAnswers] = useState(false);
-  const [answersError, setAnswersError] = useState<string | null>(null);
+  const [answersError, setAnswersError] = useState<Feedback | null>(null);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
 
   // Bulk certify
   const [certifying, setCertifying] = useState(false);
-  const [certResult, setCertResult] = useState<string | null>(null);
+  const [certResult, setCertResult] = useState<Feedback | null>(null);
 
   // Modal state
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -336,7 +299,7 @@ export default function AdminAttendeesPage() {
         setPlanGateMessage(e.message);
         setListError(null);
       } else {
-        setListError(e.message);
+        setListError(failure(e, "admin_attendees_load_error"));
       }
     } finally {
       setLoadingList(false);
@@ -350,7 +313,7 @@ export default function AdminAttendeesPage() {
       const m = await getAttendanceMatrix(eventId);
       setMatrix(m);
     } catch (e: any) {
-      setMatrixError(e.message);
+      setMatrixError(failure(e, "admin_attendees_matrix_error"));
     } finally {
       setLoadingMatrix(false);
     }
@@ -363,7 +326,7 @@ export default function AdminAttendeesPage() {
       const data = await listAttendees(eventId, { page: 1, limit: 500 });
       setAnswerAttendees(data.items);
     } catch (e: any) {
-      setAnswersError(e.message);
+      setAnswersError(failure(e, "admin_attendees_answers_error"));
     } finally {
       setLoadingAnswers(false);
     }
@@ -422,7 +385,7 @@ export default function AdminAttendeesPage() {
       await deleteAttendee(eventId, id);
       await loadAttendees(page);
     } catch (e: any) {
-      setListError(e.message);
+      setListError(failure(e, "admin_attendees_delete_error"));
     } finally {
       setDeletingId(null);
     }
@@ -438,7 +401,7 @@ export default function AdminAttendeesPage() {
       setImportFile(null);
       await loadAttendees(1, "");
     } catch (e: any) {
-      setListError(e.message);
+      setListError(failure(e, "admin_attendees_import_error"));
     } finally {
       setImporting(false);
     }
@@ -454,7 +417,7 @@ export default function AdminAttendeesPage() {
     const lastName = manualLastName.trim();
 
     if (!email || !firstName || !lastName) {
-      setListError(copy.errRequiredFields);
+      setListError({ key: "admin_attendees_err_required_fields" });
       return;
     }
 
@@ -471,7 +434,7 @@ export default function AdminAttendeesPage() {
       setManualResult(copy.successManualAdded);
       await loadAttendees(1, "");
     } catch (e: any) {
-      setListError(e.message || copy.errManualAdd);
+      setListError(failure(e, "admin_attendees_err_manual_add"));
     } finally {
       setAddingManual(false);
     }
@@ -488,7 +451,7 @@ export default function AdminAttendeesPage() {
         setCopiedSurveyId((current) => (current === attendeeId ? null : current));
       }, 2200);
     } catch (e: any) {
-      setListError(e.message || copy.errCopySurveyLink);
+      setListError(failure(e, "admin_attendees_err_copy_survey_link"));
     } finally {
       setCopyingSurveyId(null);
     }
@@ -508,7 +471,7 @@ export default function AdminAttendeesPage() {
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setListError(e.message || copy.errExport);
+      setListError(failure(e, "admin_attendees_err_export"));
     } finally {
       setExporting(false);
     }
@@ -528,7 +491,7 @@ export default function AdminAttendeesPage() {
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setListError(e.message || copy.errExportDocuments);
+      setListError(failure(e, "admin_attendees_err_export_documents"));
     } finally {
       setExportingDocuments(false);
     }
@@ -546,10 +509,10 @@ export default function AdminAttendeesPage() {
       });
       const res = await apiFetch(`/admin/google/sheets/start?${params.toString()}`);
       const data = await res.json();
-      if (!data?.authorization_url) throw new Error("Google yetkilendirme adresi alınamadı.");
+      if (!data?.authorization_url) throw new Error();
       window.location.href = data.authorization_url;
     } catch (e: any) {
-      setListError(e?.message || copy.errGoogleSheetsAuth);
+      setListError(failure(e, "admin_attendees_err_google_sheets_auth"));
     } finally {
       setSheetsAction(null);
     }
@@ -568,7 +531,7 @@ export default function AdminAttendeesPage() {
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      setListError(e.message || copy.errDownloadDocument);
+      setListError(failure(e, "admin_attendees_err_download_document"));
     }
   }
 
@@ -579,7 +542,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/sheets/connect`, { method: "POST" });
       setSheetsStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || copy.errGoogleSheetCreate);
+      setListError(failure(e, "admin_attendees_err_google_sheet_create"));
     } finally {
       setSheetsAction(null);
     }
@@ -592,7 +555,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/sheets/sync`, { method: "POST" });
       setSheetsStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || copy.errGoogleSheetSync);
+      setListError(failure(e, "admin_attendees_err_google_sheet_sync"));
     } finally {
       setSheetsAction(null);
     }
@@ -605,7 +568,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/sheets`, { method: "DELETE" });
       setSheetsStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || copy.errGoogleSheetDisconnect);
+      setListError(failure(e, "admin_attendees_err_google_sheet_disconnect"));
     } finally {
       setSheetsAction(null);
     }
@@ -623,10 +586,10 @@ export default function AdminAttendeesPage() {
       });
       const res = await apiFetch(`/admin/microsoft/excel/start?${params.toString()}`);
       const data = await res.json();
-      if (!data?.authorization_url) throw new Error("Microsoft yetkilendirme adresi alınamadı.");
+      if (!data?.authorization_url) throw new Error();
       window.location.href = data.authorization_url;
     } catch (e: any) {
-      setListError(e?.message || copy.errMicrosoftExcelAuth);
+      setListError(failure(e, "admin_attendees_err_microsoft_excel_auth"));
     } finally {
       setExcelAction(null);
     }
@@ -639,7 +602,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel/connect`, { method: "POST" });
       setExcelStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || copy.errMicrosoftExcelCreate);
+      setListError(failure(e, "admin_attendees_err_microsoft_excel_create"));
     } finally {
       setExcelAction(null);
     }
@@ -652,7 +615,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel/sync`, { method: "POST" });
       setExcelStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || copy.errMicrosoftExcelSync);
+      setListError(failure(e, "admin_attendees_err_microsoft_excel_sync"));
     } finally {
       setExcelAction(null);
     }
@@ -665,7 +628,7 @@ export default function AdminAttendeesPage() {
       const res = await apiFetch(`/admin/events/${eventId}/microsoft-excel`, { method: "DELETE" });
       setExcelStatus(await res.json());
     } catch (e: any) {
-      setListError(e?.message || copy.errMicrosoftExcelDisconnect);
+      setListError(failure(e, "admin_attendees_err_microsoft_excel_disconnect"));
     } finally {
       setExcelAction(null);
     }
@@ -683,7 +646,7 @@ export default function AdminAttendeesPage() {
 
       while (true) {
         if (Date.now() - startedAt > MAX_WAIT_MS) {
-          setCertResult(`⚠️ İşlem arka planda devam ediyor (Job #${jobId}). Sertifikalar sayfasından takip edebilirsiniz.`);
+          setCertResult({ key: "admin_attendees_job_background", vars: { id: jobId } });
           break;
         }
         await new Promise((r) => setTimeout(r, 2000));
@@ -691,24 +654,24 @@ export default function AdminAttendeesPage() {
         const total = status.total_count || 0;
         const current = status.current_index || 0;
         const created = status.created_count || 0;
-        setCertResult(`⏳ İşleniyor: ${current}/${total} • Oluşan: ${created}`);
+        setCertResult({ key: "admin_attendees_job_processing", vars: { current, total, created } });
 
         if (status.status === "completed") {
-          setCertResult(`✅ ${created} sertifika üretildi · ${status.already_exists_count} zaten vardı · ${status.spent_heptacoin} HC harcandı`);
+          setCertResult({ key: "admin_attendees_job_completed", vars: { created, existing: status.already_exists_count, spent: status.spent_heptacoin } });
           if (tab === "matrix") await loadMatrix();
           break;
         }
         if (status.status === "failed") {
-          setCertResult(`❌ ${status.error_message || copy.errBulkCertificate}`);
+          setCertResult(failure({ message: status.error_message }, "admin_attendees_err_bulk_certificate"));
           break;
         }
         if (status.status === "cancelled") {
-          setCertResult(`❌ İşlem iptal edildi.`);
+          setCertResult({ key: "admin_attendees_job_cancelled" });
           break;
         }
       }
     } catch (e: any) {
-      setCertResult(`❌ ${e.message}`);
+      setCertResult(failure(e, "admin_attendees_err_bulk_certificate"));
     } finally {
       setCertifying(false);
     }
@@ -726,26 +689,27 @@ export default function AdminAttendeesPage() {
     const fieldPreview = registrationFields
       .map((field) => {
         const value = attendee.registration_answers?.[field.id];
-        if (!value) return null;
-        return { label: field.label, value: String(value) };
+        if (value == null || value === "") return null;
+        const renderedValue = typeof value === "boolean" ? t(value ? "admin_common_yes" : "admin_common_no") : String(value);
+        return { label: field.label, value: renderedValue };
       })
       .filter((item): item is { label: string; value: string } => Boolean(item));
 
     const extraPreview: Array<{ label: string; value: string }> = [];
     const docsRaw = attendee.registration_answers?.["__documents"];
     if (Array.isArray(docsRaw) && docsRaw.length > 0) {
-      extraPreview.push({ label: "Belge", value: `${docsRaw.length} dosya` });
+      extraPreview.push({ label: t("admin_attendees_document"), value: t("admin_attendees_file_count", { count: docsRaw.length }) });
     }
     const kvkkRaw = attendee.registration_answers?.["__kvkk"];
     if (kvkkRaw && typeof kvkkRaw === "object") {
       const accepted = (kvkkRaw as Record<string, unknown>).accepted;
       if (accepted === true) {
-        extraPreview.push({ label: "KVKK", value: "Onaylandı" });
+        extraPreview.push({ label: "KVKK", value: t("admin_attendees_accepted") });
       }
     }
 
     return [...fieldPreview, ...extraPreview].slice(0, 3);
-  }, [registrationFields]);
+  }, [registrationFields, t]);
 
   const formatAnswerValue = useCallback((value: unknown) => {
     if (value == null || value === "") return copy.noAnswer;
@@ -826,7 +790,7 @@ export default function AdminAttendeesPage() {
           {/* ASENKRON İŞ BİLDİRİM ŞERİDİ */}
           {certResult && (
             <div className="rounded-xl border border-status-info-border bg-status-info-bg/40 px-4 py-3 text-xs font-semibold text-status-info-content animate-in fade-in duration-200">
-              {certResult}
+              {renderFeedback(certResult)}
             </div>
           )}
 
@@ -865,7 +829,7 @@ export default function AdminAttendeesPage() {
                     type="button"
                     onClick={handleConnectGoogleSheetsAuth}
                     disabled={Boolean(sheetsAction)}
-                    className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-emerald-700 disabled:opacity-50"
+                    className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-inverse-surface px-3 text-xs font-semibold text-inverse-content shadow-card transition hover:bg-inverse-surface/90 disabled:opacity-50"
                   >
                     {sheetsAction === "auth" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" />}
                     <span>{copy.googleConnectBtn}</span>
@@ -883,7 +847,7 @@ export default function AdminAttendeesPage() {
                     </button>
                   </div>
                 ) : (
-                  <button type="button" onClick={handleCreateGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-emerald-700 disabled:opacity-50">
+                  <button type="button" onClick={handleCreateGoogleSheet} disabled={Boolean(sheetsAction)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-inverse-surface px-3 text-xs font-semibold text-inverse-content shadow-card transition hover:bg-inverse-surface/90 disabled:opacity-50">
                     <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" /> {copy.googleCreateSheet}
                   </button>
                 )}
@@ -921,7 +885,7 @@ export default function AdminAttendeesPage() {
                     type="button"
                     onClick={handleConnectMicrosoftExcelAuth}
                     disabled={Boolean(excelAction)}
-                    className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-sky-700 disabled:opacity-50"
+                    className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-inverse-surface px-3 text-xs font-semibold text-inverse-content shadow-card transition hover:bg-inverse-surface/90 disabled:opacity-50"
                   >
                     {excelAction === "auth" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" />}
                     <span>{copy.microsoftConnectBtn}</span>
@@ -939,7 +903,7 @@ export default function AdminAttendeesPage() {
                     </button>
                   </div>
                 ) : (
-                  <button type="button" onClick={handleCreateMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white shadow-card transition hover:bg-sky-700 disabled:opacity-50">
+                  <button type="button" onClick={handleCreateMicrosoftExcel} disabled={Boolean(excelAction)} className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-inverse-surface px-3 text-xs font-semibold text-inverse-content shadow-card transition hover:bg-inverse-surface/90 disabled:opacity-50">
                     {excelAction === "connect" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5 stroke-[2]" />}
                     <span>{copy.microsoftCreateFile}</span>
                   </button>
@@ -988,11 +952,11 @@ export default function AdminAttendeesPage() {
                   searchPlaceholder={copy.searchPlaceholder}
                   hasActiveFilters={Boolean(search.trim())}
                   onClear={() => setSearch("")}
-                  actions={<button type="submit" className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-surface-900 px-5 text-xs font-semibold text-white hover:bg-surface-800 transition-all shadow-card">{copy.searchButton}</button>}
+                  actions={<button type="submit" className="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-inverse-surface px-5 text-xs font-semibold text-inverse-content hover:bg-inverse-surface/90 transition-all shadow-card">{copy.searchButton}</button>}
                 />
               </form>
 
-              {listError && <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3 text-xs font-semibold text-status-danger-content">{listError}</div>}
+              {listError && <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3 text-xs font-semibold text-status-danger-content">{renderFeedback(listError)}</div>}
 
               {/* Liste Sonuç Ana Veri Tablosu */}
               {loadingList ? (
@@ -1032,7 +996,7 @@ export default function AdminAttendeesPage() {
                                 </span>
                                 {a.public_member_name && (
                                   <span className="ml-2 inline-flex items-center rounded bg-status-success-bg border border-status-success-border px-1.5 py-0.5 text-11 font-bold text-status-success-content font-mono">
-                                    ÜYE: {a.public_member_name}
+                                    {t("admin_attendees_member", { name: a.public_member_name })}
                                   </span>
                                 )}
                                 {getRegistrationPreview(a).length > 0 && (
@@ -1069,7 +1033,7 @@ export default function AdminAttendeesPage() {
                                   <button type="button" onClick={() => void handleCopySurveyLink(a.id)} disabled={copyingSurveyId === a.id} className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-raised px-2 py-1 text-11 font-semibold text-surface-500 hover:bg-surface-50 lg:hidden">
                                     <span>{copiedSurveyId === a.id ? copy.surveyLinkCopied : copy.surveyLinkShort}</span>
                                   </button>
-                                  <button type="button" onClick={() => handleDelete(a.id)} disabled={deletingId === a.id} className="p-1.5 rounded-lg text-surface-400 hover:bg-status-danger-bg hover:text-status-danger-content transition-all active:scale-90">
+                                  <button type="button" aria-label={t("admin_attendees_delete_label", { name: a.name })} onClick={() => handleDelete(a.id)} disabled={deletingId === a.id} className="p-1.5 rounded-lg text-surface-400 hover:bg-status-danger-bg hover:text-status-danger-content transition-all active:scale-90">
                                     {deletingId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />}
                                   </button>
                                 </div>
@@ -1106,7 +1070,7 @@ export default function AdminAttendeesPage() {
                     </h2>
                     <p className="mt-1 text-11 leading-relaxed text-surface-400">{copy.formQuestionsDesc}</p>
                   </div>
-                  <button type="button" onClick={() => void loadQuestionAnswers()} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-surface-100 bg-surface-50 text-surface-400 hover:text-surface-900 transition-all shadow-card">
+                  <button type="button" aria-label={copy.matrixRefresh} onClick={() => void loadQuestionAnswers()} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-surface-100 bg-surface-50 text-surface-400 hover:text-surface-900 transition-all shadow-card">
                     <RefreshCw className="h-3 w-3 stroke-[2]" />
                   </button>
                 </div>
@@ -1126,17 +1090,17 @@ export default function AdminAttendeesPage() {
                         onClick={() => setSelectedQuestionId(field.id)}
                         className={`w-full rounded-xl border p-3 text-left transition-all ${
                           selectedQuestion?.id === field.id
-                            ? "border-surface-800 bg-surface-900 text-white shadow-card"
+                            ? "border-surface-800 bg-inverse-surface text-inverse-content shadow-card"
                             : "border-transparent bg-raised text-surface-700 hover:bg-surface-50"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2.5">
                           <p className="text-xs font-bold truncate tracking-tight">{field.label}</p>
-                          <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-11 font-bold font-mono ${selectedQuestion?.id === field.id ? "bg-raised/20 text-white" : "bg-surface-50 border border-surface-100 text-surface-400"}`}>
+                          <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-11 font-bold font-mono ${selectedQuestion?.id === field.id ? "bg-raised/20 text-inverse-content" : "bg-surface-50 border border-surface-100 text-surface-400"}`}>
                             {answeredCount}/{answerAttendees.length}
                           </span>
                         </div>
-                        <p className={`text-11 font-medium mt-1 ${selectedQuestion?.id === field.id ? "text-white/60" : "text-surface-400"}`}>
+                        <p className={`text-11 font-medium mt-1 ${selectedQuestion?.id === field.id ? "text-inverse-content/60" : "text-surface-400"}`}>
                           {field.type === "textarea" ? copy.fieldTypeTextarea : field.type === "select" ? copy.fieldTypeSelect : field.type === "file" ? copy.fieldTypeFile : copy.fieldTypeShort}
                         </p>
                       </button>
@@ -1153,7 +1117,7 @@ export default function AdminAttendeesPage() {
                   <p className="text-11 font-medium text-surface-400">{copy.answersDistribution(answerAttendees.length)}</p>
                 </div>
 
-                {answersError && <div className="m-4 rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3 text-xs font-semibold text-status-danger-content">{answersError}</div>}
+                {answersError && <div className="m-4 rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3 text-xs font-semibold text-status-danger-content">{renderFeedback(answersError)}</div>}
 
                 {loadingAnswers ? (
                   <div className="flex items-center justify-center py-14"><Loader2 className="h-6 h-6 animate-spin text-surface-400 stroke-[2.5]" /></div>
@@ -1199,7 +1163,7 @@ export default function AdminAttendeesPage() {
                 </button>
               </div>
 
-              {matrixError && <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3 text-xs font-semibold text-status-danger-content">{matrixError}</div>}
+              {matrixError && <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3 text-xs font-semibold text-status-danger-content">{renderFeedback(matrixError)}</div>}
 
               {loadingMatrix ? (
                 <div className="flex justify-center py-14"><Loader2 className="w-6 h-6 animate-spin text-surface-400 stroke-[2.5]" /></div>
@@ -1229,7 +1193,7 @@ export default function AdminAttendeesPage() {
                         type="button"
                         onClick={handleBulkCertify}
                         disabled={certifying}
-                        className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-amber-600 px-3 text-xs font-bold text-white shadow-card hover:bg-amber-700 disabled:opacity-50 transition-all active:scale-95"
+                        className="inline-flex min-h-[32px] items-center justify-center gap-1.5 rounded-lg bg-inverse-surface px-3 text-xs font-bold text-inverse-content shadow-card hover:bg-inverse-surface/90 disabled:opacity-50 transition-all active:scale-95"
                       >
                         {certifying ? <Loader2 className="w-3 h-3 animate-spin" /> : <Award className="w-3 h-3 stroke-[2.5]" />}
                         <span>{copy.matrixProcessQueue}</span>
@@ -1276,7 +1240,7 @@ export default function AdminAttendeesPage() {
                                 </td>
                                 <td className="text-center px-4 py-3 whitespace-nowrap">
                                   {row.has_certificate ? (
-                                    <span className="inline-flex items-center gap-1 rounded-md border border-surface-900 bg-surface-900 px-2 py-0.5 text-11 font-bold text-white shadow-card">
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-surface-900 bg-inverse-surface px-2 py-0.5 text-11 font-bold text-inverse-content shadow-card">
                                       <Award className="w-3 h-3" /> {copy.matrixStatusCertified}
                                     </span>
                                   ) : row.meets_threshold ? (
@@ -1334,7 +1298,7 @@ export default function AdminAttendeesPage() {
                     <h3 className="text-base font-bold text-surface-900 tracking-tight truncate">{selectedAttendee.name}</h3>
                     <p className="text-xs text-surface-400 font-mono truncate">{selectedAttendee.email}</p>
                   </div>
-                  <button type="button" onClick={() => setSelectedAttendee(null)} className="rounded-lg p-1 text-surface-400 hover:bg-surface-50 hover:text-surface-900 transition-colors">
+                  <button type="button" aria-label={t("admin_attendees_close_profile")} onClick={() => setSelectedAttendee(null)} className="rounded-lg p-1 text-surface-400 hover:bg-surface-50 hover:text-surface-900 transition-colors">
                     <XSquare className="h-4 w-4 stroke-[2]" />
                   </button>
                 </div>
@@ -1381,7 +1345,7 @@ export default function AdminAttendeesPage() {
                               .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
                               .filter((item) => String(item.field_id || "") === field.id)
                           : [];
-                        const renderedValue = value == null ? "—" : String(value);
+                        const renderedValue = formatAnswerValue(value);
                         return (
                           <div key={field.id} className="rounded-xl border border-surface-50 bg-surface-50/30 px-3 py-2 text-xs font-medium">
                             <p className="text-11 font-bold text-surface-400 truncate">{field.label}</p>
@@ -1391,7 +1355,7 @@ export default function AdminAttendeesPage() {
                               ) : (
                                 <div className="mt-1 space-y-1">
                                   {docsForField.map((doc, index) => {
-                                    const docName = String(doc.name || `Ek Belge ${index + 1}`);
+                                    const docName = String(doc.name || t("admin_attendees_attachment", { count: index + 1 }));
                                     const docPath = String(doc.path || "");
                                     return docPath ? (
                                       <button key={index} type="button" onClick={() => void handleDownloadRegistrationDocument(docPath, docName)} className="block max-w-full truncate text-left font-semibold text-surface-900 underline underline-offset-2 hover:text-surface-900">

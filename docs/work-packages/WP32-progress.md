@@ -26,11 +26,11 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **91** direct legacy language comparisons, including admin.
+  1. Continue the remaining **90** direct legacy language comparisons, including admin.
      Event-registration operational copy now uses all nine catalogs; its legal
      acknowledgements remain on hold. Next migrate the remaining admin copy objects
      controlled by aliases such as `isTr`. Accreditation, API keys and event surveys are
-     now migrated; next prioritize event attendees and integrations. `npm run i18n:audit` now also
+     now migrated, together with event attendees; next prioritize integrations and check-in. `npm run i18n:audit` now also
      reports alias-controlled branches; one comparison does not mean one string.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
@@ -42,7 +42,7 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **91 direct TR/EN comparisons**;
+  hiding the real gap. The current ratchet records **90 direct TR/EN comparisons**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
@@ -51,10 +51,10 @@
   still used `isTr`-controlled copy at that point, as integrations and other admin pages
   still do. The regex counts
   the alias declaration once, not every untranslated branch or label. The supplementary
-  syntax inventory currently finds **26 admin files / 803 branches / 1,714 raw string
-  candidates** after accreditation/API-key/survey migration. These are candidates, not a certified
+  syntax inventory currently finds **25 admin files / 688 branches / 1,483 raw string
+  candidates** after accreditation/API-key/survey/attendee migration. These are candidates, not a certified
   label count: technical values require triage; unconditional literals and imported or
-  mutated aliases still require manual review. Catalogs contain **3,050 keys × 9**.
+  mutated aliases still require manual review. Catalogs contain **3,165 keys × 9**.
 
 ## Phase status
 
@@ -140,6 +140,30 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-02 — attendee administration language wave
+
+- Migrated the attendee page's 115 legacy copy properties to existing catalog keys
+  and **115 new keys × nine languages**, including previously unconditional job
+  progress/completion/cancellation, member/document previews and attachment names.
+  Lists, attendance matrix, answers, cloud integrations, profile drawer and confirmations
+  now follow the selected locale. Organizer-authored questions, names, documents and
+  backend error messages remain unmodified. KVKK status is a display label only;
+  held legal wording and consent requirements are untouched.
+- Local errors and certificate-job feedback store keys/variables rather than rendered
+  strings, fixing early locale restoration and live language switches. False/zero
+  registration answers no longer disappear from previews; profile booleans are localized.
+- Added localized names for delete/refresh/close icon controls; matched inverse colors
+  for selected question cards, search/integration actions and certificate badges.
+  Theme verification checks role wiring, not a visual browser sign-off.
+- Locked attendees in `cleanPaths`; ratchet **91 → 90**, catalogs **3,165 × 9**.
+  Syntax inventory: **25 admin files / 688 branches / 1,483 raw candidates**.
+  Verification: UI contracts and TypeScript pass; full frontend tests **176/176**
+  (including **26 new attendee tests**); production build succeeds with **132/132**
+  static pages. Production deployment remains manual.
+- No API/transactional URL, plan gate, certificate confirmation or OAuth bridge contract
+  was changed. Next: integrations, then check-in. Plugin web connection work is deferred
+  at the owner's request because Developer mode is not visible in the supplied Plus UI.
 
 ### 2026-10-01 — admin surveys localized; US added to publication draft
 
