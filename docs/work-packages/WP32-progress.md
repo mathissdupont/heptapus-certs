@@ -165,6 +165,9 @@ Newest first. Each entry: what changed, why, evidence, gotchas, next step.
   verification completes**. Afterwards: upload `dist/heptacert-plugin-0.9.9-draft.zip`,
   set `OPENAI_APPS_CHALLENGE_TOKEN` on the backend and re-check the challenge endpoint.
   No submission fee is documented by OpenAI; tool calls add no per-use vendor cost.
+- Update: owner completed identity verification; the first upload was rejected for an
+  unsafe ZIP path (`Compress-Archive` wrote `\` separators). Fixed the packaging script
+  to write `/` file entries and verify raw names; rebuilt ZIP passes. Re-upload pending.
 
 ### 2026-10-02 — admin check-in language wave
 

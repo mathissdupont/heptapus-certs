@@ -73,8 +73,18 @@ for (const skill of skills) {
 const archive = join(staging, `${manifest.name}-${manifest.version}-draft.zip`);
 const quotePowerShell = value => "'" + value.replaceAll("'", "''") + "'";
 const zipOutput = execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
-  `Compress-Archive -LiteralPath ${quotePowerShell(upload)} -DestinationPath ${quotePowerShell(archive)};
-  Add-Type -AssemblyName System.IO.Compression.FileSystem;
+  // Windows PowerShell's Compress-Archive writes "\" separators and directory entries,
+  // which the plugin portal rejects as unsafe paths. Write file entries with "/" only.
+  `Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem;
+  $uploadRoot = (Get-Item -LiteralPath ${quotePowerShell(upload)}).FullName;
+  $stagingRoot = Split-Path -Parent $uploadRoot;
+  $newZip = [IO.Compression.ZipFile]::Open(${quotePowerShell(archive)}, 'Create');
+  try {
+    Get-ChildItem -LiteralPath $uploadRoot -Recurse -File | Sort-Object FullName | ForEach-Object {
+      $entryName = $_.FullName.Substring($stagingRoot.Length + 1).Replace('\\', '/');
+      [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($newZip, $_.FullName, $entryName, 'Optimal')
+    }
+  } finally { $newZip.Dispose() }
   $draftZip = [IO.Compression.ZipFile]::OpenRead(${quotePowerShell(archive)});
   try {
     $entryNames = @($draftZip.Entries | ForEach-Object { $_.FullName });
@@ -87,7 +97,17 @@ const zipOutput = execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive
   } finally { $draftZip.Dispose() }`
 ], { encoding: "utf8" });
 const inspected = JSON.parse(zipOutput.trim());
-inspected.entries = inspected.entries.map(name => name.replaceAll("\\", "/"));
+// Check the raw central-directory names; readers such as .NET and Python hide "\".
+const rawZip = await readFile(archive);
+const rawEntries = [];
+for (let at = rawZip.indexOf("PK\x01\x02", 0, "latin1"); at >= 0; at = rawZip.indexOf("PK\x01\x02", at + 46, "latin1")) {
+  rawEntries.push(rawZip.subarray(at + 46, at + 46 + rawZip.readUInt16LE(at + 28)).toString("utf8"));
+}
+assert.deepEqual(rawEntries, inspected.entries);
+for (const name of rawEntries) {
+  assert(name.startsWith(`${manifest.name}/`), `unexpected root: ${name}`);
+  assert(!name.includes("\\") && !name.endsWith("/") && !name.split("/").includes(".."), `unsafe entry: ${name}`);
+}
 assert.equal(inspected.version, manifest.version);
 assert.equal(inspected.positive, 5);
 assert.equal(inspected.negative, 3);

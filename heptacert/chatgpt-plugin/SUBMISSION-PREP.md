@@ -19,6 +19,10 @@ Status: **draft package prepared, not submitted for review**.
   non-English locales; the packaging script asserts their count and lengths.
 - The packaging script now also copies the verified archive to
   `dist/heptacert-plugin-<version>-draft.zip` (git-ignored) for upload.
+- The first upload failed: "Plugin zip member contains an unsafe path: `…\skills\`".
+  Windows PowerShell's `Compress-Archive` wrote `\` separators plus a directory entry.
+  The script now writes file-only entries with `/` and asserts the raw ZIP names
+  (no `\`, no directory entries, no `..`); .NET and Python readers hide `\`.
 - Release notes describe this release: web-distribution page, localized listing,
   54 hosted tools, confirmations, OAuth tenant boundaries and eight skills.
   The 54-tool count is from the source; authenticated discovery in ChatGPT is still
