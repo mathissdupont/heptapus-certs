@@ -23,6 +23,11 @@ Status: **draft package prepared, not submitted for review**.
   Windows PowerShell's `Compress-Archive` wrote `\` separators plus a directory entry.
   The script now writes file-only entries with `/` and asserts the raw ZIP names
   (no `\`, no directory entries, no `..`); .NET and Python readers hide `\`.
+- The portal tool scan flagged `update_event`, `update_attendee`, `update_session`,
+  `update_automation_rule` and `update_email_template`: marked `destructiveHint: false`
+  although they overwrite stored values. They are now `destructiveHint: true` and the
+  contract test pins them. Create, open/close registration and check-in stay
+  non-destructive. Requires a backend deploy and a portal re-scan.
 - Release notes describe this release: web-distribution page, localized listing,
   54 hosted tools, confirmations, OAuth tenant boundaries and eight skills.
   The 54-tool count is from the source; authenticated discovery in ChatGPT is still

@@ -103,7 +103,11 @@ async def test_tool_annotations_are_truthful():
                tool.annotations.idempotentHint is not None for tool in tools.values())
     for name in ("list_events", "list_attendees", "get_event_analytics"):
         assert tools[name].annotations.readOnlyHint is True
-    for name in ("delete_event", "remove_attendee", "revoke_certificate", "issue_certificates"):
+    # Updates overwrite stored values without keeping the previous ones, so the
+    # directory scan treats them as hard to reverse.
+    for name in ("delete_event", "remove_attendee", "revoke_certificate", "issue_certificates",
+                 "update_event", "update_attendee", "update_session",
+                 "update_automation_rule", "update_email_template"):
         assert tools[name].annotations.destructiveHint is True
         assert tools[name].annotations.readOnlyHint is False
     for name in ("create_webhook", "create_automation_rule"):

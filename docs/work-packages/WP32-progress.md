@@ -188,6 +188,11 @@ Newest first. Each entry: what changed, why, evidence, gotchas, next step.
 - Update: owner completed identity verification; the first upload was rejected for an
   unsafe ZIP path (`Compress-Archive` wrote `\` separators). Fixed the packaging script
   to write `/` file entries and verify raw names; rebuilt ZIP passes. Re-upload pending.
+- Update: the portal tool scan flagged five `update_*` MCP tools as hard-to-reverse while
+  annotated non-destructive. Set `destructiveHint=True` and pinned them in
+  `test_mcp_contract.py`; backend tests **621/621**. Needs backend deploy + re-scan.
+  Domain verification: owner must set `OPENAI_APPS_CHALLENGE_TOKEN` in the server's
+  `heptacert/.env` and run `docker compose up -d backend` (restart does not reload env_file).
 
 ### 2026-10-02 — admin check-in language wave
 

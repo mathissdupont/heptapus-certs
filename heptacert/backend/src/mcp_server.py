@@ -978,7 +978,7 @@ async def create_event(
     return _result({"status": "created", "event": result})
 
 
-@mcp.tool(title="Update Event", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True, idempotentHint=False))
+@mcp.tool(title="Update Event", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=True, idempotentHint=False))
 async def update_event(
     ctx: Context,
     event_id: int,
@@ -1220,7 +1220,7 @@ async def bulk_add_attendees(ctx: Context, event_id: int, attendees: list[dict])
     return _result({"status": "imported", "event_id": event_id, "result": results})
 
 
-@mcp.tool(title="Update Attendee", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
+@mcp.tool(title="Update Attendee", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
 async def update_attendee(
     ctx: Context,
     event_id: int,
@@ -1367,7 +1367,7 @@ async def create_session(
     return _result({"status": "created", "event_id": event_id, "session": data})
 
 
-@mcp.tool(title="Update Session", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
+@mcp.tool(title="Update Session", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
 async def update_session(
     ctx: Context,
     event_id: int,
@@ -1815,7 +1815,7 @@ async def list_agent_logs(
 # ── Tools: Automation Rules (write) ───────────────────────────────────────────
 
 
-@mcp.tool(title="Update Automation Rule", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True, idempotentHint=False))
+@mcp.tool(title="Update Automation Rule", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=True, idempotentHint=False))
 async def update_automation_rule(
     ctx: Context,
     event_id: int,
@@ -2115,7 +2115,7 @@ async def create_email_template(
     return _result({"status": "created", "event_id": event_id, "template": data})
 
 
-@mcp.tool(title="Update Email Template", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
+@mcp.tool(title="Update Email Template", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
 async def update_email_template(
     ctx: Context,
     event_id: int,
