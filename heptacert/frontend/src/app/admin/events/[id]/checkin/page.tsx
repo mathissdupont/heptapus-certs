@@ -17,7 +17,7 @@ import {
 } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
 import { PlanGateCard, isPlanGateError } from "@/lib/useSubscription";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type TranslationKey } from "@/lib/i18n";
 import {
   Camera,
   ArrowLeft,
@@ -39,12 +39,13 @@ import {
 } from "lucide-react";
 
 type CheckinType = "manual" | "ticket";
+type LocalizedMessage = string | { key: TranslationKey; vars?: Record<string, string | number> };
 
 type CheckinEntry = {
   email: string;
   type?: CheckinType;
   success: boolean;
-  message: string;
+  message: LocalizedMessage;
   time: string;
   queued?: boolean;
 };
@@ -84,16 +85,16 @@ function normalizeTicketToken(value: string) {
   return trimmed.split("?")[0].split("#")[0];
 }
 
-function classifyScan(value: string, msgs: { emptyQr: string; sessionQr: string; invalidQr: string }): { type: CheckinType | "unsupported"; value: string; message?: string } {
+function classifyScan(value: string): { type: CheckinType | "unsupported"; value: string; messageKey?: TranslationKey } {
   const trimmed = value.trim();
-  if (!trimmed) return { type: "unsupported", value: trimmed, message: msgs.emptyQr };
+  if (!trimmed) return { type: "unsupported", value: trimmed, messageKey: "admin_checkin_empty_qr" };
   if (trimmed.includes("/tickets/")) return { type: "ticket", value: normalizeTicketToken(trimmed) };
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return { type: "manual", value: trimmed.toLowerCase() };
   if (trimmed.includes("/attend/")) {
-    return { type: "unsupported", value: trimmed, message: msgs.sessionQr };
+    return { type: "unsupported", value: trimmed, messageKey: "admin_checkin_session_qr" };
   }
   if (trimmed.length >= 24 && !trimmed.includes(" ")) return { type: "ticket", value: normalizeTicketToken(trimmed) };
-  return { type: "unsupported", value: trimmed, message: msgs.invalidQr };
+  return { type: "unsupported", value: trimmed, messageKey: "admin_checkin_invalid_qr" };
 }
 
 export default function AdminCheckinPage() {
@@ -101,74 +102,60 @@ export default function AdminCheckinPage() {
   const eventId = Number(params?.id);
   const [staffMode, setStaffMode] = useState(false);
 
-  const { lang } = useI18n();
-  const isTr = lang === "tr";
+  const { lang, t } = useI18n();
   const locale = localeTag(lang);
+  const renderMessage = (message: LocalizedMessage) => typeof message === "string" ? message : t(message.key, message.vars);
   const copy = {
-    // QR classification messages
-    emptyQr: isTr ? "Boş QR okundu." : "Empty QR scanned.",
-    sessionQr: isTr ? "Bu oturum QR'i. Katılımcı bilet ya da e-posta QR'i okutun." : "This is a session QR. Please scan an attendee ticket or email QR.",
-    invalidQr: isTr ? "QR içeriği e-posta veya bilet token'i değil." : "QR content is not an email or ticket token.",
-    // Load error
-    loadError: isTr ? "Check-in ekranı yüklenemedi." : "Failed to load check-in screen.",
-    // Camera
-    cameraError: isTr ? "Kamera başlatılamadı." : "Camera could not be started.",
-    // Offline queue
-    offlineQueued: isTr ? "Offline kuyruğa alındı. İnternet gelince senkronlanacak." : "Added to offline queue. Will sync when back online.",
     // Check-in actions
-    sessionRequired: isTr ? "Önce oturum seç." : "Please select a session first.",
-    checkinFailed: isTr ? "Check-in başarısız" : "Check-in failed",
-    qrUnreadable: isTr ? "QR okunamadı." : "QR could not be read.",
+    sessionRequired: t("admin_checkin_session_required"),
     // Sync messages
-    offlineSynced: isTr ? "Offline kayıt senkronlandı." : "Offline record synced.",
-    syncFailed: isTr ? "Sync başarısız" : "Sync failed",
-    syncComplete: isTr ? "Kuyruk senkronizasyonu tamamlandı." : "Queue sync completed.",
-    liveLabel: isTr ? "canlı" : "live",
+    syncFailed: t("admin_checkin_sync_failed"),
+    liveLabel: t("admin_checkin_live"),
     // Status panel labels
-    labelMobileOps: isTr ? "Mobil saha operasyonu" : "Mobile field operation",
-    labelGateway: isTr ? "Hızlı Check-in Kapısı" : "Quick Check-in Gate",
-    labelOnline: isTr ? "Online" : "Online",
-    labelOffline: isTr ? "Offline" : "Offline",
-    labelActiveSession: isTr ? "Aktif Oturum" : "Active Session",
-    labelInstantAdmit: isTr ? "Anlık Kabul" : "Instant Admissions",
-    labelOfflineQueue: isTr ? "Offline Kuyruk" : "Offline Queue",
-    labelNotSelected: isTr ? "Seçilmedi" : "Not Selected",
+    labelMobileOps: t("admin_checkin_mobile_ops"),
+    labelGateway: t("admin_checkin_gateway"),
+    labelOnline: t("admin_checkin_online"),
+    labelOffline: t("admin_checkin_offline"),
+    labelActiveSession: t("admin_checkin_active_session"),
+    labelInstantAdmit: t("admin_checkin_instant_admissions"),
+    labelOfflineQueue: t("admin_checkin_offline_queue"),
+    labelNotSelected: t("admin_checkin_not_selected"),
     // Metrics labels
-    labelGateFlow: isTr ? "Kapı Akışı" : "Gate Flow",
-    labelPerHour: isTr ? "/saat" : "/hr",
-    labelDispatchSuccess: isTr ? "Sevk Başarı" : "Dispatch Success",
-    labelMostActiveDesk: isTr ? "En Aktif Masası" : "Most Active Desk",
-    labelDuplicate: isTr ? "Tekrarlanan" : "Duplicate",
-    labelInvalidQrMetric: isTr ? "Geçersiz QR" : "Invalid QR",
-    labelCapacityAlarm: isTr ? "Sınır Alarmı" : "Capacity Alarm",
-    labelFillRateWarning: isTr ? "salon doluluk uyarısı!" : "hall capacity warning!",
+    labelGateFlow: t("admin_checkin_gate_flow"),
+    labelPerHour: t("admin_checkin_per_hour"),
+    labelDispatchSuccess: t("admin_checkin_dispatch_success"),
+    labelMostActiveDesk: t("admin_checkin_most_active_desk"),
+    labelDuplicate: t("admin_checkin_duplicate"),
+    labelInvalidQrMetric: t("admin_checkin_invalid_qr_metric"),
+    labelCapacityAlarm: t("admin_checkin_capacity_alarm"),
+    labelFillRateWarning: t("admin_checkin_fill_rate_warning"),
     // Plan gate
-    labelPlanFeature: isTr ? "Manuel check-in ve yoklama sistemi" : "Manual check-in and attendance system",
+    labelPlanFeature: t("admin_checkin_plan_feature"),
     // Session selector
-    labelSelectSessionHeader: isTr ? "Giriş Yapılacak Oturumu Belirleyin" : "Select Check-in Session",
-    labelNoSessions: isTr ? "Etkinliğe henüz bir yoklama oturumu eklenmemiş." : "No attendance sessions have been added to this event yet.",
-    labelAddSession: isTr ? "Buradan yeni oturum ekle" : "Add a new session here",
-    labelAdmitCount: isTr ? "Kabul" : "Admissions",
+    labelSelectSessionHeader: t("admin_checkin_select_session"),
+    labelNoSessions: t("admin_checkin_no_sessions"),
+    labelAddSession: t("admin_checkin_add_session"),
+    labelAdmitCount: t("admin_checkin_admissions"),
     // Check-in gate
-    labelGateHeader: isTr ? "Giriş Yetkilendirme Kapısı" : "Entry Authorization Gate",
-    labelOpenScanner: isTr ? "Canlı QR Tarayıcı Aç" : "Open Live QR Scanner",
-    labelCloseCamera: isTr ? "Kamerayı Kapat" : "Close Camera",
-    labelScannerHint: isTr ? "Bilet QR kodu, e-posta veya üye kimlik cüzdanı okutabilirsiniz." : "You can scan a ticket QR code, email, or member identity.",
-    labelEmailPlaceholder: isTr ? "Katılımcı kayıt e-posta adresini girin..." : "Enter attendee registration email...",
-    labelAdmitButton: isTr ? "Kabul Et (Check-in)" : "Admit (Check-in)",
+    labelGateHeader: t("admin_checkin_gate_header"),
+    labelOpenScanner: t("admin_checkin_open_scanner"),
+    labelCloseCamera: t("admin_checkin_close_camera"),
+    labelScannerHint: t("admin_checkin_scanner_hint"),
+    labelEmailPlaceholder: t("admin_checkin_email_placeholder"),
+    labelAdmitButton: t("admin_checkin_admit_button"),
     // Offline sync panel
-    labelOfflinePanelHeader: isTr ? "Yerel Çevrimdışı Bellek Havuzu" : "Local Offline Memory Pool",
-    labelSyncQueue: isTr ? "Kuyruğu Eşitle" : "Sync Queue",
-    labelNoOfflineRecords: isTr ? "Cihaz hafızasında senkronizasyon bekleyen offline kayıt bulunmuyor." : "No offline records pending sync in device memory.",
-    labelTicketType: isTr ? "Bilet" : "Ticket",
-    labelEmailType: isTr ? "E-posta" : "Email",
-    labelAttempts: isTr ? "deneme" : "attempts",
+    labelOfflinePanelHeader: t("admin_checkin_offline_panel"),
+    labelSyncQueue: t("admin_checkin_sync_queue"),
+    labelNoOfflineRecords: t("admin_checkin_no_offline_records"),
+    labelTicketType: t("admin_checkin_ticket"),
+    labelEmailType: t("admin_checkin_email"),
+    labelAttempts: t("admin_checkin_attempts"),
     // Log
-    labelLogHeader: isTr ? "Kapı Giriş Hareketleri Günlüğü" : "Gate Entry Movement Log",
-    labelClearLog: isTr ? "Temizle" : "Clear",
+    labelLogHeader: t("admin_checkin_log_header"),
+    labelClearLog: t("admin_checkin_clear_log"),
     // Staff mode
-    labelOpsBack: isTr ? "Operasyon" : "Operations",
-    labelStaffMode: isTr ? "Görevli Modu" : "Staff Mode",
+    labelOpsBack: t("admin_checkin_operations"),
+    labelStaffMode: t("admin_checkin_staff_mode"),
   };
 
   const [eventName, setEventName] = useState("");
@@ -178,14 +165,14 @@ export default function AdminCheckinPage() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [log, setLog] = useState<CheckinEntry[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LocalizedMessage | null>(null);
   const [planOk, setPlanOk] = useState<boolean | null>(null);
   const [planGateMessage, setPlanGateMessage] = useState<string | null>(null);
   const [offlineQueue, setOfflineQueue] = useState<QueueEntry[]>([]);
   const [isOnline, setIsOnline] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [scannerError, setScannerError] = useState<string | null>(null);
+  const [scannerError, setScannerError] = useState<LocalizedMessage | null>(null);
   const [metrics, setMetrics] = useState<CheckinMetrics | null>(null);
 
   const [liveCount, setLiveCount] = useState(0);
@@ -214,7 +201,7 @@ export default function AdminCheckinPage() {
         setPlanGateMessage(e.message);
         setError(null);
       } else {
-        setError(e.message || copy.loadError);
+        setError(e?.message ? e.message : { key: "admin_checkin_load_error" });
       }
     } finally {
       setLoading(false);
@@ -243,7 +230,7 @@ export default function AdminCheckinPage() {
               email: data.attendee_name || data.attendee_id,
               type: "manual" as CheckinType,
               success: true,
-              message: `✓ ${data.attendee_name || "—"} (${copy.liveLabel})`,
+              message: { key: "admin_checkin_live_entry", vars: { name: data.attendee_name || "—" } },
               time: new Date(data.checked_in_at).toLocaleTimeString(locale),
             },
             ...prev.slice(0, 49),
@@ -258,7 +245,7 @@ export default function AdminCheckinPage() {
       es.close();
       sseRef.current = null;
     };
-  }, [eventId, planOk]);
+  }, [eventId, planOk, locale]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -314,7 +301,7 @@ export default function AdminCheckinPage() {
           () => undefined,
         );
       } catch (err: any) {
-        if (!cancelled) setScannerError(err?.message || copy.cameraError);
+        if (!cancelled) setScannerError(err?.message ? err.message : { key: "admin_checkin_camera_error" });
       }
     }
 
@@ -355,15 +342,15 @@ export default function AdminCheckinPage() {
       type: entry.type,
       success: true,
       queued: true,
-      message: copy.offlineQueued,
+      message: { key: "admin_checkin_offline_queued" },
       time: new Date().toLocaleTimeString(locale),
     });
   }
 
-  async function performEntry(type: CheckinType, value: string, sessionId = selectedSession) {
+  async function performEntry(type: CheckinType, value: string, sessionId = selectedSession): Promise<{ ok: boolean; message: LocalizedMessage }> {
     if (type === "ticket") {
       const ticket = await checkInEventTicket(eventId, normalizeTicketToken(value));
-      return { ok: true, message: `${ticket.attendee_name} bilet girişi onaylandı.` };
+      return { ok: true, message: { key: "admin_checkin_ticket_confirmed", vars: { name: ticket.attendee_name } } };
     }
     if (!sessionId) throw new Error(copy.sessionRequired);
     return adminManualCheckin(eventId, sessionId, value.trim());
@@ -386,7 +373,7 @@ export default function AdminCheckinPage() {
       if (!navigator.onLine) {
         queueCheckin({ eventId, sessionId: selectedSession, type, value: clean });
       } else {
-        appendLog({ email: clean, type, success: false, message: e.message || copy.checkinFailed, time: now });
+        appendLog({ email: clean, type, success: false, message: e?.message ? e.message : { key: "admin_checkin_failed" }, time: now });
       }
     } finally {
       setSubmitting(false);
@@ -396,12 +383,12 @@ export default function AdminCheckinPage() {
   async function handleScannedValue(rawValue: string) {
     await stopScanner();
     setScannerOpen(false);
-    const scan = classifyScan(rawValue, copy);
+    const scan = classifyScan(rawValue);
     if (scan.type === "unsupported") {
       appendLog({
         email: scan.value,
         success: false,
-        message: scan.message || copy.qrUnreadable,
+        message: { key: scan.messageKey || "admin_checkin_qr_unreadable" },
         time: new Date().toLocaleTimeString(locale),
       });
       return;
@@ -422,7 +409,7 @@ export default function AdminCheckinPage() {
           email: entry.value,
           type: entry.type,
           success: true,
-          message: copy.offlineSynced,
+          message: { key: "admin_checkin_offline_synced" },
           time: new Date().toLocaleTimeString(locale),
         });
       } catch (e: any) {
@@ -433,9 +420,9 @@ export default function AdminCheckinPage() {
     writeQueue(eventId, failed);
     if (synced > 0) {
       appendLog({
-        email: `${synced} ${isTr ? "kayıt" : "records"}`,
+        email: t("admin_checkin_records", { count: synced }),
         success: true,
-        message: copy.syncComplete,
+        message: { key: "admin_checkin_sync_complete" },
         time: new Date().toLocaleTimeString(locale),
       });
     }
@@ -569,7 +556,7 @@ export default function AdminCheckinPage() {
               ) : null}
             </div>
 
-            {error && <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3.5 text-xs font-semibold text-status-danger-content">{error}</div>}
+            {error && <div className="rounded-xl border border-status-danger-border bg-status-danger-bg/40 p-3.5 text-xs font-semibold text-status-danger-content">{renderMessage(error)}</div>}
 
             {/* ANA OTURUM SEÇME PANELİ */}
             <div className="rounded-xl border border-surface-200 bg-raised p-5 shadow-card space-y-3">
@@ -626,7 +613,7 @@ export default function AdminCheckinPage() {
                 {scannerOpen && (
                   <div className="overflow-hidden rounded-xl border border-surface-200 bg-surface-800 p-3 shadow-inner max-w-sm mx-auto animate-in zoom-in-98 duration-200 w-full">
                     <div id={scannerRegionId} className="min-h-[240px] overflow-hidden rounded-lg bg-black flex items-center justify-center text-xs text-white" />
-                    {scannerError && <p className="mt-2 text-11 font-bold text-status-danger-content text-center">{scannerError}</p>}
+                    {scannerError && <p className="mt-2 text-11 font-bold text-status-danger-content text-center">{renderMessage(scannerError)}</p>}
                     <p className="mt-2.5 text-11 font-semibold text-surface-400 flex items-center justify-center gap-1">
                       <QrCode className="h-3.5 w-3.5" />
                       <span>{copy.labelScannerHint}</span>
@@ -653,7 +640,7 @@ export default function AdminCheckinPage() {
                   <button
                     type="submit"
                     disabled={submitting || !email.trim()}
-                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-surface-900 px-5 text-xs font-bold text-white shadow-card transition hover:bg-surface-800 disabled:opacity-40 active:scale-[0.98]"
+                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-lg bg-inverse-surface px-5 text-xs font-bold text-inverse-content shadow-card transition hover:opacity-90 disabled:opacity-40 active:scale-[0.98]"
                   >
                     {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserCheck className="h-3.5 w-3.5 stroke-[2.5]" />}
                     <span>{copy.labelAdmitButton}</span>
@@ -673,7 +660,7 @@ export default function AdminCheckinPage() {
                   <button type="button" onClick={() => void syncQueue()} disabled={!isOnline || syncing || offlineQueue.length === 0} className="rounded-lg border border-surface-200 bg-raised px-2.5 py-1 text-11 font-bold text-surface-700 shadow-card hover:bg-surface-50 disabled:opacity-40">
                     {copy.labelSyncQueue}
                   </button>
-                  <button type="button" onClick={clearQueue} disabled={offlineQueue.length === 0} className="rounded-lg border border-status-danger-border bg-raised px-2 py-1 text-11 font-bold text-status-danger-content shadow-card hover:bg-status-danger-bg disabled:opacity-40">
+                  <button type="button" onClick={clearQueue} disabled={offlineQueue.length === 0} aria-label={t("admin_checkin_clear_queue")} className="rounded-lg border border-status-danger-border bg-raised px-2 py-1 text-11 font-bold text-status-danger-content shadow-card hover:bg-status-danger-bg disabled:opacity-40">
                     <Trash2 className="h-3.5 w-3.5 stroke-[1.8]" />
                   </button>
                 </div>
@@ -714,7 +701,7 @@ export default function AdminCheckinPage() {
                       {entry.success ? <CheckCircle2 className="h-4 w-4 shrink-0 text-status-success-content mt-0.5 stroke-[2.5]" /> : <XCircle className="h-4 w-4 shrink-0 text-status-danger-content mt-0.5 stroke-[2]" />}
                       <div className="min-w-0 flex-1 space-y-0.5">
                         <p className="truncate text-xs font-bold text-surface-900 tracking-tight">{entry.email}</p>
-                        <p className="text-11 font-medium text-surface-400 leading-normal">{entry.queued ? "⚠️ " : ""}{entry.message}</p>
+                        <p className="text-11 font-medium text-surface-400 leading-normal">{entry.queued ? "⚠️ " : ""}{renderMessage(entry.message)}</p>
                       </div>
                       <span className="shrink-0 text-11 font-bold text-surface-400 font-mono pt-0.5">{entry.time}</span>
                     </div>

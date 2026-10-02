@@ -26,11 +26,11 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **87** direct legacy language comparisons, including admin.
+  1. Continue the remaining **86** direct legacy language comparisons, including admin.
      Event-registration operational copy now uses all nine catalogs; its legal
      acknowledgements remain on hold. Next migrate the remaining admin copy objects
      controlled by aliases such as `isTr`. Accreditation, API keys and event surveys are
-     now migrated, together with event attendees and integrations; next prioritize check-in. `npm run i18n:audit` now also
+     now migrated, together with event attendees, integrations and check-in; next prioritize gamification. `npm run i18n:audit` now also
      reports alias-controlled branches; one comparison does not mean one string.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
@@ -42,7 +42,7 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **87 direct TR/EN comparisons**;
+  hiding the real gap. The current ratchet records **86 direct TR/EN comparisons**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
@@ -51,10 +51,10 @@
   still used `isTr`-controlled copy at that point, as integrations and other admin pages
   still do. The regex counts
   the alias declaration once, not every untranslated branch or label. The supplementary
-  syntax inventory currently finds **24 admin files / 641 branches / 1,389 raw string
-  candidates** after accreditation/API-key/survey/attendee/integration migration. These are candidates, not a certified
+  syntax inventory currently finds **23 admin files / 590 branches / 1,287 raw string
+  candidates** after accreditation/API-key/survey/attendee/integration/check-in migration. These are candidates, not a certified
   label count: technical values require triage; unconditional literals and imported or
-  mutated aliases still require manual review. Catalogs contain **3,284 keys × 9**.
+  mutated aliases still require manual review. Catalogs contain **3,338 keys × 9**.
 
 ## Phase status
 
@@ -140,6 +140,24 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-02 — admin check-in language wave
+
+- Migrated QR classification, load/camera failures, live gate status, capacity metrics,
+  session selection, admission controls, offline queue, activity log and staff mode to
+  **54 new keys × nine languages**. Event/session names, attendee identifiers and raw
+  backend messages remain unmodified.
+- Local fallback errors and generated activity messages use translation descriptors, so
+  restoring or changing the language does not leave stale local copy. Added an accessible
+  name to the clear-queue icon and corrected the admission action to inverse theme roles.
+- Locked check-in in `cleanPaths`; ratchet **87 → 86**, catalogs **3,338 × 9**.
+  Syntax inventory: **23 admin files / 590 branches / 1,287 raw candidates**.
+  Verification: UI contracts and TypeScript pass; full frontend tests **209/209**
+  (including **22 new check-in tests**); production build succeeds with **132/132**
+  static pages. Production deployment remains manual.
+- Tests preserve event/session/email payloads, offline queue identifiers and the `checkin`
+  plan feature. Transactional routes and scanner/API endpoints are unchanged. Next:
+  gamification.
 
 ### 2026-10-02 — admin integrations language wave
 
