@@ -26,11 +26,11 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **90** direct legacy language comparisons, including admin.
+  1. Continue the remaining **87** direct legacy language comparisons, including admin.
      Event-registration operational copy now uses all nine catalogs; its legal
      acknowledgements remain on hold. Next migrate the remaining admin copy objects
      controlled by aliases such as `isTr`. Accreditation, API keys and event surveys are
-     now migrated, together with event attendees; next prioritize integrations and check-in. `npm run i18n:audit` now also
+     now migrated, together with event attendees and integrations; next prioritize check-in. `npm run i18n:audit` now also
      reports alias-controlled branches; one comparison does not mean one string.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
@@ -42,7 +42,7 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **90 direct TR/EN comparisons**;
+  hiding the real gap. The current ratchet records **87 direct TR/EN comparisons**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
@@ -51,10 +51,10 @@
   still used `isTr`-controlled copy at that point, as integrations and other admin pages
   still do. The regex counts
   the alias declaration once, not every untranslated branch or label. The supplementary
-  syntax inventory currently finds **25 admin files / 688 branches / 1,483 raw string
-  candidates** after accreditation/API-key/survey/attendee migration. These are candidates, not a certified
+  syntax inventory currently finds **24 admin files / 641 branches / 1,389 raw string
+  candidates** after accreditation/API-key/survey/attendee/integration migration. These are candidates, not a certified
   label count: technical values require triage; unconditional literals and imported or
-  mutated aliases still require manual review. Catalogs contain **3,165 keys × 9**.
+  mutated aliases still require manual review. Catalogs contain **3,284 keys × 9**.
 
 ## Phase status
 
@@ -140,6 +140,23 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-02 — admin integrations language wave
+
+- Migrated integration status, OAuth cards, notification channels, enterprise setup,
+  provider forms and the integration catalog to **119 new keys × nine languages**.
+  Known server catalog categories, descriptions and connection types are localized;
+  brand names, URLs, scopes, event identifiers and organizer connection data remain intact.
+- Local validation/fallback errors store translation keys, so restoring or changing the
+  language does not leave stale copy. Added a localized accessible name to assistant
+  disconnect controls. OAuth return paths and settings links remain unprefixed.
+- Locked integrations in `cleanPaths`; ratchet **90 → 87**, catalogs **3,284 × 9**.
+  Syntax inventory: **24 admin files / 641 branches / 1,389 raw candidates**.
+  Verification: UI contracts and TypeScript pass; full frontend tests **187/187**
+  (including **11 new integration tests**); production build succeeds with **132/132**
+  static pages. Production deployment remains manual.
+- Notification tests preserve the original webhook payload, event identifiers and
+  assistant disconnect endpoint. Next: check-in.
 
 ### 2026-10-02 — attendee administration language wave
 

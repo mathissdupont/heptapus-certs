@@ -54,7 +54,7 @@ import {
   type WebinarImportConfig,
 } from "@/lib/api";
 import { apiFetch } from "@/lib/api";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type TranslationKey, type Translator } from "@/lib/i18n";
 import PageHeader from "@/components/Admin/PageHeader";
 import { StatCard } from "@/components/Admin/StatCard";
 
@@ -68,32 +68,33 @@ type MyOAuthConnection = {
 
 type IntegrationStatus = "loading" | "connected" | "disconnected" | "not_configured" | "error";
 type NotificationChannelKey = "slack" | "teams" | "discord" | "google_chat" | "custom";
+type Feedback = { key: TranslationKey; vars?: Record<string, string | number> } | { message: string };
 
-const channelCopy: Record<NotificationChannelKey, { name: string; placeholder: string; help: string }> = {
+const channelCopy: Record<NotificationChannelKey, { name: string; placeholder: string; helpKey: TranslationKey }> = {
   slack: {
     name: "Slack",
     placeholder: "https://hooks.slack.com/services/...",
-    help: "Slack Incoming Webhook URL for a selected channel.",
+    helpKey: "admin_integrations_channel_help_slack",
   },
   teams: {
     name: "Microsoft Teams",
     placeholder: "https://...logic.azure.com/...",
-    help: "Teams Workflows webhook URL for posting operational cards.",
+    helpKey: "admin_integrations_channel_help_teams",
   },
   discord: {
     name: "Discord",
     placeholder: "https://discord.com/api/webhooks/...",
-    help: "Discord channel → Integrations → Webhooks → Copy Webhook URL.",
+    helpKey: "admin_integrations_channel_help_discord",
   },
   google_chat: {
     name: "Google Chat",
     placeholder: "https://chat.googleapis.com/v1/spaces/.../messages?key=...",
-    help: "Google Chat space → Apps & integrations → Webhooks → Copy URL.",
+    helpKey: "admin_integrations_channel_help_google_chat",
   },
   custom: {
     name: "Zapier / Make / Custom",
-    placeholder: "https://hooks.zapier.com/hooks/catch/... or Make webhook URL",
-    help: "Use this for Zapier Catch Hook, Make custom webhooks, or your own HTTPS endpoint.",
+    placeholder: "https://hooks.zapier.com/hooks/catch/...",
+    helpKey: "admin_integrations_channel_help_custom",
   },
 };
 
@@ -113,6 +114,56 @@ const categoryIcons: Record<string, React.ElementType> = {
   Accounting: Database,
 };
 
+const categoryKeys: Record<string, TranslationKey> = {
+  "Data sync": "admin_integrations_category_data_sync",
+  Calendar: "admin_integrations_category_calendar",
+  Notifications: "admin_integrations_category_notifications",
+  Automation: "admin_integrations_category_automation",
+  CRM: "admin_integrations_category_crm",
+  Identity: "admin_integrations_category_identity",
+  Events: "admin_integrations_category_events",
+  Messaging: "admin_integrations_category_messaging",
+  Marketing: "admin_integrations_category_marketing",
+  "Document storage": "admin_integrations_category_document_storage",
+  Analytics: "admin_integrations_category_analytics",
+  Learning: "admin_integrations_category_learning",
+  Accounting: "admin_integrations_category_accounting",
+};
+
+const catalogDescriptionKeys: Partial<Record<string, TranslationKey>> = {
+  google_sheets: "admin_integrations_catalog_desc_google_sheets",
+  microsoft_excel: "admin_integrations_catalog_desc_microsoft_excel",
+  google_calendar: "admin_integrations_catalog_desc_google_calendar",
+  slack: "admin_integrations_catalog_desc_slack",
+  microsoft_teams: "admin_integrations_catalog_desc_microsoft_teams",
+  discord: "admin_integrations_catalog_desc_discord",
+  google_chat: "admin_integrations_catalog_desc_google_chat",
+  zapier: "admin_integrations_catalog_desc_zapier",
+  make: "admin_integrations_catalog_desc_make",
+  hubspot: "admin_integrations_catalog_desc_hubspot",
+  salesforce: "admin_integrations_catalog_desc_salesforce",
+  sso_saml_oidc: "admin_integrations_catalog_desc_sso",
+  scim: "admin_integrations_catalog_desc_scim",
+  zoom_teams_webinar: "admin_integrations_catalog_desc_webinar",
+  whatsapp_sms: "admin_integrations_catalog_desc_whatsapp",
+  mailchimp_brevo: "admin_integrations_catalog_desc_marketing",
+  drive_sharepoint_archive: "admin_integrations_catalog_desc_archive",
+  power_bi_looker: "admin_integrations_catalog_desc_analytics",
+  lms: "admin_integrations_catalog_desc_lms",
+  accounting_tr: "admin_integrations_catalog_desc_accounting",
+};
+
+const connectTypeKeys: Partial<Record<string, TranslationKey>> = {
+  oauth: "admin_integrations_connect_oauth",
+  webhook: "admin_integrations_connect_webhook",
+  private_app_token: "admin_integrations_connect_private_token",
+  sso: "admin_integrations_connect_sso",
+  scim: "admin_integrations_connect_scim",
+  provider_credentials: "admin_integrations_connect_provider_credentials",
+  api_key: "admin_integrations_connect_api_key",
+  data_export: "admin_integrations_connect_data_export",
+};
+
 const providerDefaults: Record<
   GenericProviderKey,
   {
@@ -121,9 +172,8 @@ const providerDefaults: Record<
     auth_type: GenericProviderConfig["auth_type"];
     base_url: string;
     primaryId: keyof GenericProviderConfig;
-    placeholder: string;
-    purposeTr: string;
-    purposeEn: string;
+    placeholderKey: TranslationKey;
+    purposeKey: TranslationKey;
   }
 > = {
   salesforce: {
@@ -132,9 +182,8 @@ const providerDefaults: Record<
     auth_type: "bearer_token",
     base_url: "https://your-instance.my.salesforce.com/services/data/v60.0",
     primaryId: "account_id",
-    placeholder: "Salesforce instance / account id",
-    purposeTr: "Katılımcıları lead/contact olarak aktarır, sertifika durumunu CRM kaydına işler.",
-    purposeEn: "Sync event participants and certificate status into Salesforce leads or contacts.",
+    placeholderKey: "admin_integrations_placeholder_salesforce_account",
+    purposeKey: "admin_integrations_provider_purpose_salesforce",
   },
   mailchimp_brevo: {
     name: "Mailchimp / Brevo",
@@ -142,9 +191,8 @@ const providerDefaults: Record<
     auth_type: "api_key",
     base_url: "https://api.mailchimp.com/3.0",
     primaryId: "list_id",
-    placeholder: "Audience/List ID",
-    purposeTr: "Etkinlik segmentlerini mailing listelerine ve kampanya otomasyonlarına aktarır.",
-    purposeEn: "Export event segments to mailing lists and campaign automation.",
+    placeholderKey: "admin_integrations_placeholder_audience_list",
+    purposeKey: "admin_integrations_provider_purpose_marketing",
   },
   whatsapp_sms: {
     name: "WhatsApp Business / SMS",
@@ -152,9 +200,8 @@ const providerDefaults: Record<
     auth_type: "api_key",
     base_url: "https://api.twilio.com/2010-04-01",
     primaryId: "account_id",
-    placeholder: "Twilio SID or WhatsApp Business account",
-    purposeTr: "Bilet, hatırlatma ve sertifika bildirimlerini SMS/WhatsApp kanalına taşır.",
-    purposeEn: "Send ticket, reminder, and certificate notifications via SMS or WhatsApp.",
+    placeholderKey: "admin_integrations_placeholder_messaging_account",
+    purposeKey: "admin_integrations_provider_purpose_messaging",
   },
   drive_sharepoint_archive: {
     name: "Drive / SharePoint Archive",
@@ -162,9 +209,8 @@ const providerDefaults: Record<
     auth_type: "oauth",
     base_url: "https://graph.microsoft.com/v1.0",
     primaryId: "folder_id",
-    placeholder: "Drive/SharePoint folder ID",
-    purposeTr: "Oluşturulan sertifikaları ve raporları kurum klasörlerine arşivler.",
-    purposeEn: "Archive generated certificates and reports into organization folders.",
+    placeholderKey: "admin_integrations_placeholder_folder_id",
+    purposeKey: "admin_integrations_provider_purpose_archive",
   },
   power_bi_looker: {
     name: "Power BI / Looker Studio",
@@ -172,9 +218,8 @@ const providerDefaults: Record<
     auth_type: "bearer_token",
     base_url: "https://api.powerbi.com/v1.0/myorg",
     primaryId: "report_id",
-    placeholder: "Workspace/Report/Dataset ID",
-    purposeTr: "Etkinlik ve sertifika metriklerini yönetici dashboardlarına aktarır.",
-    purposeEn: "Push event and certificate metrics into executive dashboards.",
+    placeholderKey: "admin_integrations_placeholder_report_id",
+    purposeKey: "admin_integrations_provider_purpose_analytics",
   },
   lms: {
     name: "Moodle / Canvas LMS",
@@ -182,9 +227,8 @@ const providerDefaults: Record<
     auth_type: "api_key",
     base_url: "https://lms.example.com",
     primaryId: "course_id",
-    placeholder: "Course ID",
-    purposeTr: "Kurs tamamlama verisini sertifika uygunluğu ile eşleştirir.",
-    purposeEn: "Match course completion data with certificate eligibility.",
+    placeholderKey: "admin_integrations_placeholder_course_id",
+    purposeKey: "admin_integrations_provider_purpose_lms",
   },
   accounting_tr: {
     name: "Logo / Parasut / Mikro",
@@ -192,9 +236,8 @@ const providerDefaults: Record<
     auth_type: "api_key",
     base_url: "https://api.parasut.com",
     primaryId: "account_id",
-    placeholder: "Company/account ID",
-    purposeTr: "Kurumsal ödeme, fatura ve cari referanslarını muhasebe sistemine bağlar.",
-    purposeEn: "Link institutional payments, invoices, and billing references to your accounting system.",
+    placeholderKey: "admin_integrations_placeholder_company_account",
+    purposeKey: "admin_integrations_provider_purpose_accounting",
   },
 };
 
@@ -221,16 +264,15 @@ function emptyProviderConfig(key: GenericProviderKey): GenericProviderConfig {
   };
 }
 
-function statusBadge(status: IntegrationStatus | string, lang: string) {
-  const isTr = lang === "tr";
-  const labels: Record<string, string> = {
-    loading: isTr ? "Yukleniyor" : "Loading",
-    connected: isTr ? "Bagli" : "Connected",
-    disconnected: isTr ? "Bagli degil" : "Disconnected",
-    not_configured: isTr ? "Yapilandirilmamis" : "Not configured",
-    available: isTr ? "Hazir" : "Available",
-    planned: isTr ? "Planlandi" : "Planned",
-    error: isTr ? "Hata" : "Error",
+function statusBadge(status: IntegrationStatus | string, t: Translator) {
+  const labels: Record<string, TranslationKey> = {
+    loading: "admin_integrations_status_loading",
+    connected: "admin_integrations_status_connected",
+    disconnected: "admin_integrations_status_disconnected",
+    not_configured: "admin_integrations_status_not_configured",
+    available: "admin_integrations_status_available",
+    planned: "admin_integrations_status_planned",
+    error: "admin_integrations_status_error",
   };
   const color =
     status === "connected"
@@ -246,7 +288,7 @@ function statusBadge(status: IntegrationStatus | string, lang: string) {
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${color}`}>
       <Icon className={`h-3.5 w-3.5 ${status === "loading" ? "animate-spin" : ""}`} />
-      {labels[status] || status}
+      {labels[status] ? t(labels[status]) : status}
     </span>
   );
 }
@@ -268,7 +310,7 @@ function OauthCard({
   settingsHref,
   connecting,
   syncing,
-  lang,
+  t,
 }: {
   icon: React.ElementType;
   name: string;
@@ -280,9 +322,8 @@ function OauthCard({
   settingsHref?: string;
   connecting: boolean;
   syncing?: boolean;
-  lang: string;
+  t: Translator;
 }) {
-  const isTr = lang === "tr";
   return (
     <div className={`card p-5 ${status === "connected" ? "ring-1 ring-status-success-border" : ""}`}>
       <div className="flex items-start justify-between gap-3">
@@ -295,13 +336,13 @@ function OauthCard({
             <p className="mt-0.5 text-xs leading-relaxed text-surface-500">{description}</p>
           </div>
         </div>
-        {statusBadge(status, lang)}
+        {statusBadge(status, t)}
       </div>
 
       {connectedAs && (
         <p className="mt-3 rounded-lg border border-status-success-border bg-status-success-bg px-3 py-2 text-xs font-semibold text-status-success-content">
           <Check className="mr-1 inline h-3.5 w-3.5" />
-          {isTr ? "Bagli hesap:" : "Connected as:"} {connectedAs}
+          {t("admin_integrations_connected_as", { account: connectedAs })}
         </p>
       )}
 
@@ -309,19 +350,19 @@ function OauthCard({
         {status === "disconnected" && onConnect && (
           <button type="button" onClick={onConnect} disabled={connecting} className="btn-primary px-3 py-2 text-xs">
             {connecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-            {isTr ? "Baglan" : "Connect"}
+            {t("admin_integrations_connect")}
           </button>
         )}
         {status === "connected" && onSync && (
           <button type="button" onClick={onSync} disabled={syncing} className="btn-secondary px-3 py-2 text-xs">
             {syncing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            {isTr ? "Senkronla" : "Sync"}
+            {t("admin_integrations_sync")}
           </button>
         )}
         {settingsHref && (
           <Link href={settingsHref} className="btn-secondary px-3 py-2 text-xs">
             <ExternalLink className="h-3.5 w-3.5" />
-            {isTr ? "Ayarlara git" : "Settings"}
+            {t("admin_integrations_settings")}
           </Link>
         )}
       </div>
@@ -329,8 +370,11 @@ function OauthCard({
   );
 }
 
-function CatalogCard({ item, lang }: { item: IntegrationCatalogItem; lang: string }) {
+function CatalogCard({ item, t }: { item: IntegrationCatalogItem; t: Translator }) {
   const Icon = categoryIcons[item.category] || Plug;
+  const categoryKey = categoryKeys[item.category];
+  const descriptionKey = catalogDescriptionKeys[item.key];
+  const connectTypeKey = connectTypeKeys[item.connect_type];
   return (
     <div className="card p-4">
       <div className="flex items-start justify-between gap-3">
@@ -341,28 +385,28 @@ function CatalogCard({ item, lang }: { item: IntegrationCatalogItem; lang: strin
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-bold text-surface-900">{item.name}</h3>
-              <span className="rounded-full bg-surface-100 px-2 py-0.5 text-11 font-semibold text-surface-500">{item.category}</span>
+              <span className="rounded-full bg-surface-100 px-2 py-0.5 text-11 font-semibold text-surface-500">{categoryKey ? t(categoryKey) : item.category}</span>
             </div>
-            <p className="mt-1 text-xs leading-relaxed text-surface-500">{item.description}</p>
+            <p className="mt-1 text-xs leading-relaxed text-surface-500">{descriptionKey ? t(descriptionKey) : item.description}</p>
           </div>
         </div>
-        {statusBadge(item.status, lang)}
+        {statusBadge(item.status, t)}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-        <span className="rounded-md border border-surface-200 bg-surface-50 px-2 py-1 font-semibold text-surface-600">{item.connect_type}</span>
+        <span className="rounded-md border border-surface-200 bg-surface-50 px-2 py-1 font-semibold text-surface-600">{connectTypeKey ? t(connectTypeKey) : item.connect_type}</span>
         {item.settings_href && (
           <Link href={item.settings_href} className="font-semibold text-brand-700 hover:underline">
-            Settings
+            {t("admin_integrations_settings")}
           </Link>
         )}
         {item.docs_url && (
           <a href={item.docs_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-surface-600 hover:text-brand-700">
-            Docs <ExternalLink className="h-3 w-3" />
+            {t("admin_integrations_docs")} <ExternalLink className="h-3 w-3" />
           </a>
         )}
         {item.setup_url && (
           <a href={item.setup_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-surface-600 hover:text-brand-700">
-            App setup <ExternalLink className="h-3 w-3" />
+            {t("admin_integrations_app_setup")} <ExternalLink className="h-3 w-3" />
           </a>
         )}
       </div>
@@ -371,8 +415,7 @@ function CatalogCard({ item, lang }: { item: IntegrationCatalogItem; lang: strin
 }
 
 export default function AdminIntegrationsPage() {
-  const { lang } = useI18n();
-  const isTr = lang === "tr";
+  const { t } = useI18n();
 
   const [sheetsStatus, setSheetsStatus] = useState<GoogleSheetsConnectionStatus | null>(null);
   const [excelStatus, setExcelStatus] = useState<MicrosoftExcelConnectionStatus | null>(null);
@@ -381,7 +424,7 @@ export default function AdminIntegrationsPage() {
   const [notifications, setNotifications] = useState<NotificationIntegrationsConfig | null>(null);
   const [enterpriseConfig, setEnterpriseConfig] = useState<EnterpriseIntegrationsConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Feedback | null>(null);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
   const [syncingCalendar, setSyncingCalendar] = useState(false);
@@ -433,7 +476,7 @@ export default function AdminIntegrationsPage() {
       setEnterpriseConfig(enterprise);
       setError(null);
     } catch (ex: any) {
-      setError(ex?.message || (isTr ? "Entegrasyonlar yuklenemedi." : "Failed to load integrations."));
+      setError(ex?.message ? { message: ex.message } : { key: "admin_integrations_load_error" });
     } finally {
       setLoading(false);
     }
@@ -497,7 +540,7 @@ export default function AdminIntegrationsPage() {
 
   const handleSaveNotification = async () => {
     if (!form.url.trim()) {
-      setError(isTr ? "Webhook URL gerekli." : "Webhook URL is required.");
+      setError({ key: "admin_integrations_webhook_required" });
       return;
     }
     setSaving(channel);
@@ -589,16 +632,12 @@ export default function AdminIntegrationsPage() {
     <div className="space-y-6">
       <PageHeader
         icon={<Plug />}
-        title={isTr ? "Entegrasyonlar" : "Integrations"}
-        subtitle={
-          isTr
-            ? "Sheets, Excel, Calendar, Slack, Teams, Zapier, Make, CRM, SSO ve diğer kurumsal bağlantıları buradan yönetin."
-            : "Manage Sheets, Excel, Calendar, Slack, Teams, Zapier, Make, CRM, SSO, and other enterprise connections."
-        }
+        title={t("admin_integrations_title")}
+        subtitle={t("admin_integrations_subtitle")}
         actions={
           <button type="button" onClick={() => void load()} disabled={loading} className="btn-secondary">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            {isTr ? "Yenile" : "Refresh"}
+            {t("admin_integrations_refresh")}
           </button>
         }
       />
@@ -606,32 +645,32 @@ export default function AdminIntegrationsPage() {
       {error && (
         <div className="error-banner flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
+          {"key" in error ? t(error.key, error.vars) : error.message}
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
         <StatCard
-          label={isTr ? "Aktif bağlantı" : "Active connections"}
+          label={t("admin_integrations_active_connections")}
           value={loading ? "—" : connectedCount}
           icon={<Wifi />}
           iconBg="bg-status-success-bg text-status-success-content border border-status-success-border"
           delay={0}
         />
         <StatCard
-          label={isTr ? "Toplam connector" : "Total connectors"}
+          label={t("admin_integrations_total_connectors")}
           value={loading ? "—" : catalog.length}
           icon={<Plug />}
           delay={0.05}
         />
         <StatCard
-          label={isTr ? "Kategori" : "Categories"}
+          label={t("admin_integrations_categories")}
           value={loading ? "—" : Object.keys(groupedCatalog).length}
           icon={<Database />}
           delay={0.1}
         />
         <StatCard
-          label={isTr ? "Bildirim kanalı" : "Notification channels"}
+          label={t("admin_integrations_notification_channels")}
           value={loading ? "—" : notifChannelsCount}
           icon={<Bell />}
           delay={0.15}
@@ -641,11 +680,9 @@ export default function AdminIntegrationsPage() {
       <div className="warning-banner">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" />
         <div>
-          <p className="font-semibold">{isTr ? "Kimlik bilgisi güvenliği" : "Credential security"}</p>
+          <p className="font-semibold">{t("admin_integrations_credential_security")}</p>
           <p className="mt-1 text-xs leading-relaxed">
-            {isTr
-              ? "Secret, token ve API key alanları kaydedildikten sonra maskelenir. Alan boş veya ******** bırakılırsa mevcut değer korunur; yeni değer yazarsanız güncellenir."
-              : "Secret, token, and API key fields are masked after saving. Leaving a field empty or as ******** keeps the current value; entering a new value replaces it."}
+            {t("admin_integrations_credential_security_desc")}
           </p>
         </div>
       </div>
@@ -653,7 +690,7 @@ export default function AdminIntegrationsPage() {
       {myConnections.length > 0 && (
         <section className="space-y-3">
           <h2 className="section-label">
-            {isTr ? "Bağlı AI Asistanlar" : "Connected AI Assistants"}
+            {t("admin_integrations_connected_assistants")}
           </h2>
           <div className="grid gap-3 lg:grid-cols-2">
             {myConnections.map((conn) => (
@@ -679,7 +716,8 @@ export default function AdminIntegrationsPage() {
                   type="button"
                   onClick={() => void handleDisconnect(conn.client_id)}
                   disabled={disconnecting === conn.client_id}
-                  title={isTr ? "Bağlantıyı kes" : "Disconnect"}
+                  title={t("admin_integrations_disconnect")}
+                  aria-label={t("admin_integrations_disconnect_named", { name: conn.name })}
                   className="shrink-0 rounded-lg border border-surface-200 p-2 text-surface-400 hover:border-status-danger-border hover:bg-status-danger-bg hover:text-status-danger-content disabled:opacity-40"
                 >
                   {disconnecting === conn.client_id
@@ -694,34 +732,34 @@ export default function AdminIntegrationsPage() {
       )}
 
       <section className="space-y-3">
-        <h2 className="section-label">{isTr ? "Canli baglantilar" : "Live connectors"}</h2>
+        <h2 className="section-label">{t("admin_integrations_live_connectors")}</h2>
         <div className="grid gap-4 lg:grid-cols-3">
           <OauthCard
             icon={FileSpreadsheet}
             name="Google Sheets"
-            description={isTr ? "Etkinlik katılımcılarını ve segmentleri Sheets'e senkronla." : "Sync attendees and segments to Sheets."}
+            description={t("admin_integrations_sheets_desc")}
             status={loading ? "loading" : getStatus(sheetsStatus)}
             connectedAs={sheetsStatus?.connected ? sheetsStatus.google_email : null}
             onConnect={() => void startOAuth("sheets")}
             connecting={connecting === "sheets"}
             settingsHref="/admin/events"
-            lang={lang}
+            t={t}
           />
           <OauthCard
             icon={FileSpreadsheet}
             name="Microsoft Excel"
-            description={isTr ? "OneDrive veya SharePoint workbook'una etkinlik verisi yaz." : "Write event data to OneDrive or SharePoint workbooks."}
+            description={t("admin_integrations_excel_desc")}
             status={loading ? "loading" : getStatus(excelStatus)}
             connectedAs={excelStatus?.connected ? excelStatus.microsoft_email : null}
             onConnect={() => void startOAuth("excel")}
             connecting={connecting === "excel"}
             settingsHref="/admin/events"
-            lang={lang}
+            t={t}
           />
           <OauthCard
             icon={CalendarDays}
             name="Google Calendar"
-            description={isTr ? "Salon rezervasyonlarını Calendar ile çift yönlü senkronla." : "Two-way sync venue reservations with Calendar."}
+            description={t("admin_integrations_calendar_desc")}
             status={loading ? "loading" : getStatus(calendarStatus)}
             connectedAs={calendarStatus?.connected ? calendarStatus.google_email : null}
             onConnect={() => void startOAuth("calendar")}
@@ -729,16 +767,14 @@ export default function AdminIntegrationsPage() {
             connecting={connecting === "calendar"}
             syncing={syncingCalendar}
             settingsHref="/admin/settings?tab=venues"
-            lang={lang}
+            t={t}
           />
         </div>
         {!loading && (getStatus(sheetsStatus) === "not_configured" || getStatus(excelStatus) === "not_configured") && (
           <div className="rounded-lg border border-status-warning-border bg-status-warning-bg px-4 py-3 text-xs leading-relaxed text-status-warning-content">
-            <p className="font-bold text-status-warning-content">{isTr ? "OAuth kimlik bilgileri yapılandırılmamış" : "OAuth credentials not configured"}</p>
+            <p className="font-bold text-status-warning-content">{t("admin_integrations_oauth_missing")}</p>
             <p className="mt-1">
-              {isTr
-                ? "Google entegrasyonları için backend .env dosyasına GOOGLE_OAUTH_CLIENT_ID ve GOOGLE_OAUTH_CLIENT_SECRET, Microsoft entegrasyonları için MS365_OAUTH_CLIENT_ID ve MS365_OAUTH_CLIENT_SECRET değerlerini ekleyin."
-                : "To enable Google integrations, set GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET in the backend .env file. For Microsoft integrations, set MS365_OAUTH_CLIENT_ID and MS365_OAUTH_CLIENT_SECRET."}
+              {t("admin_integrations_oauth_missing_desc")}
             </p>
           </div>
         )}
@@ -746,9 +782,9 @@ export default function AdminIntegrationsPage() {
 
       <section className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="card p-4">
-          <h2 className="text-sm font-bold text-surface-900">{isTr ? "Bildirim kanallari" : "Notification channels"}</h2>
+          <h2 className="text-sm font-bold text-surface-900">{t("admin_integrations_notification_channels")}</h2>
           <p className="mt-1 text-xs leading-relaxed text-surface-500">
-            {isTr ? "Slack, Teams, Zapier, Make veya ozel webhook URL'lerine olay gonderin." : "Send events to Slack, Teams, Zapier, Make, or custom webhook URLs."}
+            {t("admin_integrations_notification_channels_desc")}
           </p>
           <div className="mt-4 grid gap-2">
             {(["slack", "teams", "discord", "google_chat", "custom"] as NotificationChannelKey[]).map(key => (
@@ -769,13 +805,13 @@ export default function AdminIntegrationsPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold text-surface-900">{channelCopy[channel].name}</h2>
-              <p className="mt-1 text-xs text-surface-500">{channelCopy[channel].help}</p>
+              <p className="mt-1 text-xs text-surface-500">{t(channelCopy[channel].helpKey)}</p>
             </div>
-            {notifications?.[channel] ? statusBadge("connected", lang) : statusBadge("available", lang)}
+            {notifications?.[channel] ? statusBadge("connected", t) : statusBadge("available", t)}
           </div>
 
           <label className="mt-4 block space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">Webhook URL</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">{t("admin_integrations_webhook_url")}</span>
             <input
               className="input"
               value={form.url}
@@ -785,18 +821,18 @@ export default function AdminIntegrationsPage() {
           </label>
 
           <label className="mt-3 block space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">Secret</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">{t("admin_integrations_secret")}</span>
             <input
               type="password"
               className="input"
               value={form.secret || ""}
               onChange={event => setForm(prev => ({ ...prev, secret: event.target.value }))}
-              placeholder={isTr ? "Opsiyonel imza anahtari" : "Optional signature secret"}
+              placeholder={t("admin_integrations_optional_secret")}
             />
           </label>
 
           <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">Events</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-surface-500">{t("admin_integrations_events")}</p>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               {supportedEvents.map(eventName => (
                 <label key={eventName} className="flex items-center gap-2 rounded-lg border border-surface-200 bg-raised px-3 py-2 text-xs font-semibold text-surface-700">
@@ -817,16 +853,16 @@ export default function AdminIntegrationsPage() {
           <div className="mt-4 flex flex-wrap gap-2">
             <button type="button" onClick={() => void handleSaveNotification()} disabled={Boolean(saving)} className="btn-primary px-3 py-2 text-xs">
               {saving === channel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              {isTr ? "Kaydet" : "Save"}
+              {t("admin_integrations_save")}
             </button>
             <button type="button" onClick={() => void handleTestNotification()} disabled={Boolean(saving) || !form.url} className="btn-secondary px-3 py-2 text-xs">
               {saving === `test-${channel}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-              Test
+              {t("admin_integrations_test")}
             </button>
             {notifications?.[channel] && (
               <button type="button" onClick={() => void handleRemoveNotification()} disabled={Boolean(saving)} className="btn-secondary px-3 py-2 text-xs text-status-danger-content">
                 {saving === `remove-${channel}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                {isTr ? "Kaldir" : "Remove"}
+                {t("admin_integrations_remove")}
               </button>
             )}
           </div>
@@ -834,7 +870,7 @@ export default function AdminIntegrationsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="section-label">{isTr ? "Enterprise kurulum" : "Enterprise setup"}</h2>
+        <h2 className="section-label">{t("admin_integrations_enterprise_setup")}</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="card p-4">
             <div className="flex items-start justify-between gap-3">
@@ -845,24 +881,24 @@ export default function AdminIntegrationsPage() {
                 <div>
                   <h3 className="text-sm font-bold text-surface-900">OIDC SSO</h3>
                   <p className="mt-1 text-xs text-surface-500">
-                    {isTr ? "Entra ID, Okta veya Google Workspace icin OIDC ayarlarini saklayin." : "Store OIDC settings for Entra ID, Okta, or Google Workspace."}
+                    {t("admin_integrations_oidc_desc")}
                   </p>
                 </div>
               </div>
-              {statusBadge(oidcForm.enabled && oidcForm.issuer_url ? "connected" : "available", lang)}
+              {statusBadge(oidcForm.enabled && oidcForm.issuer_url ? "connected" : "available", t)}
             </div>
             <div className="mt-4 grid gap-3">
               <label className="flex items-center gap-2 text-xs font-semibold text-surface-700">
                 <input type="checkbox" checked={oidcForm.enabled} onChange={event => setOidcForm(prev => ({ ...prev, enabled: event.target.checked }))} />
-                {isTr ? "SSO aktif" : "SSO enabled"}
+                {t("admin_integrations_sso_enabled")}
               </label>
               <input className="input" value={oidcForm.issuer_url} onChange={event => setOidcForm(prev => ({ ...prev, issuer_url: event.target.value }))} placeholder="https://login.microsoftonline.com/{tenant}/v2.0" />
-              <input className="input" value={oidcForm.client_id} onChange={event => setOidcForm(prev => ({ ...prev, client_id: event.target.value }))} placeholder="Client ID" />
-              <input type="password" className="input" value={oidcForm.client_secret} onChange={event => setOidcForm(prev => ({ ...prev, client_secret: event.target.value }))} placeholder="Client secret" />
+              <input className="input" value={oidcForm.client_id} onChange={event => setOidcForm(prev => ({ ...prev, client_id: event.target.value }))} placeholder={t("admin_integrations_client_id")} />
+              <input type="password" className="input" value={oidcForm.client_secret} onChange={event => setOidcForm(prev => ({ ...prev, client_secret: event.target.value }))} placeholder={t("admin_integrations_client_secret")} />
               <input className="input" value={oidcDomainsText} onChange={event => setOidcDomainsText(event.target.value)} placeholder="example.com, kurum.com" />
               <button type="button" onClick={() => void handleSaveOidc()} disabled={Boolean(saving)} className="btn-primary w-fit px-3 py-2 text-xs">
                 {saving === "oidc" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                {isTr ? "SSO ayarlarini kaydet" : "Save SSO settings"}
+                {t("admin_integrations_save_sso")}
               </button>
             </div>
           </div>
@@ -876,27 +912,27 @@ export default function AdminIntegrationsPage() {
                 <div>
                   <h3 className="text-sm font-bold text-surface-900">Zoom / Teams Webinar</h3>
                   <p className="mt-1 text-xs text-surface-500">
-                    {isTr ? "Webinar katilim verisini sertifika uygunluguna baglamak icin credential saklayin." : "Store credentials for importing webinar attendance into certificate eligibility."}
+                    {t("admin_integrations_webinar_desc")}
                   </p>
                 </div>
               </div>
-              {statusBadge(webinarForm.enabled && webinarForm.client_id ? "connected" : "available", lang)}
+              {statusBadge(webinarForm.enabled && webinarForm.client_id ? "connected" : "available", t)}
             </div>
             <div className="mt-4 grid gap-3">
               <label className="flex items-center gap-2 text-xs font-semibold text-surface-700">
                 <input type="checkbox" checked={webinarForm.enabled} onChange={event => setWebinarForm(prev => ({ ...prev, enabled: event.target.checked }))} />
-                {isTr ? "Import aktif" : "Import enabled"}
+                {t("admin_integrations_import_enabled")}
               </label>
               <select className="input" value={webinarForm.provider} onChange={event => setWebinarForm(prev => ({ ...prev, provider: event.target.value as WebinarImportConfig["provider"] }))}>
                 <option value="zoom">Zoom</option>
                 <option value="microsoft_teams">Microsoft Teams</option>
               </select>
-              <input className="input" value={webinarForm.account_id} onChange={event => setWebinarForm(prev => ({ ...prev, account_id: event.target.value }))} placeholder={webinarForm.provider === "zoom" ? "Zoom account ID" : "Tenant ID"} />
-              <input className="input" value={webinarForm.client_id} onChange={event => setWebinarForm(prev => ({ ...prev, client_id: event.target.value }))} placeholder="Client ID" />
-              <input type="password" className="input" value={webinarForm.client_secret} onChange={event => setWebinarForm(prev => ({ ...prev, client_secret: event.target.value }))} placeholder="Client secret" />
+              <input className="input" value={webinarForm.account_id} onChange={event => setWebinarForm(prev => ({ ...prev, account_id: event.target.value }))} placeholder={webinarForm.provider === "zoom" ? t("admin_integrations_zoom_account_id") : t("admin_integrations_tenant_id")} />
+              <input className="input" value={webinarForm.client_id} onChange={event => setWebinarForm(prev => ({ ...prev, client_id: event.target.value }))} placeholder={t("admin_integrations_client_id")} />
+              <input type="password" className="input" value={webinarForm.client_secret} onChange={event => setWebinarForm(prev => ({ ...prev, client_secret: event.target.value }))} placeholder={t("admin_integrations_client_secret")} />
               <button type="button" onClick={() => void handleSaveWebinar()} disabled={Boolean(saving)} className="btn-primary w-fit px-3 py-2 text-xs">
                 {saving === "webinar" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                {isTr ? "Webinar ayarlarini kaydet" : "Save webinar settings"}
+                {t("admin_integrations_save_webinar")}
               </button>
             </div>
           </div>
@@ -904,7 +940,7 @@ export default function AdminIntegrationsPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="section-label">{isTr ? "Tum diger connectorlar" : "All remaining connectors"}</h2>
+        <h2 className="section-label">{t("admin_integrations_other_connectors")}</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           {providerKeys.map(key => {
             const cfg = providerForms[key];
@@ -918,38 +954,38 @@ export default function AdminIntegrationsPage() {
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-surface-900">{def.name}</h3>
-                      <p className="mt-1 text-xs text-surface-500">{isTr ? def.purposeTr : def.purposeEn}</p>
+                      <p className="mt-1 text-xs text-surface-500">{t(def.purposeKey)}</p>
                     </div>
                   </div>
-                  {statusBadge(cfg.enabled ? "connected" : "available", lang)}
+                  {statusBadge(cfg.enabled ? "connected" : "available", t)}
                 </div>
 
                 <div className="mt-4 grid gap-2">
                   <label className="flex items-center gap-2 text-xs font-semibold text-surface-700">
                     <input type="checkbox" checked={cfg.enabled} onChange={event => updateProviderForm(key, { enabled: event.target.checked })} />
-                    {isTr ? "Aktif" : "Enabled"}
+                    {t("admin_integrations_enabled")}
                   </label>
-                  <input className="input" value={cfg.base_url} onChange={event => updateProviderForm(key, { base_url: event.target.value })} placeholder="Base API URL" />
+                  <input className="input" value={cfg.base_url} onChange={event => updateProviderForm(key, { base_url: event.target.value })} placeholder={t("admin_integrations_base_api_url")} />
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <input className="input" value={String(cfg[def.primaryId] || "")} onChange={event => updateProviderForm(key, { [def.primaryId]: event.target.value } as Partial<GenericProviderConfig>)} placeholder={def.placeholder} />
-                    <input className="input" value={cfg.client_id} onChange={event => updateProviderForm(key, { client_id: event.target.value })} placeholder="Client ID" />
+                    <input className="input" value={String(cfg[def.primaryId] || "")} onChange={event => updateProviderForm(key, { [def.primaryId]: event.target.value } as Partial<GenericProviderConfig>)} placeholder={t(def.placeholderKey)} />
+                    <input className="input" value={cfg.client_id} onChange={event => updateProviderForm(key, { client_id: event.target.value })} placeholder={t("admin_integrations_client_id")} />
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <input type="password" className="input" value={cfg.api_key} onChange={event => updateProviderForm(key, { api_key: event.target.value })} placeholder="API key" />
-                    <input type="password" className="input" value={cfg.access_token} onChange={event => updateProviderForm(key, { access_token: event.target.value })} placeholder="Access token" />
+                    <input type="password" className="input" value={cfg.api_key} onChange={event => updateProviderForm(key, { api_key: event.target.value })} placeholder={t("admin_integrations_api_key")} />
+                    <input type="password" className="input" value={cfg.access_token} onChange={event => updateProviderForm(key, { access_token: event.target.value })} placeholder={t("admin_integrations_access_token")} />
                   </div>
-                  <input type="password" className="input" value={cfg.client_secret} onChange={event => updateProviderForm(key, { client_secret: event.target.value })} placeholder="Client secret" />
-                  <textarea className="input min-h-[70px] py-2" value={cfg.notes} onChange={event => updateProviderForm(key, { notes: event.target.value })} placeholder={isTr ? "Notlar, mapping detaylari, ortam bilgisi" : "Notes, mapping details, environment info"} />
+                  <input type="password" className="input" value={cfg.client_secret} onChange={event => updateProviderForm(key, { client_secret: event.target.value })} placeholder={t("admin_integrations_client_secret")} />
+                  <textarea className="input min-h-[70px] py-2" value={cfg.notes} onChange={event => updateProviderForm(key, { notes: event.target.value })} placeholder={t("admin_integrations_notes_placeholder")} />
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button type="button" onClick={() => void handleSaveProvider(key)} disabled={Boolean(saving)} className="btn-primary px-3 py-2 text-xs">
                     {saving === key ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                    {isTr ? "Kaydet" : "Save"}
+                    {t("admin_integrations_save")}
                   </button>
                   <button type="button" onClick={() => void handleTestProvider(key)} disabled={Boolean(saving) || !cfg.enabled} className="btn-secondary px-3 py-2 text-xs">
                     {saving === `test-${key}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                    Test
+                    {t("admin_integrations_test")}
                   </button>
                 </div>
               </div>
@@ -959,12 +995,12 @@ export default function AdminIntegrationsPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="section-label">{isTr ? "Kurumsal entegrasyon katalogu" : "Enterprise integration catalog"}</h2>
+        <h2 className="section-label">{t("admin_integrations_catalog_title")}</h2>
         {Object.entries(groupedCatalog).map(([category, items]) => (
           <div key={category} className="space-y-3">
-            <h3 className="card-title">{category}</h3>
+            <h3 className="card-title">{categoryKeys[category] ? t(categoryKeys[category]) : category}</h3>
             <div className="grid gap-3 lg:grid-cols-2">
-              {items.map(item => <CatalogCard key={item.key} item={item} lang={lang} />)}
+              {items.map(item => <CatalogCard key={item.key} item={item} t={t} />)}
             </div>
           </div>
         ))}
