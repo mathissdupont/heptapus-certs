@@ -6,6 +6,7 @@ import sitemap from "@/app/sitemap";
 import PublicEventsPage from "@/components/public/PublicEventsPage";
 import PublicOrganizationsPage from "@/components/public/PublicOrganizationsPage";
 import DiscoveryPage from "@/components/public/DiscoveryPage";
+import ChatGPTPluginPage from "@/components/public/ChatGPTPluginPage";
 import { locales } from "@/i18n/routing";
 import { tr } from "@/locales/tr";
 import { en } from "@/locales/en";
@@ -44,6 +45,7 @@ describe("localized public directories", () => {
       [PublicEventsPage, "public_events_title"],
       [PublicOrganizationsPage, "public_orgs_title"],
       [DiscoveryPage, "public_hub_title"],
+      [ChatGPTPluginPage, "chatgpt_plugin_title"],
     ] as const;
 
     for (const locale of locales) {
@@ -61,7 +63,7 @@ describe("localized public directories", () => {
 
   it("publishes all localized directory URLs and hreflang alternates", async () => {
     const entries = await sitemap();
-    for (const path of ["events", "organizations", "discover"]) {
+    for (const path of ["events", "organizations", "discover", "chatgpt-plugin"]) {
       expect(entries.filter((entry) => new RegExp(`/(tr|en|de|fr|es|it|pt|nl|ru)/${path}$`).test(entry.url))).toHaveLength(locales.length);
       const german = entries.find((entry) => entry.url.endsWith(`/de/${path}`));
       expect(german?.alternates?.languages).toEqual(expect.objectContaining({

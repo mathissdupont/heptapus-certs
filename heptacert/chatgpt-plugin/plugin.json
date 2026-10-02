@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "gpt-04d93178cfb7a0ccd9581a5151099c97",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "description": "Manage HeptaCert events, participants, check-ins, registrations, certificates, email workflows, surveys, automations, CRM workflows, integrations, and analytics directly from ChatGPT.",
   "author": {
     "name": "Samet Ünsal"
@@ -24,7 +24,7 @@
         "logo": "./assets/icon.png",
         "longDescription": "Manage HeptaCert workflows from ChatGPT, including events, attendees, sessions, check-ins, digital certificates, email templates and bulk communication, surveys, automations, webhooks, CRM lookup, analytics, and organization operations. HeptaCert follows the language used in the conversation and uses connected tools only when those operations are actually available.",
         "shortDescription": "Manage HeptaCert workflows",
-        "websiteURL": "https://heptacert.com",
+        "websiteURL": "https://heptacert.com/en/chatgpt-plugin",
         "supportURL": "https://heptacert.com/iletisim",
         "privacyPolicyURL": "https://heptacert.com/gizlilik",
         "termsOfServiceURL": "https://heptacert.com/kullanim-kosullari",
@@ -84,7 +84,41 @@
       },
       "publication": {
         "countries": ["TR", "US", "AD", "AL", "AM", "AT", "AZ", "BA", "BE", "BG", "CH", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GB", "GE", "GR", "HR", "HU", "IE", "IS", "IT", "KZ", "LI", "LT", "LU", "LV", "MC", "MD", "ME", "MK", "MT", "NL", "NO", "PL", "PT", "RO", "RS", "SE", "SI", "SK", "SM", "UA", "VA"],
-        "release_notes": "Adds event email templates, confirmed bulk-email jobs, delivery reporting, certificate template previews and survey configuration. Aligns REST and MCP scope checks, limits delivery-log output, redacts survey webhook keys, and corrects listing metadata."
+        "release_notes": "Prepares HeptaCert for public web distribution with a dedicated nine-language product page and localized listing metadata. Includes 54 hosted MCP tools, explicit confirmation for high-impact actions, OAuth tenant boundaries, and eight workflow skills.",
+        "translations": {
+          "tr-TR": {
+            "subtitle": "HeptaCert işlerini yönetin",
+            "description": "HeptaCert etkinliklerini, katılımcılarını, oturumlarını, check-in işlemlerini, dijital sertifikalarını, e-posta iletişimini, anketlerini, otomasyonlarını ve analizlerini ChatGPT üzerinden yönetin. Eklenti konuşmanın dilini izler, organizasyon yetkilerinizi korur ve yüksek etkili işlemlerden önce açık onay ister."
+          },
+          "de-DE": {
+            "subtitle": "HeptaCert-Abläufe verwalten",
+            "description": "Verwalten Sie HeptaCert-Events, Teilnehmende, Sitzungen, Check-ins, digitale Zertifikate, E-Mail-Kommunikation, Umfragen, Automatisierungen und Analysen über ChatGPT. Das Plugin folgt der Sprache des Gesprächs, wahrt Organisationsrechte und verlangt vor folgenreichen Aktionen eine ausdrückliche Bestätigung."
+          },
+          "fr-FR": {
+            "subtitle": "Gérez vos flux HeptaCert",
+            "description": "Gérez depuis ChatGPT les événements HeptaCert, participants, sessions, pointages, certificats numériques, communications par e-mail, enquêtes, automatisations et analyses. Le plugin suit la langue de la conversation, respecte les droits de l'organisation et demande une confirmation explicite avant toute action à fort impact."
+          },
+          "es-ES": {
+            "subtitle": "Gestiona flujos HeptaCert",
+            "description": "Gestiona desde ChatGPT eventos, asistentes, sesiones, registros, certificados digitales, comunicaciones por correo, encuestas, automatizaciones y análisis de HeptaCert. El plugin sigue el idioma de la conversación, respeta los permisos de la organización y solicita confirmación explícita antes de acciones de alto impacto."
+          },
+          "it-IT": {
+            "subtitle": "Gestisci i flussi HeptaCert",
+            "description": "Gestisci da ChatGPT eventi, partecipanti, sessioni, check-in, certificati digitali, comunicazioni e-mail, sondaggi, automazioni e analisi di HeptaCert. Il plugin segue la lingua della conversazione, rispetta i permessi dell'organizzazione e richiede una conferma esplicita prima delle operazioni ad alto impatto."
+          },
+          "pt-PT": {
+            "subtitle": "Gerencie fluxos HeptaCert",
+            "description": "Gerencie no ChatGPT eventos, participantes, sessões, check-ins, certificados digitais, comunicações por e-mail, inquéritos, automatizações e análises do HeptaCert. O plugin acompanha o idioma da conversa, respeita as permissões da organização e pede confirmação explícita antes de ações de alto impacto."
+          },
+          "nl-NL": {
+            "subtitle": "Beheer HeptaCert-workflows",
+            "description": "Beheer vanuit ChatGPT HeptaCert-evenementen, deelnemers, sessies, check-ins, digitale certificaten, e-mailcommunicatie, enquêtes, automatiseringen en analyses. De plugin volgt de gesprekstaal, respecteert organisatierechten en vraagt expliciete bevestiging voor ingrijpende acties."
+          },
+          "ru-RU": {
+            "subtitle": "Управляйте HeptaCert",
+            "description": "Управляйте из ChatGPT событиями HeptaCert, участниками, сессиями, регистрацией, цифровыми сертификатами, рассылками, опросами, автоматизацией и аналитикой. Плагин следует языку диалога, соблюдает права организации и запрашивает явное подтверждение перед действиями с серьёзными последствиями."
+          }
+        }
       }
     }
   }

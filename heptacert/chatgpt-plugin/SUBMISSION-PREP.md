@@ -1,6 +1,28 @@
-# HeptaCert 0.9.8 — submission preparation
+# HeptaCert 0.9.9 — submission preparation
 
 Status: **draft package prepared, not submitted for review**.
+
+## Public web distribution draft 0.9.9 (2026-10-02)
+
+- Why: the private owned plugin behaves like a local/desktop install on the web
+  ("Open desktop app"), and Developer mode is not visible in the owner's Plus UI.
+  End users only avoid Developer mode once the same remote-MCP package is published
+  through the public plugin directory. The private v0.9.8 plugin is not deleted or
+  modified by this draft.
+- Added a dedicated product page at `/{locale}/chatgpt-plugin` in all nine languages
+  (sitemap + hreflang), so the portal can check what the plugin is and who publishes it
+  without relying on the home page. `websiteURL` now points to
+  `https://heptacert.com/en/chatgpt-plugin`.
+- **Deploy the frontend before uploading the ZIP.** On 2026-10-02 that URL returned
+  **404** in production because the page was not yet deployed (`/en/discover` → 200).
+- `publication.translations` adds subtitle (≤30 chars) and description for eight
+  non-English locales; the packaging script asserts their count and lengths.
+- The packaging script now also copies the verified archive to
+  `dist/heptacert-plugin-<version>-draft.zip` (git-ignored) for upload.
+- Release notes describe this release: web-distribution page, localized listing,
+  54 hosted tools, confirmations, OAuth tenant boundaries and eight skills.
+  The 54-tool count is from the source; authenticated discovery in ChatGPT is still
+  unverified.
 
 ## Owned private plugin updated and read back (2026-10-01)
 
@@ -103,8 +125,9 @@ node scripts/package-chatgpt-plugin.mjs
 ```
 
 Frontend dependencies must already be installed (the script uses its existing
-`sharp` dependency). The script prints a temporary archive path and its verified
-inventory. It does not upload, create a second plugin, submit policy attestations
+`sharp` dependency). The script prints the verified inventory and the upload copy
+at `dist/heptacert-plugin-<version>-draft.zip` (the temporary staging path is also
+printed). It does not upload, create a second plugin, submit policy attestations
 or publish a release. Complete the missing facts/materials before calling it ready.
 
 Sources:

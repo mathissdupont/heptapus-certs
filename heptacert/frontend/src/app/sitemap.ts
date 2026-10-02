@@ -37,6 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "events", priority: 0.8 },
     { path: "organizations", priority: 0.75 },
     { path: "discover", priority: 0.9 },
+    { path: "chatgpt-plugin", priority: 0.7 },
   ] as const).flatMap(({ path, priority }) => {
     const languages = Object.fromEntries(
       routing.locales.map((locale) => [locale, `${BASE_URL}/${locale}/${path}`]),

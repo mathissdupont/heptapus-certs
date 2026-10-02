@@ -36,6 +36,12 @@ assert.equal(mcp.mcpServers.heptacert.type, "streamable-http");
 assert.equal(mcp.mcpServers.heptacert.url, "https://heptacert.com/mcp");
 assert.equal(openai.review.test_cases.positive.length, 5);
 assert.equal(openai.review.test_cases.negative.length, 3);
+assert.equal(Object.keys(openai.publication.translations).length, 8);
+for (const [locale, translation] of Object.entries(openai.publication.translations)) {
+  assert(locale.trim());
+  assert(translation.subtitle.trim() && translation.subtitle.length <= 30);
+  assert(translation.description.trim() && translation.description.length <= 4000);
+}
 for (const test of openai.review.test_cases.positive) {
   for (const key of ["description", "prompt", "tools_triggered", "expected_behavior"]) {
     assert.equal(typeof test[key], "string");
@@ -89,7 +95,10 @@ assert.equal(inspected.entries.filter(name => /[/\\]SKILL\.md$/.test(name)).leng
 assert(inspected.entries.some(name => name.endsWith("agents/openai.yaml")));
 assert(inspected.entries.some(name => name.endsWith("lookup/knowledge-index.json")));
 assert(inspected.entries.every(name => !name.includes(".app.json")));
-console.log(JSON.stringify({ archive, inspected, skills, readiness: "draft",
+const delivery = join(root, "dist", `heptacert-plugin-${manifest.version}-draft.zip`);
+await mkdir(dirname(delivery), { recursive: true });
+await copyFile(archive, delivery);
+console.log(JSON.stringify({ archive: delivery, stagingArchive: archive, inspected, skills, readiness: "draft",
   missing: ["verified publisher identity", "portal verification of country targeting",
             "verified demo recording URL", "host review-case execution",
             "reviewer access and policy review"] }, null, 2));

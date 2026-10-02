@@ -54,7 +54,7 @@
   syntax inventory currently finds **23 admin files / 590 branches / 1,287 raw string
   candidates** after accreditation/API-key/survey/attendee/integration/check-in migration. These are candidates, not a certified
   label count: technical values require triage; unconditional literals and imported or
-  mutated aliases still require manual review. Catalogs contain **3,338 keys × 9**.
+  mutated aliases still require manual review. Catalogs contain **3,361 keys × 9**.
 
 ## Phase status
 
@@ -140,6 +140,26 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-02 — ChatGPT plugin web distribution draft (WP37 interruption)
+
+- The owned private plugin shows "Open desktop app" on the web and Developer mode is
+  not visible in the owner's Plus UI. Fix path: publish the same remote-MCP package
+  through the public directory. Prepared public draft **0.9.9**; the private v0.9.8
+  plugin is untouched.
+- Added the localized product page `/{locale}/chatgpt-plugin`
+  (`ChatGPTPluginPage.tsx`) with **23 new keys × nine languages**, sitemap entries and
+  hreflang alternates; `/login` and support links stay unprefixed. `plugin.json`
+  `websiteURL` points to `/en/chatgpt-plugin`; eight localized listing translations added.
+  The packaging script validates translations and writes `dist/heptacert-plugin-0.9.9-draft.zip`.
+- Verification: UI contracts hold (ratchet stays **86**), catalogs **3,361 × 9**,
+  TypeScript passes, full frontend tests **209/209**, production build succeeds and
+  prerenders all nine `chatgpt-plugin` pages; packaging script verifies the ZIP.
+- **Gotcha:** production returned **404** for `/en/chatgpt-plugin` on 2026-10-02. Deploy
+  the frontend before uploading the ZIP. Portal identity, countries, demo, reviewer access
+  and review cases remain open (`heptacert/chatgpt-plugin/SUBMISSION-PREP.md`).
+- Next: deploy + upload the public draft (owner); translation work resumes with
+  gamification.
 
 ### 2026-10-02 — admin check-in language wave
 
