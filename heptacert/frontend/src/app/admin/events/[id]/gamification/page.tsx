@@ -10,7 +10,11 @@ import {
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import EventAdminNav from "@/components/Admin/EventAdminNav";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type TranslationKey } from "@/lib/i18n";
+import { DEFAULT_BADGE_COLOR, DEFAULT_BADGE_TEXT_COLOR } from "@/lib/badgeColors";
+
+type Translate = (key: TranslationKey, vars?: Record<string, string | number>) => string;
+type LocalizedMessage = string | { key: TranslationKey; vars?: Record<string, string | number> };
 
 // ── Predefined criteria catalogue ────────────────────────────────────────────
 type CriteriaType = "number" | "boolean";
@@ -27,26 +31,22 @@ interface CriteriaDef {
   unit?: string;
 }
 
-function buildCriteriaCatalogue(isTr: boolean): CriteriaDef[] {
+function buildCriteriaCatalogue(t: Translate): CriteriaDef[] {
   return [
     {
       key: "min_sessions",
-      label: isTr ? "Minimum Oturum Katılımı" : "Minimum Session Attendance",
-      description: isTr
-        ? "Katılımcının check-in yaptığı oturum sayısı en az bu kadar olmalı"
-        : "The number of sessions the attendee checked in must be at least this many",
+      label: t("admin_gamification_crit_min_sessions"),
+      description: t("admin_gamification_crit_min_sessions_desc"),
       type: "number",
       icon: <Hash className="h-4 w-4" />,
       placeholder: "2",
       min: 1,
-      unit: isTr ? "oturum" : "sessions",
+      unit: t("admin_gamification_unit_sessions"),
     },
     {
       key: "attendance_rate",
-      label: isTr ? "Minimum Katılım Oranı" : "Minimum Attendance Rate",
-      description: isTr
-        ? "Tüm oturumlara göre katılım yüzdesi (toplam oturum sayısı üzerinden)"
-        : "Attendance percentage relative to all sessions (out of total session count)",
+      label: t("admin_gamification_crit_attendance_rate"),
+      description: t("admin_gamification_crit_attendance_rate_desc"),
       type: "number",
       icon: <Percent className="h-4 w-4" />,
       placeholder: "80",
@@ -56,31 +56,25 @@ function buildCriteriaCatalogue(isTr: boolean): CriteriaDef[] {
     },
     {
       key: "registered_rank_max",
-      label: isTr ? "Erken Kayıt Limiti" : "Early Registration Limit",
-      description: isTr
-        ? "Etkinliğe kayıt sırasında ilk N kişi arasında olmalı (erken kuş rozeti için)"
-        : "Must be among the first N registrants for the event (for early bird badge)",
+      label: t("admin_gamification_crit_early_registration"),
+      description: t("admin_gamification_crit_early_registration_desc"),
       type: "number",
       icon: <Users className="h-4 w-4" />,
       placeholder: "50",
       min: 1,
-      unit: isTr ? "kişi" : "people",
+      unit: t("admin_gamification_unit_people"),
     },
     {
       key: "survey_completed",
-      label: isTr ? "Anket Tamamlandı" : "Survey Completed",
-      description: isTr
-        ? "Katılımcı etkinlik anketini tamamlamış olmalı"
-        : "The attendee must have completed the event survey",
+      label: t("admin_gamification_crit_survey_completed"),
+      description: t("admin_gamification_crit_survey_completed_desc"),
       type: "boolean",
       icon: <CheckCircle2 className="h-4 w-4" />,
     },
     {
       key: "can_download_cert",
-      label: isTr ? "Sertifika İzni Var" : "Certificate Permission",
-      description: isTr
-        ? "Sertifika indirme yetkisi olan katılımcılara verilir"
-        : "Awarded to attendees who have certificate download permission",
+      label: t("admin_gamification_crit_certificate"),
+      description: t("admin_gamification_crit_certificate_desc"),
       type: "boolean",
       icon: <Award className="h-4 w-4" />,
     },
@@ -103,6 +97,7 @@ function CriteriaEditor({
   copy: {
     addCriteria: string;
     noCriteria: string;
+    removeCriterion: string;
     yes: string;
     no: string;
   };
@@ -187,9 +182,11 @@ function CriteriaEditor({
               <button
                 type="button"
                 onClick={() => removeCriteria(key)}
+                aria-label={copy.removeCriterion}
+                title={copy.removeCriterion}
                 className="p-1 hover:bg-status-danger-bg rounded text-status-danger-content"
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -297,75 +294,15 @@ const BADGE_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
 export default function GamificationPage() {
   const params = useParams();
   const eventId = params.id as string;
-  const { lang } = useI18n();
-  const isTr = lang === "tr";
-  const criteriaCatalogue = buildCriteriaCatalogue(isTr);
-
-  const copy = {
-    pageTitle: isTr ? "Rozet Sistemi" : "Badge System",
-    pageSubtitle: isTr ? "Katılımcıları başarılarıyla ödüllendirin" : "Reward participants for their achievements",
-    loadError: isTr ? "Rozet kuralları yüklenemedi" : "Could not load badge rules",
-    saveSuccess: isTr ? "Rozet kuralları kaydedildi" : "Badge rules saved",
-    saveError: isTr ? "Kaydedilemedi" : "Could not save",
-    calcSuccess: isTr ? "Rozetler hesaplandı" : "Badges calculated",
-    calcError: isTr ? "Hesaplama başarısız" : "Calculation failed",
-    addBadgeError: isTr ? "Lütfen rozet türü ve adını girin" : "Please enter badge type and name",
-    statStatus: isTr ? "Durum" : "Status",
-    statActive: isTr ? "Aktif" : "Active",
-    statInactive: isTr ? "Pasif" : "Inactive",
-    statActiveHint: isTr ? "Hesaplama açık" : "Calculation on",
-    statInactiveHint: isTr ? "Kurallar beklemede" : "Rules pending",
-    statBadgeTypes: isTr ? "Rozet Turu" : "Badge Types",
-    statBadgeTypesHint: (n: number) => isTr ? `${n} tanım güncellenebilir` : `${n} definitions editable`,
-    statTotalDist: isTr ? "Toplam Dağıtım" : "Total Distribution",
-    statTotalDistHint: (auto: number, manual: number) => isTr ? `${auto} otomatik / ${manual} manuel` : `${auto} automatic / ${manual} manual`,
-    statFeaturedTypes: isTr ? "Öne Çıkan Türler" : "Featured Types",
-    statMoreTypes: (n: number) => isTr ? `${n} tür daha var` : `${n} more types`,
-    statNoTypes: isTr ? "Henüz tür yok" : "No types yet",
-    tabRules: isTr ? "Rozet Kuralları" : "Badge Rules",
-    tabAwarded: isTr ? "Verilen Rozetler" : "Awarded Badges",
-    badgeSystemTitle: isTr ? "Rozet Sistemi" : "Badge System",
-    badgeSystemEnabled: isTr ? "Etkindir" : "Enabled",
-    badgeSystemDisabled: isTr ? "Devre dışı" : "Disabled",
-    btnDisable: isTr ? "Devre Dışı Bırak" : "Disable",
-    btnEnable: isTr ? "Etkinleştir" : "Enable",
-    badgeDefinitionsTitle: isTr ? "Rozet Tanımları" : "Badge Definitions",
-    labelBadgeType: isTr ? "Rozet Türü" : "Badge Type",
-    labelBadgeName: isTr ? "Rozet Adı" : "Badge Name",
-    labelBadgeDesc: isTr ? "Rozet Açıklaması" : "Badge Description",
-    placeholderBadgeDesc: isTr ? "Bu rozeti kazanma koşullarını açıklayın" : "Describe the conditions for earning this badge",
-    labelCriteriaRules: isTr ? "Kriter Kuralları" : "Criteria Rules",
-    labelBadgeColor: isTr ? "Rozet Rengi" : "Badge Color",
-    labelBadgeUrl: isTr ? "Rozet URL" : "Badge URL",
-    previewLabel: isTr ? "Önizleme" : "Preview",
-    previewBadgeName: isTr ? "Rozet adı" : "Badge name",
-    previewBadgeDesc: isTr ? "Rozet açıklaması burada görünecek." : "Badge description will appear here.",
-    previewOpenToAll: isTr ? "Tüm katılımcılara açık" : "Open to all attendees",
-    btnRemoveBadge: isTr ? "Rozeti kaldır" : "Remove badge",
-    newBadgeTitle: isTr ? "Yeni Rozet Ekle" : "Add New Badge",
-    placeholderBadgeType: isTr ? "Rozet Türü (örn: early_bird)" : "Badge Type (e.g.: early_bird)",
-    placeholderBadgeNameInput: isTr ? "Rozet Adı (örn: Erken Katılımcı)" : "Badge Name (e.g.: Early Attendee)",
-    btnAddBadge: isTr ? "Rozet Ekle" : "Add Badge",
-    btnSaveRules: isTr ? "Kuralları Kaydet" : "Save Rules",
-    btnCalculate: isTr ? "Rozetleri Hesapla" : "Calculate Badges",
-    searchPlaceholder: isTr ? "Rozet veya katılımcı ara" : "Search badge or attendee",
-    labelAutomatic: isTr ? "Otomatik" : "Automatic",
-    labelManual: isTr ? "Manuel" : "Manual",
-    emptyNoBadges: isTr ? "Henüz rozet verilmedi" : "No badges awarded yet",
-    emptyNoMatch: isTr ? "Filtreye uyan rozet bulunamadı" : "No badges match the filter",
-    attendeeIdPrefix: isTr ? "Katılımcı ID: " : "Attendee ID: ",
-    badgeAutomatic: isTr ? "Otomatik" : "Automatic",
-    badgeManual: isTr ? "Manuel" : "Manual",
-    badgeTypePrefix: isTr ? "Tür: " : "Type: ",
-    awardedLabel: isTr ? "Verildi" : "Awarded",
-    criteriaPassed: isTr ? "Geçti" : "Passed",
-    criteriaFailed: isTr ? "Kaldı" : "Failed",
-    criteriaRequired: isTr ? "Gereken: " : "Required: ",
-    criteriaActual: isTr ? "Gerçekleşen: " : "Actual: ",
-    addCriteria: isTr ? "Kriter Ekle" : "Add Criteria",
-    noCriteria: isTr ? "Henüz kriter eklenmedi — rozet tüm katılımcılara verilir" : "No criteria added yet — badge is given to all attendees",
-    yes: isTr ? "Evet" : "Yes",
-    no: isTr ? "Hayır" : "No",
+  const { lang, t } = useI18n();
+  const criteriaCatalogue = buildCriteriaCatalogue(t);
+  const renderMessage = (message: LocalizedMessage) => typeof message === "string" ? message : t(message.key, message.vars);
+  const criteriaCopy = {
+    addCriteria: t("admin_gamification_add_criteria"),
+    noCriteria: t("admin_gamification_no_criteria"),
+    removeCriterion: t("admin_gamification_remove_criterion"),
+    yes: t("admin_gamification_yes"),
+    no: t("admin_gamification_no"),
   };
 
   const badgeDateFormatter = new Intl.DateTimeFormat(localeTag(lang), BADGE_DATE_OPTIONS);
@@ -379,8 +316,8 @@ export default function GamificationPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<LocalizedMessage | null>(null);
+  const [success, setSuccess] = useState<LocalizedMessage | null>(null);
   const [activeTab, setActiveTab] = useState<"rules" | "awarded">("rules");
   const [badgeQuery, setBadgeQuery] = useState("");
 
@@ -435,7 +372,7 @@ export default function GamificationPage() {
         );
       }
     } catch (err: any) {
-      setError(err.message || copy.loadError);
+      setError(err?.message || { key: "admin_gamification_load_error" });
     } finally {
       setLoading(false);
     }
@@ -455,10 +392,10 @@ export default function GamificationPage() {
         }),
       });
 
-      setSuccess(copy.saveSuccess);
+      setSuccess({ key: "admin_gamification_save_success" });
       await loadData();
     } catch (err: any) {
-      setError(err.message || copy.saveError);
+      setError(err?.message || { key: "admin_gamification_save_error" });
     } finally {
       setSaving(false);
     }
@@ -474,10 +411,10 @@ export default function GamificationPage() {
       });
 
       const data = await result.json();
-      setSuccess(data.message || copy.calcSuccess);
+      setSuccess(data?.message || { key: "admin_gamification_calc_success" });
       await loadData();
     } catch (err: any) {
-      setError(err.message || copy.calcError);
+      setError(err?.message || { key: "admin_gamification_calc_error" });
     } finally {
       setSaving(false);
     }
@@ -485,14 +422,14 @@ export default function GamificationPage() {
 
   const addBadge = () => {
     if (!newBadge || !newBadge.type || !newBadge.name) {
-      setError(copy.addBadgeError);
+      setError({ key: "admin_gamification_add_badge_error" });
       return;
     }
     setEditingBadges([
       ...editingBadges,
       {
         ...newBadge,
-        color_hex: newBadge.color_hex || "#4CAF50",
+        color_hex: newBadge.color_hex || DEFAULT_BADGE_COLOR,
         description: newBadge.description || "",
         icon_url: newBadge.icon_url || "",
       },
@@ -540,34 +477,34 @@ export default function GamificationPage() {
       <EventAdminNav eventId={eventId} eventName={eventName} active="gamification" className="mb-2 flex flex-col gap-2" />
 
       <div>
-        <h1 className="text-3xl font-bold text-surface-900">{copy.pageTitle}</h1>
-        <p className="text-surface-500 text-sm mt-1">{copy.pageSubtitle}</p>
+        <h1 className="text-3xl font-bold text-surface-900">{t("admin_gamification_title")}</h1>
+        <p className="text-surface-500 text-sm mt-1">{t("admin_gamification_subtitle")}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {[
           {
-            label: copy.statStatus,
-            value: enabled ? copy.statActive : copy.statInactive,
-            hint: enabled ? copy.statActiveHint : copy.statInactiveHint,
+            label: t("admin_gamification_stat_status"),
+            value: enabled ? t("admin_gamification_stat_active") : t("admin_gamification_stat_inactive"),
+            hint: enabled ? t("admin_gamification_stat_active_hint") : t("admin_gamification_stat_inactive_hint"),
             icon: ToggleLeft,
           },
           {
-            label: copy.statBadgeTypes,
+            label: t("admin_gamification_stat_badge_types"),
             value: String(badgeTypeCount),
-            hint: copy.statBadgeTypesHint(editingBadges.length),
+            hint: t("admin_gamification_stat_badge_types_hint", { count: editingBadges.length }),
             icon: Award,
           },
           {
-            label: copy.statTotalDist,
+            label: t("admin_gamification_stat_total"),
             value: String(awardedBadges.length),
-            hint: copy.statTotalDistHint(badgeSummary.automatic_vs_manual.automatic, badgeSummary.automatic_vs_manual.manual),
+            hint: t("admin_gamification_stat_total_hint", { automatic: badgeSummary.automatic_vs_manual.automatic, manual: badgeSummary.automatic_vs_manual.manual }),
             icon: Trophy,
           },
           {
-            label: copy.statFeaturedTypes,
+            label: t("admin_gamification_stat_featured"),
             value: badgeTypeCount > 0 ? Object.keys(badgeSummary.by_type).slice(0, 1)[0] : "-",
-            hint: badgeTypeCount > 1 ? copy.statMoreTypes(badgeTypeCount - 1) : copy.statNoTypes,
+            hint: badgeTypeCount > 1 ? t("admin_gamification_stat_more_types", { count: badgeTypeCount - 1 }) : t("admin_gamification_stat_no_types"),
             icon: BarChart3,
           },
         ].map((item) => {
@@ -601,7 +538,7 @@ export default function GamificationPage() {
                 : "text-surface-600 hover:text-surface-900"
             }`}
           >
-            {tab === "rules" ? copy.tabRules : copy.tabAwarded}
+            {tab === "rules" ? t("admin_gamification_tab_rules") : t("admin_gamification_tab_awarded")}
           </button>
         ))}
       </div>
@@ -614,7 +551,7 @@ export default function GamificationPage() {
           className="rounded-lg bg-status-danger-bg border border-status-danger-border p-4 flex items-start gap-3"
         >
           <AlertCircle className="h-5 w-5 text-status-danger-content flex-shrink-0 mt-0.5" />
-          <p className="text-status-danger-content text-sm">{error}</p>
+          <p className="text-status-danger-content text-sm">{renderMessage(error)}</p>
         </motion.div>
       )}
 
@@ -625,7 +562,7 @@ export default function GamificationPage() {
           className="rounded-lg bg-status-success-bg border border-status-success-border p-4 flex items-start gap-3"
         >
           <CheckCircle2 className="h-5 w-5 text-status-success-content flex-shrink-0 mt-0.5" />
-          <p className="text-status-success-content text-sm">{success}</p>
+          <p className="text-status-success-content text-sm">{renderMessage(success)}</p>
         </motion.div>
       )}
 
@@ -636,9 +573,9 @@ export default function GamificationPage() {
           <div className="bg-raised rounded-3xl border border-surface-200 p-6 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h3 className="font-semibold text-surface-900">{copy.badgeSystemTitle}</h3>
+                <h3 className="font-semibold text-surface-900">{t("admin_gamification_title")}</h3>
                 <p className="text-sm text-surface-500 mt-1">
-                  {enabled ? copy.badgeSystemEnabled : copy.badgeSystemDisabled}
+                  {enabled ? t("admin_gamification_system_enabled") : t("admin_gamification_system_disabled")}
                 </p>
               </div>
               <button
@@ -649,14 +586,14 @@ export default function GamificationPage() {
                     : "bg-surface-200 text-surface-700 hover:bg-sunken"
                 }`}
               >
-                {enabled ? copy.btnDisable : copy.btnEnable}
+                {enabled ? t("admin_gamification_disable") : t("admin_gamification_enable")}
               </button>
             </div>
           </div>
 
           {/* Badge List */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-surface-900">{copy.badgeDefinitionsTitle}</h3>
+            <h3 className="font-semibold text-surface-900">{t("admin_gamification_definitions_title")}</h3>
 
             {editingBadges.map((badge, idx) => (
               <motion.div
@@ -670,7 +607,7 @@ export default function GamificationPage() {
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
                         <label className="block text-sm font-semibold text-surface-700 mb-2">
-                          {copy.labelBadgeType}
+                          {t("admin_gamification_badge_type")}
                         </label>
                         <input
                           type="text"
@@ -686,7 +623,7 @@ export default function GamificationPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-surface-700 mb-2">
-                          {copy.labelBadgeName}
+                          {t("admin_gamification_badge_name")}
                         </label>
                         <input
                           type="text"
@@ -696,7 +633,7 @@ export default function GamificationPage() {
                             updated[idx].name = e.target.value;
                             setEditingBadges(updated);
                           }}
-                          placeholder="Hızlı Kaydolan"
+                          placeholder={t("admin_gamification_badge_name_example")}
                           className="w-full rounded-lg border border-surface-300 px-3 py-2 text-sm"
                         />
                       </div>
@@ -704,7 +641,7 @@ export default function GamificationPage() {
 
                     <div className="mt-4">
                       <label className="block text-sm font-semibold text-surface-700 mb-2">
-                        {copy.labelBadgeDesc}
+                        {t("admin_gamification_badge_desc")}
                       </label>
                       <textarea
                         value={badge.description || ""}
@@ -713,7 +650,7 @@ export default function GamificationPage() {
                           updated[idx].description = e.target.value;
                           setEditingBadges(updated);
                         }}
-                        placeholder={copy.placeholderBadgeDesc}
+                        placeholder={t("admin_gamification_badge_desc_placeholder")}
                         className="w-full rounded-lg border border-surface-300 px-3 py-2 text-sm h-20 resize-none"
                       />
                     </div>
@@ -721,7 +658,7 @@ export default function GamificationPage() {
                     {/* Criteria editor */}
                     <div className="mt-4">
                       <label className="block text-sm font-semibold text-surface-700 mb-2">
-                        {copy.labelCriteriaRules}
+                        {t("admin_gamification_criteria_rules")}
                       </label>
                       <CriteriaEditor
                         criteria={badge.criteria || {}}
@@ -730,7 +667,7 @@ export default function GamificationPage() {
                           next[idx] = { ...next[idx], criteria: updated };
                           setEditingBadges(next);
                         }}
-                        copy={{ addCriteria: copy.addCriteria, noCriteria: copy.noCriteria, yes: copy.yes, no: copy.no }}
+                        copy={criteriaCopy}
                         catalogue={criteriaCatalogue}
                       />
                     </div>
@@ -738,12 +675,12 @@ export default function GamificationPage() {
                     <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
                         <label className="block text-sm font-semibold text-surface-700 mb-2">
-                          {copy.labelBadgeColor}
+                          {t("admin_gamification_badge_color")}
                         </label>
                         <div className="flex gap-2">
                           <input
                             type="color"
-                            value={badge.color_hex || "#4CAF50"}
+                            value={badge.color_hex || DEFAULT_BADGE_COLOR}
                             onChange={(e) => {
                               const updated = [...editingBadges];
                               updated[idx].color_hex = e.target.value;
@@ -753,7 +690,7 @@ export default function GamificationPage() {
                           />
                           <input
                             type="text"
-                            value={badge.color_hex || "#4CAF50"}
+                            value={badge.color_hex || DEFAULT_BADGE_COLOR}
                             className="flex-1 rounded-lg border border-surface-300 px-3 py-2 text-sm bg-surface-50"
                             readOnly
                           />
@@ -761,7 +698,7 @@ export default function GamificationPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-surface-700 mb-2">
-                          {copy.labelBadgeUrl}
+                          {t("admin_gamification_badge_url")}
                         </label>
                         <input
                           type="text"
@@ -783,19 +720,19 @@ export default function GamificationPage() {
                       <div
                         className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
                         style={{
-                          color: badge.color_hex || "#4CAF50",
-                          borderColor: `${badge.color_hex || "#4CAF50"}55`,
-                          backgroundColor: `${badge.color_hex || "#4CAF50"}12`,
+                          color: badge.color_hex || DEFAULT_BADGE_COLOR,
+                          borderColor: `${badge.color_hex || DEFAULT_BADGE_COLOR}55`,
+                          backgroundColor: `${badge.color_hex || DEFAULT_BADGE_COLOR}12`,
                         }}
                       >
                         <Award className="h-3.5 w-3.5" />
-                        {copy.previewLabel}
+                        {t("admin_gamification_preview")}
                       </div>
                       <p className="mt-4 break-words text-lg font-black text-surface-900">
-                        {badge.name || copy.previewBadgeName}
+                        {badge.name || t("admin_gamification_preview_name")}
                       </p>
                       <p className="mt-2 break-words text-sm leading-6 text-surface-600">
-                        {badge.description || copy.previewBadgeDesc}
+                        {badge.description || t("admin_gamification_preview_desc")}
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {Object.keys(badge.criteria || {}).length > 0 ? (
@@ -809,7 +746,7 @@ export default function GamificationPage() {
                           ))
                         ) : (
                           <span className="rounded-full border border-dashed border-outline-strong bg-raised px-3 py-1 text-xs text-surface-500">
-                            {copy.previewOpenToAll}
+                            {t("admin_gamification_preview_open_to_all")}
                           </span>
                         )}
                       </div>
@@ -819,7 +756,7 @@ export default function GamificationPage() {
                       className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-status-danger-border bg-status-danger-bg px-4 py-3 text-sm font-semibold text-status-danger-content transition hover:bg-status-danger-bg"
                     >
                       <X className="h-4 w-4" />
-                      {copy.btnRemoveBadge}
+                      {t("admin_gamification_remove_badge")}
                     </button>
                   </div>
                 </div>
@@ -832,11 +769,11 @@ export default function GamificationPage() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-surface-50 rounded-xl border-2 border-dashed border-surface-300 p-4"
             >
-              <h4 className="font-semibold text-surface-900 mb-4">{copy.newBadgeTitle}</h4>
+              <h4 className="font-semibold text-surface-900 mb-4">{t("admin_gamification_new_badge_title")}</h4>
               <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <input
                   type="text"
-                  placeholder={copy.placeholderBadgeType}
+                  placeholder={t("admin_gamification_badge_type_placeholder")}
                   value={newBadge?.type || ""}
                   onChange={(e) =>
                     setNewBadge({
@@ -850,7 +787,7 @@ export default function GamificationPage() {
                 />
                 <input
                   type="text"
-                  placeholder={copy.placeholderBadgeNameInput}
+                  placeholder={t("admin_gamification_badge_name_placeholder")}
                   value={newBadge?.name || ""}
                   onChange={(e) =>
                     setNewBadge({
@@ -867,7 +804,7 @@ export default function GamificationPage() {
               {/* New badge criteria */}
               <div className="mb-4">
                 <label className="block text-sm font-semibold text-surface-700 mb-2">
-                  {copy.labelCriteriaRules}
+                  {t("admin_gamification_criteria_rules")}
                 </label>
                 <CriteriaEditor
                   criteria={newBadge?.criteria || {}}
@@ -878,7 +815,7 @@ export default function GamificationPage() {
                       criteria: updated,
                     })
                   }
-                  copy={{ addCriteria: copy.addCriteria, noCriteria: copy.noCriteria, yes: copy.yes, no: copy.no }}
+                  copy={criteriaCopy}
                   catalogue={criteriaCatalogue}
                 />
               </div>
@@ -888,7 +825,7 @@ export default function GamificationPage() {
                 className="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-600 text-white font-semibold py-2 hover:bg-brand-700 transition-colors"
               >
                 <Plus className="h-4 w-4" />
-                {copy.btnAddBadge}
+                {t("admin_gamification_add_badge")}
               </button>
             </motion.div>
           </div>
@@ -905,7 +842,7 @@ export default function GamificationPage() {
               ) : (
                 <Save className="h-5 w-5" />
               )}
-              {copy.btnSaveRules}
+              {t("admin_gamification_save_rules")}
             </button>
 
             <button
@@ -918,7 +855,7 @@ export default function GamificationPage() {
               ) : (
                 <Trophy className="h-5 w-5" />
               )}
-              {copy.btnCalculate}
+              {t("admin_gamification_calculate")}
             </button>
           </div>
         </div>
@@ -935,16 +872,16 @@ export default function GamificationPage() {
                   type="text"
                   value={badgeQuery}
                   onChange={(e) => setBadgeQuery(e.target.value)}
-                  placeholder={copy.searchPlaceholder}
+                  placeholder={t("admin_gamification_search_placeholder")}
                   className="w-full rounded-xl border border-surface-300 py-2.5 pl-10 pr-3 text-sm"
                 />
               </label>
               <div className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-surface-500">{copy.labelAutomatic}</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-surface-500">{t("admin_gamification_automatic")}</div>
                 <div className="mt-1 text-2xl font-semibold text-surface-900">{badgeSummary.automatic_vs_manual.automatic}</div>
               </div>
               <div className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3">
-                <div className="text-xs font-semibold uppercase tracking-wide text-surface-500">{copy.labelManual}</div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-surface-500">{t("admin_gamification_manual")}</div>
                 <div className="mt-1 text-2xl font-semibold text-surface-900">{badgeSummary.automatic_vs_manual.manual}</div>
               </div>
             </div>
@@ -966,7 +903,7 @@ export default function GamificationPage() {
             <div className="text-center py-12 bg-raised rounded-xl border border-surface-200">
               <Trophy className="h-16 w-16 text-surface-300 mx-auto mb-4" />
               <p className="text-surface-500">
-                {awardedBadges.length === 0 ? copy.emptyNoBadges : copy.emptyNoMatch}
+                {awardedBadges.length === 0 ? t("admin_gamification_empty_no_badges") : t("admin_gamification_empty_no_match")}
               </p>
             </div>
           ) : (
@@ -985,11 +922,11 @@ export default function GamificationPage() {
                     <div className="mt-1 break-words text-sm text-surface-500">{badge.badge_description}</div>
                   )}
                   <div className="mt-2 break-words text-sm text-surface-500">
-                    {badge.attendee_name || `${copy.attendeeIdPrefix}${badge.attendee_id}`}
+                    {badge.attendee_name || t("admin_gamification_attendee_id", { id: badge.attendee_id })}
                     {badge.attendee_email ? ` • ${badge.attendee_email}` : ""}
                   </div>
                   <div className="mt-1 text-sm text-surface-500">
-                    {badge.is_automatic ? copy.badgeAutomatic : copy.badgeManual} • {copy.badgeTypePrefix}{badge.badge_type}
+                    {badge.is_automatic ? t("admin_gamification_automatic") : t("admin_gamification_manual")} • {t("admin_gamification_type_label", { type: badge.badge_type })}
                   </div>
                   <div className="mt-1 text-xs text-surface-400">
                     {badgeDateFormatter.format(new Date(badge.awarded_at))}
@@ -999,13 +936,13 @@ export default function GamificationPage() {
                 <div className="xl:min-w-[320px]">
                   <div
                     style={{
-                      backgroundColor: `${badge.badge_color_hex || "#4CAF50"}20`,
-                      borderColor: badge.badge_color_hex || "#4CAF50",
-                      color: badge.badge_color_hex || "#2f855a",
+                      backgroundColor: `${badge.badge_color_hex || DEFAULT_BADGE_COLOR}20`,
+                      borderColor: badge.badge_color_hex || DEFAULT_BADGE_COLOR,
+                      color: badge.badge_color_hex || DEFAULT_BADGE_TEXT_COLOR,
                     }}
                     className="inline-flex px-3 py-1 rounded-full border font-semibold text-sm"
                   >
-                    {copy.awardedLabel}
+                    {t("admin_gamification_awarded")}
                   </div>
 
                   {Object.keys(badge.criteria_met || {}).length > 0 && (
@@ -1015,13 +952,13 @@ export default function GamificationPage() {
                         return (
                           <div key={key} className="rounded-lg border border-surface-200 bg-surface-50 px-3 py-2">
                             <div className="flex items-center justify-between gap-3">
-                              <span className="text-sm font-medium text-surface-700">{key}</span>
+                              <span className="text-sm font-medium text-surface-700">{getCriteriaDef(key, criteriaCatalogue)?.label ?? key}</span>
                               <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${criteria.passed ? "bg-status-success-bg text-status-success-content" : "bg-status-danger-bg text-status-danger-content"}`}>
-                                {criteria.passed ? copy.criteriaPassed : copy.criteriaFailed}
+                                {criteria.passed ? t("admin_gamification_criteria_passed") : t("admin_gamification_criteria_failed")}
                               </span>
                             </div>
                             <div className="mt-1 text-xs text-surface-500">
-                              {copy.criteriaRequired}{String(criteria.required ?? "-")} • {copy.criteriaActual}{String(criteria.actual ?? "-")}
+                              {t("admin_gamification_criteria_required", { value: String(criteria.required ?? "-") })} • {t("admin_gamification_criteria_actual", { value: String(criteria.actual ?? "-") })}
                             </div>
                           </div>
                         );

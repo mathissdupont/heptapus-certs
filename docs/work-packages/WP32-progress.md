@@ -26,11 +26,11 @@
   the live owned-event and foreign-event security check successfully. This is an owner
   attestation; no credentials or raw production trace were retained in the repository.
 - **Next step** (Phase 7, in order):
-  1. Continue the remaining **86** direct legacy language comparisons, including admin.
+  1. Continue the remaining **85** direct legacy language comparisons, including admin.
      Event-registration operational copy now uses all nine catalogs; its legal
      acknowledgements remain on hold. Next migrate the remaining admin copy objects
      controlled by aliases such as `isTr`. Accreditation, API keys and event surveys are
-     now migrated, together with event attendees, integrations and check-in; next prioritize gamification. `npm run i18n:audit` now also
+     now migrated, together with event attendees, integrations, check-in and gamification; next prioritize advanced analytics, then tickets. `npm run i18n:audit` now also
      reports alias-controlled branches; one comparison does not mean one string.
   2. Hold legal/contract UI changes until their Turkish source and translations can be
      reviewed. The user requested unpublished drafts because no legal reviewer is
@@ -42,7 +42,7 @@
   3. Keep transactional routes unprefixed, keep the shipped theme controls available,
      and keep LMS archived.
 - **Translation coverage audit (added at the user's request):** catalog parity alone was
-  hiding the real gap. The current ratchet records **86 direct TR/EN comparisons**;
+  hiding the real gap. The current ratchet records **85 direct TR/EN comparisons**;
   those branches send the other seven languages to English. The latest precise per-file
   inventory should be read from `npm run i18n:audit` before choosing each wave.
   Phase 7/8 must drive that queue to zero and review remaining user-facing literals before
@@ -51,10 +51,10 @@
   still used `isTr`-controlled copy at that point, as integrations and other admin pages
   still do. The regex counts
   the alias declaration once, not every untranslated branch or label. The supplementary
-  syntax inventory currently finds **23 admin files / 590 branches / 1,287 raw string
-  candidates** after accreditation/API-key/survey/attendee/integration/check-in migration. These are candidates, not a certified
+  syntax inventory currently finds **22 admin files / 526 branches / 1,157 raw string
+  candidates** after accreditation/API-key/survey/attendee/integration/check-in/gamification migration. These are candidates, not a certified
   label count: technical values require triage; unconditional literals and imported or
-  mutated aliases still require manual review. Catalogs contain **3,361 keys × 9**.
+  mutated aliases still require manual review. Catalogs contain **3,436 keys × 9**.
 
 ## Phase status
 
@@ -140,6 +140,26 @@ unauthenticated `/mcp` request → 401.
 ## Log
 
 Newest first. Each entry: what changed, why, evidence, gotchas, next step.
+
+### 2026-10-02 — admin gamification language wave
+
+- Migrated the badge system page: criteria catalogue, stats, rules editor, preview,
+  awarded list and feedback to **75 new keys × nine languages**. Awarded criteria now
+  show localized names for known criteria; organizer badge names, types, descriptions,
+  colors, server `message` text and unknown criterion keys remain unmodified.
+- Local errors/success store translation keys, so early loading and live language
+  switches don't leave stale copy. The hard-coded Turkish placeholder "Hızlı Kaydolan"
+  is now a catalog example; criterion remove buttons have localized accessible names.
+  Separate `admin_gamification_yes/no` keys avoid `admin_common_yes`, whose es/it/pt/nl/ru
+  values end in a stray period (not changed here — other pages use it).
+- Default badge colors are persisted organizer data, not theme styling; they moved to
+  `src/lib/badgeColors.ts` with identical values (`#4CAF50`, `#2f855a`).
+- Locked gamification in `cleanPaths`; ratchet **86 → 85**, raw hex **57 → 48**,
+  catalogs **3,436 × 9**. Syntax inventory: **22 admin files / 526 branches / 1,157 raw
+  candidates**. Verification: UI contracts and TypeScript pass; full frontend tests
+  **229/229** (including **20 new gamification tests**, which also assert the unchanged
+  POST payload and default color); production build **141/141** static pages.
+  Production deployment remains manual. Next: advanced analytics, then tickets.
 
 ### 2026-10-02 — ChatGPT plugin web distribution draft (WP37 interruption)
 
