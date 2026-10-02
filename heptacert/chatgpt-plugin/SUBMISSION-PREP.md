@@ -28,6 +28,15 @@ Status: **draft package prepared, not submitted for review**.
   although they overwrite stored values. They are now `destructiveHint: true` and the
   contract test pins them. Create, open/close registration and check-in stay
   non-destructive. Requires a backend deploy and a portal re-scan.
+- Re-scan then flagged `update_session` as open-world. Its changes reach the public
+  agenda and `.ics` calendar feeds, so it is now `openWorldHint: true`. Investigating it
+  exposed a functional bug: `create_session`/`update_session` sent `title`, `start_time`,
+  `location`, `speaker` while the REST schema requires `name` and uses
+  `session_date`/`session_start`/`session_end`/`session_location`/`speaker_name`, so both
+  tools were rejected (422). They now map fields, keep the current name on partial
+  updates and set `is_active` (check-in open) through the toggle endpoint only when it
+  differs. Tests validate the bodies against `SessionCreateIn`. Other write tools have not
+  yet been audited for the same kind of field drift.
 - Release notes describe this release: web-distribution page, localized listing,
   54 hosted tools, confirmations, OAuth tenant boundaries and eight skills.
   The 54-tool count is from the source; authenticated discovery in ChatGPT is still

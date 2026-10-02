@@ -193,6 +193,10 @@ Newest first. Each entry: what changed, why, evidence, gotchas, next step.
   `test_mcp_contract.py`; backend tests **621/621**. Needs backend deploy + re-scan.
   Domain verification: owner must set `OPENAI_APPS_CHALLENGE_TOKEN` in the server's
   `heptacert/.env` and run `docker compose up -d backend` (restart does not reload env_file).
+- Update: re-scan flagged `update_session` as open-world (public agenda/.ics) → fixed.
+  Found and fixed a real bug: MCP `create_session`/`update_session` sent field names the
+  REST schema rejects (`title` vs required `name`, etc.). Backend tests **623/623**.
+  Needs backend deploy + re-scan. Other MCP write tools are not yet audited for field drift.
 
 ### 2026-10-02 — admin check-in language wave
 

@@ -110,7 +110,7 @@ async def test_tool_annotations_are_truthful():
                  "update_automation_rule", "update_email_template"):
         assert tools[name].annotations.destructiveHint is True
         assert tools[name].annotations.readOnlyHint is False
-    for name in ("create_webhook", "create_automation_rule"):
+    for name in ("create_webhook", "create_automation_rule", "update_session"):
         assert tools[name].annotations.openWorldHint is True
 
 
@@ -339,3 +339,77 @@ async def test_bulk_attendee_limit_blocks_mutation(monkeypatch):
     monkeypatch.setattr(mcp_server, "_post", must_not_post)
     with pytest.raises(ValueError):
         await mcp_server.bulk_add_attendees(_http_context("Bearer owner-token"), 7, [{}] * 101)
+
+
+def _session_server(monkeypatch, current):
+    """Stub the REST layer for session tools and record every write."""
+    from src.schemas import SessionCreateIn
+
+    writes = []
+
+    async def allowed(*args, **kwargs):
+        return None
+
+    async def listed(path, api_key, params=None):
+        return [current]
+
+    async def write(path, api_key, body):
+        writes.append((path, body))
+        if not path.endswith("/toggle"):
+            SessionCreateIn.model_validate(body)  # the REST endpoint rejects anything else
+        return {**current, "id": 5}
+
+    monkeypatch.setattr(mcp_server, "_require_scope", allowed)
+    monkeypatch.setattr(mcp_server, "_get", listed)
+    monkeypatch.setattr(mcp_server, "_post", write)
+    monkeypatch.setattr(mcp_server, "_patch", write)
+    monkeypatch.setattr(mcp_server, "_fire_and_forget_log", lambda *a, **kw: None)
+    return writes
+
+
+@pytest.mark.asyncio
+async def test_create_session_sends_the_rest_session_schema(monkeypatch):
+    writes = _session_server(monkeypatch, {"id": 5, "name": "Keynote", "is_active": True})
+    ctx = _http_context("Bearer owner-token")
+    result = (await mcp_server.create_session(
+        ctx, event_id=7, title="Keynote", description="Opening", start_time="2025-09-15T09:00:00",
+        end_time="2025-09-15T10:30:00", location="Hall A", speaker="Ada", capacity=120,
+    )).structuredContent
+    assert result["status"] == "created"
+    assert writes == [("/api/admin/events/7/sessions", {
+        "name": "Keynote", "session_date": "2025-09-15", "session_start": "09:00", "session_end": "10:30",
+        "description": "Opening", "session_location": "Hall A", "speaker_name": "Ada", "capacity": 120,
+    })]
+
+    invalid = (await mcp_server.create_session(ctx, event_id=7, title="Keynote", start_time="tomorrow")).structuredContent
+    assert invalid["status"] == "invalid"
+    overnight = (await mcp_server.create_session(
+        ctx, event_id=7, title="Keynote", start_time="2025-09-15T23:00:00", end_time="2025-09-16T01:00:00",
+    )).structuredContent
+    assert overnight["status"] == "invalid"
+    assert len(writes) == 1
+
+
+@pytest.mark.asyncio
+async def test_update_session_keeps_the_current_name_and_toggles_check_in(monkeypatch):
+    writes = _session_server(monkeypatch, {"id": 5, "name": "Keynote", "is_active": True})
+    ctx = _http_context("Bearer owner-token")
+
+    await mcp_server.update_session(ctx, event_id=7, session_id=5, location="Hall B")
+    assert writes == [("/api/admin/events/7/sessions/5", {"session_location": "Hall B", "name": "Keynote"})]
+
+    writes.clear()
+    await mcp_server.update_session(ctx, event_id=7, session_id=5, title="Opening keynote", is_active=False)
+    assert writes == [
+        ("/api/admin/events/7/sessions/5", {"name": "Opening keynote"}),
+        ("/api/admin/events/7/sessions/5/toggle", {}),
+    ]
+
+    writes.clear()
+    unchanged = (await mcp_server.update_session(ctx, event_id=7, session_id=5, is_active=True)).structuredContent
+    assert unchanged["status"] == "updated"
+    assert writes == []  # already open; a toggle would close it
+
+    missing = (await mcp_server.update_session(ctx, event_id=7, session_id=99, location="Hall C")).structuredContent
+    assert missing["status"] == "not_found"
+    assert writes == []

@@ -70,6 +70,7 @@ import hashlib
 import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any, Literal, Optional
 from urllib.parse import urlsplit
@@ -1306,8 +1307,9 @@ async def list_sessions(ctx: Context, event_id: int) -> Annotated[CallToolResult
     Args:
         event_id: Numeric event ID.
 
-    Returns `{event_id, total, sessions}` where each session has: id, title,
-    description, start_time, end_time, location, speaker, capacity, is_active,
+    Returns `{event_id, total, sessions}` where each session has: id, name,
+    session_date, session_start, session_end, session_location, track,
+    speaker_name, description, capacity, is_active (check-in open),
     attendance_count.
     """
     api_key = _get_api_key(ctx)
@@ -1315,6 +1317,38 @@ async def list_sessions(ctx: Context, event_id: int) -> Annotated[CallToolResult
     data = await _get(f"/api/admin/events/{event_id}/sessions", api_key)
     sessions = _as_list(data, "items", "sessions")
     return _result({"event_id": event_id, "total": len(sessions), "sessions": sessions})
+
+
+def _split_session_datetime(value: str, field: str) -> tuple[str, str]:
+    """Split an ISO 8601 datetime into the agenda's date (YYYY-MM-DD) and time (HH:MM)."""
+    try:
+        parsed = datetime.fromisoformat(value.strip())
+    except ValueError as exc:
+        raise ValueError(f"{field} must be an ISO 8601 datetime such as 2025-09-15T09:00:00.") from exc
+    return parsed.date().isoformat(), parsed.strftime("%H:%M")
+
+
+def _session_fields(description: Optional[str], start_time: Optional[str], end_time: Optional[str],
+                    location: Optional[str], speaker: Optional[str], capacity: Optional[int]) -> dict:
+    """Map the tool's session arguments onto the REST session schema (SessionCreateIn)."""
+    body: dict = {}
+    start_date = None
+    if start_time is not None:
+        start_date, body["session_start"] = _split_session_datetime(start_time, "start_time")
+        body["session_date"] = start_date
+    if end_time is not None:
+        end_date, body["session_end"] = _split_session_datetime(end_time, "end_time")
+        if start_date is not None and end_date != start_date:
+            raise ValueError("start_time and end_time must be on the same day.")
+    if description is not None:
+        body["description"] = description
+    if location is not None:
+        body["session_location"] = location
+    if speaker is not None:
+        body["speaker_name"] = speaker
+    if capacity is not None:
+        body["capacity"] = capacity
+    return body
 
 
 @mcp.tool(title="Create Session", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False, idempotentHint=False))
@@ -1346,19 +1380,10 @@ async def create_session(
     """
     api_key = _get_api_key(ctx)
     await _require_scope(api_key, "sessions:write")
-    body: dict = {"title": title}
-    if description is not None:
-        body["description"] = description
-    if start_time is not None:
-        body["start_time"] = start_time
-    if end_time is not None:
-        body["end_time"] = end_time
-    if location is not None:
-        body["location"] = location
-    if speaker is not None:
-        body["speaker"] = speaker
-    if capacity is not None:
-        body["capacity"] = capacity
+    try:
+        body = {"name": title, **_session_fields(description, start_time, end_time, location, speaker, capacity)}
+    except ValueError as exc:
+        return _result({"status": "invalid", "error": str(exc)})
     data = await _post(f"/api/admin/events/{event_id}/sessions", api_key, body)
     session_id = data.get("id")
     _fire_and_forget_log(api_key, "create_session", event_id=event_id,
@@ -1367,7 +1392,7 @@ async def create_session(
     return _result({"status": "created", "event_id": event_id, "session": data})
 
 
-@mcp.tool(title="Update Session", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False, idempotentHint=False))
+@mcp.tool(title="Update Session", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=True, idempotentHint=False))
 async def update_session(
     ctx: Context,
     event_id: int,
@@ -1388,21 +1413,37 @@ async def update_session(
         event_id: Numeric event ID.
         session_id: Numeric session ID (from list_sessions).
         title / description / start_time / end_time / location / speaker / capacity: Fields to update.
-        is_active: False to hide this session from attendees.
+            start_time and end_time are ISO 8601 datetimes on the same day.
+        is_active: False closes check-in for this session; True reopens it.
+
+    Changes appear on the public agenda and its calendar (.ics) feed.
     """
     api_key = _get_api_key(ctx)
     await _require_scope(api_key, "sessions:write")
-    fields = {
-        "title": title, "description": description, "start_time": start_time,
-        "end_time": end_time, "location": location, "speaker": speaker,
-        "capacity": capacity, "is_active": is_active,
-    }
-    patch_body = {k: v for k, v in fields.items() if v is not None}
-    if not patch_body:
+    try:
+        patch_body = _session_fields(description, start_time, end_time, location, speaker, capacity)
+    except ValueError as exc:
+        return _result({"status": "invalid", "error": str(exc)})
+    if title is not None:
+        patch_body["name"] = title
+    if not patch_body and is_active is None:
         return _result({"status": "unchanged", "error": "No fields provided — nothing to update."})
-    data = await _patch(f"/api/admin/events/{event_id}/sessions/{session_id}", api_key, patch_body)
+
+    sessions = await _get(f"/api/admin/events/{event_id}/sessions", api_key)
+    current = next((s for s in _as_list(sessions, "items", "sessions") if s.get("id") == session_id), None)
+    if current is None:
+        return _result({"status": "not_found", "error": f"Session {session_id} was not found in event {event_id}."})
+
+    data = current
+    if patch_body:
+        # The REST endpoint replaces the name on every update, so keep the current one.
+        patch_body.setdefault("name", current.get("name"))
+        data = await _patch(f"/api/admin/events/{event_id}/sessions/{session_id}", api_key, patch_body)
+    if is_active is not None and bool(current.get("is_active")) != is_active:
+        data = await _patch(f"/api/admin/events/{event_id}/sessions/{session_id}/toggle", api_key, {})
     _fire_and_forget_log(api_key, "update_session", event_id=event_id,
-                         payload={"session_id": session_id, **patch_body},
+                         payload={"session_id": session_id, **patch_body,
+                                  **({"is_active": is_active} if is_active is not None else {})},
                          result_summary=f"Updated session {session_id}")
     return _result({"status": "updated", "event_id": event_id, "session": data})
 
