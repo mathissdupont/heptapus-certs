@@ -160,6 +160,11 @@ Newest first. Each entry: what changed, why, evidence, gotchas, next step.
   and review cases remain open (`heptacert/chatgpt-plugin/SUBMISSION-PREP.md`).
 - Next: deploy + upload the public draft (owner); translation work resumes with
   gamification.
+- Update (same day): owner deployed the frontend; `/en`, `/tr`, `/de/chatgpt-plugin` →
+  **200**, `/mcp` → **401**. Upload is **on hold until the owner's OpenAI identity
+  verification completes**. Afterwards: upload `dist/heptacert-plugin-0.9.9-draft.zip`,
+  set `OPENAI_APPS_CHALLENGE_TOKEN` on the backend and re-check the challenge endpoint.
+  No submission fee is documented by OpenAI; tool calls add no per-use vendor cost.
 
 ### 2026-10-02 — admin check-in language wave
 
