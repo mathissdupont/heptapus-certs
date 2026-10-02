@@ -46,7 +46,7 @@ CALLS = {
     "update_email_template": {"event_id": 7, "template_id": 4, "name": "Reminder", "subject_tr": "Hatırlatma",
                               "subject_en": "Reminder", "body_html": "<p>Hi</p>"},
     "delete_email_template": {"event_id": 7, "template_id": 4, "confirm": True},
-    "start_bulk_email": {"event_id": 7, "email_template_id": 4, "recipient_type": "all", "confirm": True},
+    "start_bulk_email": {"event_id": 7, "email_template_id": 4, "recipient_type": "attendees", "confirm": True},
     "cancel_bulk_email_job": {"event_id": 7, "job_id": 11, "confirm": True},
     "apply_certificate_template": {"event_id": 7, "cert_template_id": 2, "confirm": True},
     "configure_survey": {"event_id": 7, "is_required": True, "survey_type": "builtin",
