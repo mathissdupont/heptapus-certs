@@ -35,8 +35,25 @@ Status: **draft package prepared, not submitted for review**.
   `session_date`/`session_start`/`session_end`/`session_location`/`speaker_name`, so both
   tools were rejected (422). They now map fields, keep the current name on partial
   updates and set `is_active` (check-in open) through the toggle endpoint only when it
-  differs. Tests validate the bodies against `SessionCreateIn`. Other write tools have not
-  yet been audited for the same kind of field drift.
+  differs. Tests validate the bodies against `SessionCreateIn`.
+- Full write-tool audit (all 27 write tools vs. their real FastAPI body models) found and
+  fixed more drift: `update_event`, `close_registration`, `open_registration` omitted the
+  `name` the REST PATCH requires; `update_automation_rule` sent partial bodies to a
+  full-replace endpoint, and both rule tools typed the string rule ID as `int`; automation
+  actions documented `template_id`/`delay_hours`/`url`, which pydantic silently dropped
+  (now `email_template_id`/`reminder_delay_hours`/`webhook_url`, aliases mapped, unknown
+  fields rejected); `create_webhook` sent `events` while the API takes one `event_type`
+  and offered event types the API rejects (now one subscription per type, limited to the
+  dispatched `attendee.register`, `email.sent`, `email.failed`); `bulk_add_attendees`
+  posted empty names (rows are now validated/split). LMS triggers are not offered.
+  `tests/test_mcp_rest_contract.py` runs every write tool and validates each body against
+  its route model; it also fails if a write tool is added without coverage. Verified the
+  test fails on the pre-fix code (11 failures). Backend tests **656/656**.
+- Portal note "This tool update needs further review" on the automation tools is a manual
+  review of changed open-world tools (they send email and call external URLs), not a
+  scanner defect; these fixes change the tools again and will also be reviewed.
+- Backend finding left unchanged: the webhook API accepts `email.opened` and
+  `email.bouonced` (typo), but neither is ever dispatched.
 - Release notes describe this release: web-distribution page, localized listing,
   54 hosted tools, confirmations, OAuth tenant boundaries and eight skills.
   The 54-tool count is from the source; authenticated discovery in ChatGPT is still

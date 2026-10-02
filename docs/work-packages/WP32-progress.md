@@ -196,7 +196,13 @@ Newest first. Each entry: what changed, why, evidence, gotchas, next step.
 - Update: re-scan flagged `update_session` as open-world (public agenda/.ics) → fixed.
   Found and fixed a real bug: MCP `create_session`/`update_session` sent field names the
   REST schema rejects (`title` vs required `name`, etc.). Backend tests **623/623**.
-  Needs backend deploy + re-scan. Other MCP write tools are not yet audited for field drift.
+  Needs backend deploy + re-scan.
+- Update: audited all 27 MCP write tools against their FastAPI body models; fixed field
+  drift in event updates/registration toggles (missing `name`), automation rules (partial
+  body, int vs string IDs, silently dropped action fields) , webhooks (`events` vs
+  `event_type`, undeliverable types) and bulk attendee rows. New
+  `tests/test_mcp_rest_contract.py` guards every write tool (fails 11× on pre-fix code);
+  backend **656/656**. Details in `heptacert/chatgpt-plugin/SUBMISSION-PREP.md`.
 
 ### 2026-10-02 — admin check-in language wave
 

@@ -979,6 +979,14 @@ async def create_event(
     return _result({"status": "created", "event": result})
 
 
+async def _patch_event(event_id: int, api_key: str, body: dict) -> Any:
+    """PATCH an event; the REST endpoint requires `name` on every update, so keep the current one."""
+    if "name" not in body:
+        current = await _get(f"/api/admin/events/{event_id}", api_key)
+        body = {"name": current.get("name"), **body}
+    return await _patch(f"/api/admin/events/{event_id}", api_key, body)
+
+
 @mcp.tool(title="Update Event", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=True, idempotentHint=False))
 async def update_event(
     ctx: Context,
@@ -1032,7 +1040,7 @@ async def update_event(
     patch_body = {k: v for k, v in fields.items() if v is not None}
     if not patch_body:
         return _result({"status": "unchanged", "error": "No fields provided — nothing to update."})
-    updated = await _patch(f"/api/admin/events/{event_id}", api_key, patch_body)
+    updated = await _patch_event(event_id, api_key, patch_body)
     _fire_and_forget_log(api_key, "update_event", event_id=event_id,
                          payload=patch_body, result_summary=f"Updated event {event_id}: {list(patch_body)}")
     return _result({"status": "updated", "event": updated})
@@ -1097,7 +1105,7 @@ async def close_registration(ctx: Context, event_id: int) -> Annotated[CallToolR
     """
     api_key = _get_api_key(ctx)
     await _require_scope(api_key, "events:write")
-    updated = await _patch(f"/api/admin/events/{event_id}", api_key, {"registration_closed": True})
+    updated = await _patch_event(event_id, api_key, {"registration_closed": True})
     _fire_and_forget_log(api_key, "close_registration", event_id=event_id,
                          result_summary=f"Closed registration for event {event_id}")
     return _result({"status": "registration_closed", "event": updated})
@@ -1113,7 +1121,7 @@ async def open_registration(ctx: Context, event_id: int) -> Annotated[CallToolRe
     """
     api_key = _get_api_key(ctx)
     await _require_scope(api_key, "events:write")
-    updated = await _patch(f"/api/admin/events/{event_id}", api_key, {"registration_closed": False})
+    updated = await _patch_event(event_id, api_key, {"registration_closed": False})
     _fire_and_forget_log(api_key, "open_registration", event_id=event_id,
                          result_summary=f"Opened registration for event {event_id}")
     return _result({"status": "registration_opened", "event": updated})
@@ -1191,7 +1199,8 @@ async def bulk_add_attendees(ctx: Context, event_id: int, attendees: list[dict])
 
     Args:
         event_id: Numeric event ID.
-        attendees: List of objects, each with "first_name", "last_name", "email".
+        attendees: List of objects, each with "first_name", "last_name", "email"
+          (a single "name" is split at its last space). Rows missing any are reported.
           Example: [{"first_name": "Ali", "last_name": "Yılmaz", "email": "ali@example.com"}]
 
     Returns: {added: N, skipped: N, errors: [...]}
@@ -1202,12 +1211,18 @@ async def bulk_add_attendees(ctx: Context, event_id: int, attendees: list[dict])
         raise ValueError("Provide between 1 and 100 attendees per request.")
     results: dict = {"added": 0, "skipped": 0, "errors": []}
     for a in attendees:
+        first_name = str(a.get("first_name") or "").strip()
+        last_name = str(a.get("last_name") or "").strip()
+        if not (first_name or last_name) and a.get("name"):
+            first_name, _, last_name = str(a["name"]).strip().rpartition(" ")
+            if not first_name:
+                first_name, last_name = last_name, ""
+        if not first_name or not last_name or not a.get("email"):
+            # The REST endpoint requires all three; report the row instead of a bare 422.
+            results["errors"].append({"email": a.get("email"), "error": "first_name, last_name and email are required."})
+            continue
         try:
-            body = {
-                "first_name": a.get("first_name", ""),
-                "last_name": a.get("last_name", ""),
-                "email": a.get("email", ""),
-            }
+            body = {"first_name": first_name, "last_name": last_name, "email": a.get("email")}
             await _post(f"/api/admin/events/{event_id}/attendees", api_key, body)
             results["added"] += 1
         except MCPAPIError as exc:
@@ -1730,12 +1745,48 @@ async def list_automation_rules(ctx: Context, event_id: int) -> Annotated[CallTo
     return _result({"event_id": event_id, "total": len(rules), "rules": rules})
 
 
+# Event triggers accepted by the REST automation endpoints (the archived LMS triggers are
+# deliberately not offered).
+AutomationTriggerName = Literal[
+    "attended_event", "registered_no_show", "certificate_issued",
+    "survey_not_completed", "badge_earned", "audience_segment",
+]
+_AUTOMATION_ACTION_TYPES = {"send_email", "create_reminder", "webhook_dispatch"}
+# Older documented spellings mapped onto the REST field names.
+_AUTOMATION_ACTION_ALIASES = {"template_id": "email_template_id", "delay_hours": "reminder_delay_hours",
+                              "url": "webhook_url"}
+_AUTOMATION_ACTION_FIELDS = ("type", "email_template_id", "reminder_delay_hours", "webhook_url")
+
+
+def _automation_actions(actions: list) -> list[dict]:
+    """Normalize actions to the REST schema and reject what it would silently drop."""
+    if not actions or len(actions) > 5:
+        raise ValueError("Provide between 1 and 5 actions.")
+    normalized = []
+    for action in actions:
+        if not isinstance(action, dict):
+            raise ValueError("Each action must be an object with a \"type\".")
+        item = {_AUTOMATION_ACTION_ALIASES.get(k, k): v for k, v in action.items()}
+        unknown = sorted(set(item) - set(_AUTOMATION_ACTION_FIELDS))
+        if unknown:
+            raise ValueError(f"Unsupported action fields: {', '.join(unknown)}.")
+        kind = item.get("type")
+        if kind not in _AUTOMATION_ACTION_TYPES:
+            raise ValueError("Action type must be send_email, create_reminder or webhook_dispatch.")
+        if kind == "send_email" and not item.get("email_template_id"):
+            raise ValueError("send_email actions need email_template_id.")
+        if kind == "webhook_dispatch" and not item.get("webhook_url"):
+            raise ValueError("webhook_dispatch actions need an HTTPS webhook_url.")
+        normalized.append({k: item[k] for k in _AUTOMATION_ACTION_FIELDS if item.get(k) is not None})
+    return normalized
+
+
 @mcp.tool(title="Create Automation Rule", annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True, idempotentHint=False))
 async def create_automation_rule(
     ctx: Context,
     event_id: int,
     name: str,
-    trigger: str,
+    trigger: AutomationTriggerName,
     actions: list[dict],
     trigger_config: Optional[dict] = None,
     enabled: bool = True,
@@ -1746,20 +1797,26 @@ async def create_automation_rule(
     Args:
         event_id: Numeric event ID.
         name: Rule name (e.g. "Send cert email after attendance").
-        trigger: One of the trigger types (see list_automation_rules for the full list).
-        actions: List of action objects. Each needs "type":
-            - {"type": "send_email", "template_id": 123, "delay_hours": 0}
-            - {"type": "create_reminder", "message": "...", "delay_hours": 24}
-            - {"type": "webhook_dispatch", "url": "https://...", "method": "POST"}
-        trigger_config: Optional trigger parameters dict.
+        trigger: attended_event, registered_no_show, certificate_issued,
+            survey_not_completed, badge_earned or audience_segment.
+        actions: 1-5 action objects. Each needs "type":
+            - {"type": "send_email", "email_template_id": 123}
+            - {"type": "create_reminder", "reminder_delay_hours": 24}
+            - {"type": "webhook_dispatch", "webhook_url": "https://..."}
+          send_email emails attendees and webhook_dispatch calls an external URL.
+        trigger_config: Optional trigger parameters dict (audience_segment: {"segment_key": ...}).
         enabled: Whether the rule is immediately active. Default: True.
 
     Returns the updated automation rule set for the event.
     """
     api_key = _get_api_key(ctx)
     await _require_scope(api_key, "automations:write")
+    try:
+        clean_actions = _automation_actions(actions)
+    except ValueError as exc:
+        return _result({"status": "invalid", "error": str(exc)})
     body: dict = {
-        "name": name, "trigger": trigger, "actions": actions,
+        "name": name, "trigger": trigger, "actions": clean_actions,
         "trigger_config": trigger_config or {}, "enabled": enabled,
     }
     data = await _post(f"/api/admin/events/{event_id}/automations", api_key, body)
@@ -1860,32 +1917,47 @@ async def list_agent_logs(
 async def update_automation_rule(
     ctx: Context,
     event_id: int,
-    rule_id: int,
+    rule_id: str,
     name: Optional[str] = None,
     enabled: Optional[bool] = None,
-    actions: Optional[list] = None,
+    actions: Optional[list[dict]] = None,
 ) -> Annotated[CallToolResult, OperationOutput]:
     """
     Update an existing automation rule.
 
     Args:
         event_id: The event that owns the rule.
-        rule_id: The rule ID to update.
+        rule_id: The rule ID to update (string, from list_automation_rules).
         name: New name for the rule. Optional.
         enabled: True to enable, False to disable. Optional.
-        actions: Replacement actions list. Optional.
+        actions: Replacement actions list, same format as create_automation_rule. Optional.
+
+    Fields you omit keep their current values.
 
     Returns the updated rule object.
     """
     api_key = _get_api_key(ctx)
     await _require_scope(api_key, "automations:write")
-    body: dict = {}
-    if name is not None:
-        body["name"] = name
-    if enabled is not None:
-        body["enabled"] = enabled
-    if actions is not None:
-        body["actions"] = actions
+    if name is None and enabled is None and actions is None:
+        return _result({"status": "unchanged", "error": "No fields provided — nothing to update."})
+    try:
+        clean_actions = _automation_actions(actions) if actions is not None else None
+    except ValueError as exc:
+        return _result({"status": "invalid", "error": str(exc)})
+    rules = await _get(f"/api/admin/events/{event_id}/automations", api_key)
+    current = next((r for r in _as_list(rules, "items", "rules", "automations") if r.get("id") == rule_id), None)
+    if current is None:
+        return _result({"status": "not_found", "error": f"Automation rule {rule_id} was not found in event {event_id}."})
+    # The REST endpoint replaces the whole rule, so start from its current values.
+    body: dict = {
+        "name": name if name is not None else current.get("name"),
+        "trigger": current.get("trigger"),
+        "trigger_config": current.get("trigger_config") or {},
+        "enabled": enabled if enabled is not None else bool(current.get("enabled")),
+        "actions": clean_actions if clean_actions is not None else [
+            {k: a[k] for k in _AUTOMATION_ACTION_FIELDS if a.get(k) is not None} for a in current.get("actions") or []
+        ],
+    }
     data = await _patch(f"/api/admin/events/{event_id}/automations/{rule_id}", api_key, body)
     _fire_and_forget_log(api_key, "update_automation_rule", event_id=event_id,
                          payload={"rule_id": rule_id, **body}, result_summary=f"rule {rule_id} updated")
@@ -1896,7 +1968,7 @@ async def update_automation_rule(
 async def delete_automation_rule(
     ctx: Context,
     event_id: int,
-    rule_id: int,
+    rule_id: str,
     confirm: bool = False,
 ) -> Annotated[CallToolResult, OperationOutput]:
     """
@@ -1904,7 +1976,7 @@ async def delete_automation_rule(
 
     Args:
         event_id: The event that owns the rule.
-        rule_id: The rule ID to delete.
+        rule_id: The rule ID to delete (string, from list_automation_rules).
         confirm: Must be True to proceed. Without it returns a preview.
 
     Returns confirmation or a preview of what will be deleted.
@@ -1950,7 +2022,7 @@ async def list_webhooks(ctx: Context) -> Annotated[CallToolResult, WebhookListOu
 async def create_webhook(
     ctx: Context,
     url: str,
-    events: list,
+    events: list[Literal["attendee.register", "email.sent", "email.failed"]],
     secret: Optional[str] = None,
 ) -> Annotated[CallToolResult, OperationOutput]:
     """
@@ -1958,19 +2030,24 @@ async def create_webhook(
 
     Args:
         url: The HTTPS URL that will receive POST requests.
-        events: List of event types to subscribe to. Available:
-                attendee.registered, attendee.checkin, certificate.issued,
-                certificate.revoked, event.created, event.updated, payment.completed
+        events: Event types to subscribe to; one subscription is created per type.
+                attendee.register, email.sent, email.failed
         secret: Optional signing secret for HMAC-SHA256 signature verification.
 
     Returns the created webhook object with its id.
     """
     api_key = _get_api_key(ctx)
     await _require_scope(api_key, "events:write")
-    body: dict = {"url": url, "events": events}
-    if secret:
-        body["secret"] = secret
-    data = await _post("/api/admin/webhooks", api_key, body)
+    event_types = list(dict.fromkeys(events))
+    if not event_types:
+        return _result({"status": "invalid", "error": "Provide at least one event type."})
+    subscriptions = []
+    for event_type in event_types:
+        body: dict = {"event_type": event_type, "url": url}
+        if secret:
+            body["secret"] = secret
+        subscriptions.append(await _post("/api/admin/webhooks", api_key, body))
+    data = subscriptions[0] if len(subscriptions) == 1 else subscriptions
     _fire_and_forget_log(api_key, "create_webhook", payload={"url": url, "events": events},
                          result_summary=f"webhook created for {url}")
     return _result({"status": "created", "webhook": data})
