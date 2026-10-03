@@ -58,3 +58,9 @@ migrate_attendance.sql
 heptacert/frontend/tsconfig.tsbuildinfo
 
 .mcp.json
+
+
+## ── Custom rules ───────────────────────────────────────────────────────────────
+brag-output/
+brag-output-*.zip
+brag-outputdocumentpreviews
