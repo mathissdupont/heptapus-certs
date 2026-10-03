@@ -207,6 +207,11 @@ Newest first. Each entry: what changed, why, evidence, gotchas, next step.
   account) → `review.demo_recording_url` = `https://youtu.be/FmSnfd4resA`; release notes
   now mention the API-alignment fixes; packaging asserts an HTTPS demo URL. Rebuilt ZIP
   verified. Next: owner re-uploads `dist/heptacert-plugin-0.9.9-draft.zip` and submits.
+- Gotcha: during recording ChatGPT once answered that the connection "exposes no event
+  lookup tool such as list_events". Cause (owner-confirmed): the backend rebuild/deploy
+  had not finished yet. It worked once the deploy completed; no code change was needed.
+  If this recurs, first confirm the deploy is complete (`docker compose ps`, backend logs),
+  then start a new chat; only then suspect OAuth scopes.
 
 ### 2026-10-02 — admin check-in language wave
 

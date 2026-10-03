@@ -54,6 +54,9 @@ Status: **draft package prepared, not submitted for review**.
   scanner defect; these fixes change the tools again and will also be reviewed.
 - Backend finding left unchanged: the webhook API accepts `email.opened` and
   `email.bouonced` (typo), but neither is ever dispatched.
+- If ChatGPT says the connection exposes no tools (e.g. no `list_events`), check that the
+  backend deploy has finished before anything else. On 2026-10-03 this was the cause:
+  the rebuild was still running. Then retry in a new chat.
 - Release notes describe this release: web-distribution page, localized listing,
   54 hosted tools, confirmations, OAuth tenant boundaries and eight skills.
   The 54-tool count is from the source; authenticated discovery in ChatGPT is still
