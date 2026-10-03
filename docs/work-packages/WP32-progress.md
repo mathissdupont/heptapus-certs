@@ -212,6 +212,13 @@ Newest first. Each entry: what changed, why, evidence, gotchas, next step.
   had not finished yet. It worked once the deploy completed; no code change was needed.
   If this recurs, first confirm the deploy is complete (`docker compose ps`, backend logs),
   then start a new chat; only then suspect OAuth scopes.
+- Update (2026-10-03): owner submitted the plugin for review. Policy pages are linked URLs,
+  so they can still change. Drafted an unpublished privacy/terms update
+  (`docs/drafts/legal/privacy-terms-ai-update-draft.md`): named individual operator, AI
+  assistant/OpenAI transfer section, legal bases, children, rights + complaint route,
+  de-duplicated security text, AI-use terms. Claims checked against code: disconnect UI
+  exists (Integrations page); `DELETE /api/me` only soft-deletes, so the draft promises
+  manual deletion on request instead. Not wired: awaits owner e-mail/address + approval.
 
 ### 2026-10-02 — admin check-in language wave
 
