@@ -203,6 +203,10 @@ Newest first. Each entry: what changed, why, evidence, gotchas, next step.
   `event_type`, undeliverable types) and bulk attendee rows. New
   `tests/test_mcp_rest_contract.py` guards every write tool (fails 11× on pre-fix code);
   backend **656/656**. Details in `heptacert/chatgpt-plugin/SUBMISSION-PREP.md`.
+- Update (2026-10-03): owner recorded the review walkthrough (ChatGPT desktop app, demo
+  account) → `review.demo_recording_url` = `https://youtu.be/FmSnfd4resA`; release notes
+  now mention the API-alignment fixes; packaging asserts an HTTPS demo URL. Rebuilt ZIP
+  verified. Next: owner re-uploads `dist/heptacert-plugin-0.9.9-draft.zip` and submits.
 
 ### 2026-10-02 — admin check-in language wave
 

@@ -118,7 +118,7 @@ the deployed entry point remains `backend/src/mcp_server.py`, next to its widget
 | Commerce | Owner confirmed no plugin purchase/payment flow; `commerce=false` and explanation recorded. |
 | Privacy and terms | Existing URLs are retained. The browser tool could not retrieve their content on 2026-10-01; plugin-specific data-practice coverage is unverified. Legal source and translation review remain on hold. |
 | Category | Existing `Productivity` remains a draft choice; verify against the target portal. |
-| Demo recording | No recording URL supplied; no video has been produced or verified. |
+| Demo recording | Owner recorded the walkthrough in the ChatGPT desktop app with the review account and uploaded it unlisted: `https://youtu.be/FmSnfd4resA` (oEmbed 200 on 2026-10-03, so it is reachable by link). Added as `review.demo_recording_url`. Video content was not reviewed by the assistant. |
 | Reviewer access | No dedicated test account or host connection evidence supplied. Keep credentials in secure portal fields only. |
 | Review cases | All eight are **Not run in ChatGPT**. Local Python tests do not establish host acceptance. |
 | Deployment / scan | Owner reported deployment; public MCP/OAuth discovery passes. Sign in to the updated development connection and verify the actual 54-tool list. Domain verification and saved-submission scan are not completed. |

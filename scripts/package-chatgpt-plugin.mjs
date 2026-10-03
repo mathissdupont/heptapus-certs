@@ -36,6 +36,10 @@ assert.equal(mcp.mcpServers.heptacert.type, "streamable-http");
 assert.equal(mcp.mcpServers.heptacert.url, "https://heptacert.com/mcp");
 assert.equal(openai.review.test_cases.positive.length, 5);
 assert.equal(openai.review.test_cases.negative.length, 3);
+// The portal refuses submission without a walkthrough; it must be a reachable HTTPS link.
+if (openai.review.demo_recording_url !== undefined) {
+  assert.equal(new URL(openai.review.demo_recording_url).protocol, "https:");
+}
 assert.equal(Object.keys(openai.publication.translations).length, 8);
 for (const [locale, translation] of Object.entries(openai.publication.translations)) {
   assert(locale.trim());

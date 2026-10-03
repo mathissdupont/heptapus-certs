@@ -33,6 +33,7 @@
       "review": {
         "commerce": false,
         "commerce_description": "The plugin does not offer purchases or process payments.",
+        "demo_recording_url": "https://youtu.be/FmSnfd4resA",
         "test_cases": {
           "positive": [
             {
@@ -84,7 +85,7 @@
       },
       "publication": {
         "countries": ["TR", "US", "AD", "AL", "AM", "AT", "AZ", "BA", "BE", "BG", "CH", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GB", "GE", "GR", "HR", "HU", "IE", "IS", "IT", "KZ", "LI", "LT", "LU", "LV", "MC", "MD", "ME", "MK", "MT", "NL", "NO", "PL", "PT", "RO", "RS", "SE", "SI", "SK", "SM", "UA", "VA"],
-        "release_notes": "Prepares HeptaCert for public web distribution with a dedicated nine-language product page and localized listing metadata. Includes 54 hosted MCP tools, explicit confirmation for high-impact actions, OAuth tenant boundaries, and eight workflow skills.",
+        "release_notes": "Prepares HeptaCert for public web distribution with a nine-language product page and localized listing. Fixes event, registration, session, automation and webhook actions so they match the HeptaCert API, and marks actions that overwrite data or reach attendees for confirmation. Includes 54 hosted MCP tools, OAuth tenant boundaries and eight workflow skills.",
         "translations": {
           "tr-TR": {
             "subtitle": "HeptaCert işlerini yönetin",
