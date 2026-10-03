@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 
+type LegalSection = [title: string, body: string, items?: string[]];
+
 export default function TermsPage() {
   const { lang } = useI18n();
   const isTr = lang === "tr";
 
-  const sections = isTr
+  const sections: LegalSection[] = isTr
     ? [
         [
  "1. Taraflar ve Tanımlar",
- 'Bu Kullanım Koşulları; HeptaCert platformunu kullanan hesap sahibi ("Kullanıcı") ile Heptapus Group ("Şirket") arasında akdedilir. Şirket, platformu teknik altyapı ve dijital servis sağlayıcı olarak sunar.',
+ 'Bu Kullanım Koşulları; HeptaCert platformunu kullanan hesap sahibi ("Kullanıcı") ile platformu bireysel olarak işleten Samet Ünsal ("Şirket" veya "İşleten") arasında akdedilir. "Heptapus Group" bir marka adıdır; tescilli bir şirket unvanı değildir. Şirket, platformu teknik altyapı ve dijital servis sağlayıcı olarak sunar.',
         ],
         [
  "2. Hizmetin Niteliği",
@@ -58,6 +60,11 @@ export default function TermsPage() {
  "Kullanıcı veya organizasyon yetkilisi tarafından Google Calendar entegrasyonu etkinleştirildiğinde HeptaCert, yalnızca salon rezervasyonu, etkinlik takvimi, uygunluk kontrolü ve çift yönlü senkronizasyon amaçlarıyla ilgili takvim kayıtlarını oluşturabilir, güncelleyebilir veya silebilir. Kullanıcı, Google hesabına verilen yetkileri Google hesap ayarlarından veya platformdaki entegrasyon ayarlarından kaldırabilir. Google servislerindeki kesinti, kota, yetki değişikliği, kullanıcının takvim içeriğini değiştirmesi veya harici senkronizasyon gecikmeleri nedeniyle oluşabilecek takvim uyuşmazlıklarından Şirket makul teknik özen dışında sorumlu değildir.",
         ],
         [
+ "11.b Yapay Zekâ Asistanları ile Kullanım",
+ "Kullanıcı, HeptaCert hesabını ChatGPT eklentisi veya MCP uyumlu başka bir yapay zekâ asistanına bağlayabilir. Bu durumda:",
+ ["Asistan aracılığıyla yapılan işlemler kullanıcının kendi hesabıyla yapılmış sayılır ve hesabın mevcut yetkileriyle sınırlıdır.", "Yüksek etkili işlemler (toplu e-posta, silme, iptal, sertifika üretimi, verinin üzerine yazılması) önce önizlenir ve kullanıcının açık onayını gerektirir. Onay vermeden önce önizlemeyi kontrol etmek kullanıcının sorumluluğundadır.", "Yapay zekâ çıktıları hatalı veya eksik olabilir. Asistanın verdiği özetler ve öneriler HeptaCert'in resmi kaydı değildir; esas olan platformdaki kayıtlardır.", "Asistan sağlayıcısının (ör. OpenAI) hizmeti kendi kullanım koşulları ve gizlilik politikasına tabidir; Şirket bu hizmetin işleyişinden sorumlu değildir.", "Kullanıcı, katılımcı verilerini bir asistanla işlemeden önce gerekli aydınlatmayı yapmayı ve 13 yaşından küçük kişilerin verilerini bu entegrasyonlar üzerinden işlememeyi kabul eder.", "Eklenti bilet satışı, ödeme, iade veya para transferi yapmaz."],
+        ],
+        [
  "12. Sorumluluğun Sınırlandırılması",
  "Şirket; mevzuatın izin verdiği ölçüde dolaylı zarar, kar kaybı ve itibar kaybından sorumlu tutulamaz. Ancak kast, ağır kusur ve emredici tüketici mevzuatından doğan sorumluluk halleri saklıdır. Kullanıcı kaynaklı içerik ve kullanım amaçlarına ilişkin birincil sorumluluk kullanıcıya aittir.",
         ],
@@ -79,13 +86,13 @@ export default function TermsPage() {
         ],
         [
  "17. İşleten Bilgisi",
- "Platform işletenine ilişkin güncel iletişim ve bildirim bilgileri İletişim sayfasında yayımlanır. İşletenin ticari statüsüne göre zorunlu olmayan sicil alanları ayrıca beyan edilmeyebilir.",
+ "Platform, Samet Ünsal tarafından bireysel olarak işletilmektedir. Hukuki bildirimler ve talepler için iletişim adresi: contact@heptapusgroup.com. Güncel iletişim bilgileri ayrıca İletişim sayfasında yayımlanır. İşletenin statüsüne göre zorunlu olmayan sicil alanları ayrıca beyan edilmeyebilir.",
         ],
       ]
     : [
         [
  "1. Parties and Definitions",
- 'These Terms of Use are entered into between the account holder using HeptaCert ("User") and Heptapus Group ("Company"). The Company provides the platform as a technical infrastructure and digital service provider.',
+ 'These Terms of Use are entered into between the account holder using HeptaCert ("User") and Samet Ünsal, who operates the platform as an individual ("Company" or "Operator"). "Heptapus Group" is a brand name, not a registered company. The Company provides the platform as a technical infrastructure and digital service provider.',
         ],
         [
  "2. Nature of Service",
@@ -132,6 +139,11 @@ export default function TermsPage() {
  "When Google Calendar integration is enabled by the User or an authorized organization representative, HeptaCert may create, update, or delete relevant calendar records only for venue reservation, event scheduling, availability checks, and two-way synchronization purposes. The User may revoke Google permissions from Google account settings or from the platform's integration settings. The Company is not responsible beyond reasonable technical care for calendar mismatches caused by Google service outages, quotas, permission changes, user-side calendar edits, or external synchronization delays.",
         ],
         [
+ "11.b Use with AI Assistants",
+ "Users may connect their HeptaCert account to the ChatGPT plugin or another MCP-compatible AI assistant. In that case:",
+ ["Actions taken through the assistant count as actions of the user's own account and are limited to that account's existing permissions.", "High-impact actions (bulk email, deletion, revocation, certificate issuance, overwriting data) are previewed first and require the user's explicit confirmation. Checking the preview before confirming is the user's responsibility.", "AI output may be inaccurate or incomplete. Summaries and suggestions from the assistant are not HeptaCert's official record; the records on the platform prevail.", "The assistant provider's service (e.g. OpenAI) is governed by its own terms and privacy policy; the Company is not responsible for how that service operates.", "The user agrees to give attendees any required notice before processing their data with an assistant, and not to process data of persons under 13 through these integrations.", "The plugin does not sell tickets, take payments, issue refunds or transfer money."],
+        ],
+        [
  "12. Limitation of Liability",
  "To the extent permitted by law, the Company is not liable for indirect damages, loss of profit, or reputational loss. This does not exclude liability arising from willful misconduct, gross negligence, or mandatory consumer law. Primary responsibility for user-generated content and intended use remains with the User.",
         ],
@@ -153,7 +165,7 @@ export default function TermsPage() {
         ],
         [
  "17. Operator Information",
- "Current contact and legal notice details of the platform operator are published on the Contact page. Registry fields that are not legally mandatory for the operator's status may be omitted.",
+ "The platform is operated by Samet Ünsal as an individual. Contact for legal notices and requests: contact@heptapusgroup.com. Current contact details are also published on the Contact page. Registry fields that are not legally mandatory for the operator's status may be omitted.",
         ],
       ];
 
@@ -178,14 +190,21 @@ export default function TermsPage() {
             {isTr ? "HeptaCert Kullanım Koşulları" : "HeptaCert Terms of Use"}
           </h1>
           <p className="mt-2 text-sm text-content-muted">
-            {isTr ? "Son güncelleme: 14 Mayıs 2026" : "Last updated: May 14, 2026"}
+            {isTr ? "Son güncelleme: 3 Ekim 2026" : "Last updated: October 3, 2026"}
           </p>
         </div>
 
-        {sections.map(([title, body]) => (
+        {sections.map(([title, body, items]) => (
           <section key={title} className="space-y-3">
             <h2 className="text-lg font-bold text-content-primary">{title}</h2>
             <p className="text-sm leading-relaxed text-content-secondary">{body}</p>
+            {items && (
+              <ul className="list-disc space-y-2 pl-5 text-sm leading-relaxed text-content-secondary">
+                {items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            )}
           </section>
         ))}
 

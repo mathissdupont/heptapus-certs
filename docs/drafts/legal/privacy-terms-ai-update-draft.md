@@ -1,6 +1,8 @@
 # Gizlilik Politikası ve Kullanım Koşulları — güncelleme taslağı (2026-10)
 
-> **Durum: TASLAK — yayında değil.** Bu metin hukukçu tarafından incelenmedi; hukuki görüş
+> **Durum (2026-10-03): sahip onayıyla sayfalara bağlandı** — işleten adı "Samet Ünsal", e-posta `contact@heptapusgroup.com`; adres sahibin isteğiyle şimdilik yazılmadı. Aşağıdaki metin tarihsel taslaktır; yayındaki metin `src/app/{gizlilik,kullanim-kosullari,kvkk}/page.tsx` içindedir.
+>
+> **Önceki durum: TASLAK — yayında değil.** Bu metin hukukçu tarafından incelenmedi; hukuki görüş
 > değildir. Sahibin onayı olmadan `/gizlilik` veya `/kullanim-kosullari` sayfalarına
 > bağlanmaz. `[KÖŞELİ PARANTEZ]` içindeki alanlar sahip tarafından doldurulmalıdır.
 >

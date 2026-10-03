@@ -219,6 +219,15 @@ Newest first. Each entry: what changed, why, evidence, gotchas, next step.
   de-duplicated security text, AI-use terms. Claims checked against code: disconnect UI
   exists (Integrations page); `DELETE /api/me` only soft-deletes, so the draft promises
   manual deletion on request instead. Not wired: awaits owner e-mail/address + approval.
+- Update: owner approved naming "Samet Ünsal" (no postal address for now). Wired into
+  `/gizlilik` (18 sections incl. data controller, legal bases, AI assistants, children,
+  rights/complaints), `/kullanim-kosullari` (operator definition, 11.b AI use, 17 operator)
+  and `/kvkk` (operator, 6.a AI transfers, complaints); duplicated security text cleaned.
+  TR/EN only, as before — the other seven locales still get English; legal text is not
+  machine-translated. Open: postal address; KVKK page's fixed retention periods and the
+  30-day deletion promise are pre-existing claims not backed by automatic purge
+  (`DELETE /api/me` soft-deletes) — owner handles deletion requests manually.
+  Verification: tsc, UI contracts, frontend **234/234** (5 new legal render tests), build.
 
 ### 2026-10-02 — admin check-in language wave
 
